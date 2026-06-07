@@ -59,6 +59,21 @@ export interface IgStatusResponse {
     igUserId: string;
 }
 
+export interface IgPostRow {
+    id: string;
+    caption: string;
+    mediaType: string;
+    mediaUrl: string;
+    permalink: string;
+    timestamp: string;
+    likeCount: number;
+    commentsCount: number;
+    impressions: number;
+    reach: number;
+    saved: number;
+    shares: number;
+}
+
 export const igApi = {
     getStatus: (companyId: string) =>
         api.get<IgStatusResponse>('/client/analytics/ig/status', {
@@ -75,8 +90,13 @@ export const igApi = {
             params: { companyId }
         }).then(r => r.data),
 
-    getReels: (companyId: string, limit = 10) =>
+    getReels: (companyId: string, limit = 20) =>
         api.get<IgReelRow[]>('/client/analytics/ig/reels', {
+            params: { companyId, limit }
+        }).then(r => r.data),
+
+    getPosts: (companyId: string, limit = 20) =>
+        api.get<IgPostRow[]>('/client/analytics/ig/posts', {
             params: { companyId, limit }
         }).then(r => r.data),
 };

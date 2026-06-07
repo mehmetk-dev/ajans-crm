@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi, type CompanyResponse, type MembershipInfo, type PermissionResponse } from '../../api/admin';
+import { adminApi, type CompanyResponse, type MembershipInfo, type PermissionResponse, type CompanyServiceItem } from '../../api/admin';
 import {
     ArrowLeft, Building2, Users, Mail, Phone, Globe, MapPin, Calendar, Shield,
     Trash2, ChevronDown, ChevronUp, Briefcase, ExternalLink, UserPlus,
-    Instagram, Facebook, Twitter, Linkedin, Youtube
+    Instagram, Facebook, Twitter, Linkedin, Youtube,
+    BarChart3, Megaphone, Camera, FileText, LayoutTemplate, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import WebDesignAdminSection from '../../components/admin/WebDesignAdminSection';
 
@@ -238,6 +239,9 @@ export default function CompanyDetailPage() {
             {/* Web Design (infrastructure + maintenance log) */}
             <WebDesignAdminSection company={company} />
 
+            {/* Service Management */}
+            <ServiceManagementSection companyId={company.id} />
+
             {/* Members */}
             <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-4">
@@ -420,6 +424,107 @@ export default function CompanyDetailPage() {
                     <p className="text-[10px] text-zinc-700 mt-3 text-center">Ä°zin seviyesini deÄŸiÅŸtirmek iÃ§in tÄ±klayÄ±n: NONE â†’ RESTRICTED â†’ FULL</p>
                 </div>
             )}
+        </div>
+    );
+}
+
+// ===============================================================================
+// SERVICE MANAGEMENT SECTION
+// ===============================================================================
+
+const SERVICE_META = [
+    { category: 'DIGITAL_MARKETING', label: 'Dijital Pazarlama', desc: 'Google Analytics + Search Console', icon: BarChart3, color: 'blue' },
+    { category: 'WEB_DESIGN',        label: 'Web Tasarýmý',      desc: 'PageSpeed + Site Verileri',       icon: LayoutTemplate, color: 'cyan' },
+    { category: 'AD_MANAGEMENT',     label: 'Reklam Yönetimi',  desc: 'Google Ads + Meta Ads',           icon: Megaphone, color: 'amber' },
+    { category: 'SOCIAL_MEDIA',      label: 'Sosyal Medya',     desc: 'Instagram Analiz + Reels',        icon: Instagram, color: 'pink' },
+    { category: 'PRODUCTION',        label: 'Prodüksiyon',      desc: 'Cekim Takvimi',                   icon: Camera, color: 'violet' },
+    { category: 'CONTENT_MARKETING', label: 'Icerik Pazarlama', desc: 'Icerik Plani',                   icon: FileText, color: 'emerald' },
+];
+
+const COLOR_MAP: Record<string, string> = {
+    blue:    'from-blue-500/10 to-blue-400/5 border-blue-500/20 text-blue-400',
+    cyan:    'from-cyan-500/10 to-cyan-400/5 border-cyan-500/20 text-cyan-400',
+    amber:   'from-amber-500/10 to-amber-400/5 border-amber-500/20 text-amber-400',
+    pink:    'from-pink-500/10 to-pink-400/5 border-pink-500/20 text-pink-400',
+    violet:  'from-violet-500/10 to-violet-400/5 border-violet-500/20 text-violet-400',
+    emerald: 'from-emerald-500/10 to-emerald-400/5 border-emerald-500/20 text-emerald-400',
+};
+
+function ServiceManagementSection({ companyId }: { companyId: string }) {
+    const queryClient = useQueryClient();
+
+    const { data: services = [], isLoading } = useQuery<CompanyServiceItem[]>({
+        queryKey: ['company-services', companyId],
+        queryFn: () => adminApi.getCompanyServices(companyId),
+        enabled: !!companyId,
+    });
+
+    const toggleMutation = useMutation({
+        mutationFn: ({ category, active }: { category: string; active: boolean }) =>
+            adminApi.toggleCompanyService(companyId, category, active),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['company-services', companyId] });
+        },
+    });
+
+    const getActive = (category: string) =>
+        services.find(s => s.category === category)?.active ?? false;
+
+    return (
+        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-5">
+                <ToggleRight className="w-4 h-4 text-orange-400" />
+                <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Hizmet Yonetimi</h3>
+                <span className="ml-auto text-[10px] text-zinc-600">
+                    {services.filter(s => s.active).length}/{services.length || 6} aktif
+                </span>
+            </div>
+
+            {isLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="h-24 rounded-xl bg-white/[0.02] border border-white/[0.04] animate-pulse" />
+                    ))}
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {SERVICE_META.map(({ category, label, desc, icon: Icon, color }) => {
+                        const active = getActive(category);
+                        const colorCls = COLOR_MAP[color];
+                        const iconColor = colorCls.split(' ').find((c: string) => c.startsWith('text-')) ?? 'text-zinc-400';
+                        return (
+                            <button
+                                key={category}
+                                onClick={() => toggleMutation.mutate({ category, active: !active })}
+                                disabled={toggleMutation.isPending}
+                                className={`relative flex flex-col gap-2 p-4 rounded-xl border text-left transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                                    active
+                                        ? `bg-gradient-to-br ${colorCls}`
+                                        : 'bg-white/[0.02] border-white/[0.05] opacity-60 hover:opacity-80'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <Icon className={`w-4 h-4 ${active ? iconColor : 'text-zinc-600'}`} />
+                                    {active
+                                        ? <ToggleRight className="w-5 h-5 text-emerald-400" />
+                                        : <ToggleLeft className="w-5 h-5 text-zinc-600" />
+                                    }
+                                </div>
+                                <div>
+                                    <p className={`text-[12px] font-semibold ${active ? 'text-white' : 'text-zinc-500'}`}>{label}</p>
+                                    <p className="text-[10px] text-zinc-600 mt-0.5">{desc}</p>
+                                </div>
+                                {active && (
+                                    <span className="absolute top-2 right-10 text-[9px] font-bold text-emerald-400 uppercase tracking-wider">Acik</span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+            <p className="text-[10px] text-zinc-700 mt-3 text-center">
+                Karta tiklayarak hizmeti acin veya kapatin — degisiklikler aninda musteri paneline yansiir
+            </p>
         </div>
     );
 }

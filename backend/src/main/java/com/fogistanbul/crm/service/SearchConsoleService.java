@@ -27,7 +27,7 @@ public class SearchConsoleService {
     private final RestTemplate restTemplate;
 
     public boolean isConfigured(UUID companyId) {
-        return oAuthService.isConnected(companyId)
+        return oAuthService.isConnected(companyId, "SEARCH_CONSOLE")
                 && oAuthService.getSiteUrl(companyId).isPresent();
     }
 
@@ -36,7 +36,7 @@ public class SearchConsoleService {
      */
     @SuppressWarnings("unchecked")
     public List<Map<String, String>> listSites(UUID companyId) {
-        String accessToken = oAuthService.getValidAccessToken(companyId).orElse(null);
+        String accessToken = oAuthService.getValidAccessToken(companyId, "SEARCH_CONSOLE").orElse(null);
         if (accessToken == null) return List.of();
 
         try {
@@ -71,7 +71,7 @@ public class SearchConsoleService {
         String rangeStart = (startDate != null && !startDate.isBlank()) ? startDate : DEFAULT_START;
         String rangeEnd = (endDate != null && !endDate.isBlank()) ? endDate : DEFAULT_END;
 
-        if (!oAuthService.isConnected(companyId)) {
+        if (!oAuthService.isConnected(companyId, "SEARCH_CONSOLE")) {
             return ScOverviewResponse.disabled();
         }
 
@@ -83,7 +83,7 @@ public class SearchConsoleService {
             );
         }
 
-        String accessToken = oAuthService.getValidAccessToken(companyId).orElse(null);
+        String accessToken = oAuthService.getValidAccessToken(companyId, "SEARCH_CONSOLE").orElse(null);
         if (accessToken == null) {
             log.warn("SC access token alınamadı, companyId={}", companyId);
             return ScOverviewResponse.disabled();

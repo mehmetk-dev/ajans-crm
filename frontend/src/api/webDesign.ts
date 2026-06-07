@@ -27,6 +27,10 @@ export interface PageSpeedReport {
     cmsType?: string | null;
     cmsVersion?: string | null;
     themeName?: string | null;
+    analyticsConnected?: boolean;
+    searchConsoleConnected?: boolean;
+    gaPropertyId?: string | null;
+    searchConsoleSiteUrl?: string | null;
 }
 
 export interface MaintenanceLogEntry {
@@ -53,6 +57,8 @@ export const webDesignApi = {
     // Client (own company)
     getMyPageSpeed: (refresh = false) =>
         api.get<PageSpeedReport>('/client/pagespeed', { params: { refresh } }).then(r => r.data),
+    updateMyWebsite: (websiteUrl: string) =>
+        api.put<PageSpeedReport>('/client/pagespeed/website', { websiteUrl }).then(r => r.data),
     getMyMaintenanceLog: () =>
         api.get<MaintenanceLogEntry[]>('/client/maintenance-log').then(r => r.data),
 

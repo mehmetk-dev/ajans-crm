@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
     Gauge, RefreshCw, AlertCircle, Loader2, Smartphone, Monitor,
     Server, Calendar, ShieldCheck, Layers, Clock, Wrench,
-    CheckCircle2, ExternalLink, ArrowRight,
+    CheckCircle2, ExternalLink, ArrowRight, BarChart3, Search,
 } from 'lucide-react';
 import {
     webDesignApi,
@@ -116,6 +116,8 @@ function ScoresPanel({ report, refreshing, onRefresh, onDetail }: {
     const [strategy, setStrategy] = useState<Strategy>('mobile');
     const score: PageSpeedScore | undefined =
         strategy === 'mobile' ? report?.mobile : report?.desktop;
+    const hasScores = [score?.performance, score?.accessibility, score?.bestPractices, score?.seo]
+        .some(value => value != null);
 
     return (
         <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
@@ -162,7 +164,7 @@ function ScoresPanel({ report, refreshing, onRefresh, onDetail }: {
                 </div>
             </div>
 
-            {score?.fetchError ? (
+            {score?.fetchError && !hasScores ? (
                 <div className="flex items-start gap-3 bg-amber-500/5 border border-amber-500/15 rounded-xl p-4">
                     <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
                     <div className="text-xs">
@@ -198,6 +200,63 @@ function CoreVital({ label, value, hint }: { label: string; value: string; hint?
         <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-3" title={hint}>
             <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-0.5">{label}</p>
             <p className="text-sm font-semibold text-white">{value}</p>
+        </div>
+    );
+}
+
+function SiteConnectionCard({ report }: { report: PageSpeedReport | null }) {
+    if (!report?.websiteUrl && !report?.analyticsConnected && !report?.searchConsoleConnected) {
+        return null;
+    }
+
+    const items = [
+        {
+            icon: ExternalLink,
+            label: 'Web Sitesi',
+            value: report?.websiteUrl ?? 'Tanimli degil',
+            active: Boolean(report?.websiteUrl),
+        },
+        {
+            icon: Search,
+            label: 'Search Console',
+            value: report?.searchConsoleSiteUrl ?? 'Baglanti yok',
+            active: Boolean(report?.searchConsoleConnected),
+        },
+        {
+            icon: BarChart3,
+            label: 'Google Analytics',
+            value: report?.gaPropertyId ? `GA4 ${report.gaPropertyId}` : 'Baglanti yok',
+            active: Boolean(report?.analyticsConnected),
+        },
+    ];
+
+    return (
+        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-semibold text-zinc-200">Site Baglantilari</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {items.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <div key={item.label} className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-3 flex items-start gap-3">
+                            <div className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                item.active ? 'bg-emerald-500/10' : 'bg-white/[0.04]'
+                            }`}>
+                                <Icon className={`w-4 h-4 ${item.active ? 'text-emerald-400' : 'text-zinc-500'}`} />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-0.5">{item.label}</p>
+                                <p className="text-sm font-semibold text-white truncate" title={item.value}>{item.value}</p>
+                                <p className={`text-[10px] mt-1 ${item.active ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                                    {item.active ? 'Bagli' : 'Bekliyor'}
+                                </p>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }
@@ -401,6 +460,7 @@ export default function WebDesignPanel({ companyId }: Props) {
         <div className="space-y-4">
             <ScoresPanel report={report} refreshing={refreshing} onRefresh={handleRefresh}
                 onDetail={!companyId ? () => navigate('/client/web-design') : undefined} />
+            <SiteConnectionCard report={report} />
             <InfrastructureCard report={report} />
             <MaintenanceTimeline entries={log} />
         </div>

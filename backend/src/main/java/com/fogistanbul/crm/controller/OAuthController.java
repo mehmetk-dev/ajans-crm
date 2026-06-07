@@ -32,14 +32,12 @@ public class OAuthController {
                          @RequestParam String state,
                          HttpServletResponse response) throws IOException {
         try {
-            googleOAuthService.handleCallback(code, state);
-            // Başarılı: frontend'in GA sayfasına yönlendir
-            response.sendRedirect(googleOAuthService.getFrontendUrl()
-                    + "/client/analytics?ga=connected");
+            String redirectPath = googleOAuthService.handleCallback(code, state);
+            response.sendRedirect(googleOAuthService.getFrontendUrl() + redirectPath);
         } catch (Exception e) {
             log.error("OAuth callback hatası: {}", e.getMessage(), e);
             response.sendRedirect(googleOAuthService.getFrontendUrl()
-                    + "/client/analytics?ga=error&message=" + e.getMessage());
+                    + "/client/analytics?error=" + e.getMessage());
         }
     }
 }

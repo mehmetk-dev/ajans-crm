@@ -780,9 +780,11 @@ Kullanıcı mesaj gönderir → MessageController
 - [x] Client Mesajlar sayfası
 - [x] Mesaj gönderme (izin kontrolü ile)
 - [x] Onay talebi sistemi (restricted)
-- [ ] Okundu bilgisi — Faz 6'da eklenecek
+- [x] Okundu bilgisi — DM'lerde `isRead` + ✓✓ ikonları implemente edildi (`MessagingPage.tsx` L504-506, `handleReadReceipt` callback)
 - [ ] Opt-out mekanizması — Faz 6'da eklenecek
 - [x] Real-time broadcast (WebSocket STOMP)
+- [x] Grup mesajlaşma (şirket bazlı otomatik grup kanalları) — `GroupConversation`, `GroupMessagingService`, `GroupMessagingController`
+- [x] Grup mesajlarında ajans vs şirket çalışanı renk ayrımı — `senderGlobalRole === 'AGENCY_STAFF'` kontrolüyle turuncu renk + "Ajans" badge (`MessagingPage.tsx` L407-412)
 
 ### Faz 5: Client Paneli (Tamamlandı ✅)
 - [x] Client Raporlar sayfası (placeholder veriler ile)
@@ -793,16 +795,34 @@ Kullanıcı mesaj gönderir → MessageController
 - [x] Client Mesajlaşma
 - [x] Client Layout (mavi tema)
 
-### Faz 6: Entegrasyonlar & Polish (Hafta 6-8)
-- [ ] Google Analytics API entegrasyonu
-- [ ] Google Search Console API entegrasyonu
-- [ ] Instagram API entegrasyonu
-- [ ] Google Ads API entegrasyonu
-- [ ] WP Form / Webhook entegrasyonu
-- [ ] Memnuniyet anketi sistemi
-- [ ] Bildirim sistemi (WebSocket-based)
-- [ ] Responsive tasarım optimizasyonu
-- [ ] Performance optimizasyonu
+### Faz 6: Entegrasyonlar & Polish (Tamamlandı ✅)
+- [x] Google Analytics API entegrasyonu — `GoogleAnalyticsController`, `GoogleAnalyticsService`, `GoogleAnalyticsDetailPage.tsx`
+- [x] Google Search Console API entegrasyonu — `SearchConsoleController`, `SearchConsoleService`, `SearchConsoleDetailPage.tsx`
+- [x] Instagram API entegrasyonu — `InstagramController`, `InstagramService`, `InstagramOAuthController`, `InstagramDetailPage.tsx`
+- [x] Google Ads API entegrasyonu — `GoogleAdsController`, `GoogleAdsService`, `GoogleAdsDetailPage.tsx`
+- [x] Meta Ads API entegrasyonu — `MetaAdsController`, `MetaAdsService`, `MetaAdsDetailPage.tsx` (plana sonradan eklendi)
+- [x] PageSpeed entegrasyonu — `PageSpeedController`, `PageSpeedService`, `PageSpeedDetailPage.tsx` (plana sonradan eklendi)
+- [ ] WP Form / Webhook entegrasyonu — Henüz yapılmadı
+- [x] Memnuniyet anketi sistemi — `SurveyPage.tsx`, `SurveyService`, `ClientSurveyController`, backend entity ve API tam çalışıyor
+- [x] Bildirim sistemi (WebSocket-based) — `NotificationBell.tsx`, `NotificationService`, `NotificationController`, tüm bildirim tipleri tanımlı
+- [ ] Responsive tasarım optimizasyonu — Kısmen yapıldı, tam optimizasyon bekliyor
+- [ ] Performance optimizasyonu — Bekliyor
+
+### Faz 6 Ek Özellikler (Plana Sonradan Eklendi ✅)
+- [x] Kanban Board — `KanbanPage.tsx` (45KB), `KanbanBoard.tsx`
+- [x] Hızlı Arama — `GlobalSearch.tsx`, `SearchController`, `SearchService`
+- [x] Dark Mode — `ThemeToggle.tsx`
+- [x] Dosya/Medya Yükleme — `FileController`, `FileService` (Cloudinary entegrasyonu)
+- [x] Aktivite Geçmişi — `ActivityLogController`, `ActivityLogService`, `ActivityLogPage.tsx`
+- [x] Zaman Takibi — `TimeTrackingController`, `TimeTrackingService`, `TimeTrackingPage.tsx`
+- [x] İçerik Planı — `ContentPlanService`, `StaffContentPlanController`, `ClientContentPlanPage.tsx`
+- [x] Rutin Görev Yönetimi — `RoutineTaskService`, `AdminRoutineController`, `RoutineManagementPage.tsx`
+- [x] Email Bildirimleri — `EmailService`
+- [x] Çoklu Dil Desteği (i18n) — `i18n` klasörü, `LanguageSwitcher.tsx`
+- [x] Admin Kullanıcı Yönetimi — `UsersPage.tsx`, `UserManagementController`
+- [x] Admin Analitik Özet — `AdminAnalyticsPage.tsx`, `StaffAnalyticsPage.tsx`
+- [x] Google OAuth — `OAuthController`, `GoogleOAuthService`, `InstagramOAuthService`
+- [x] Web Bakım Log — `MaintenanceLogController`, `MaintenanceLogService`
 
 ---
 

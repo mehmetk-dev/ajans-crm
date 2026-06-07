@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, CheckCheck, ExternalLink } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { type NotificationResponse } from '../api/features';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -8,14 +8,40 @@ const typeIcons: Record<string, string> = {
     TASK_ASSIGNED: '📋',
     TASK_COMPLETED: '✅',
     TASK_OVERDUE: '⏰',
+    TASK_STATUS_CHANGED: '🔄',
     MESSAGE_RECEIVED: '💬',
     APPROVAL_REQUEST: '🔔',
     APPROVAL_DECIDED: '✔️',
     MEETING_REMINDER: '📅',
+    SHOOT_CREATED: '📸',
     SHOOT_REMINDER: '📷',
+    SHOOT_UPDATED: '🎬',
+    CONTENT_PLAN_CREATED: '📝',
+    CONTENT_PLAN_UPDATED: '📄',
     SURVEY_REQUEST: '⭐',
     FILE_SHARED: '📎',
     SYSTEM: '⚙️',
+};
+
+const refRoutes: Record<string, Record<string, string>> = {
+    client: {
+        TASK: '/client/tasks',
+        SHOOT: '/client/shoots',
+        CONTENT_PLAN: '/client/content-plans',
+        MESSAGE: '/client/messaging',
+    },
+    staff: {
+        TASK: '/staff/tasks',
+        SHOOT: '/staff/shoots',
+        CONTENT_PLAN: '/staff/content-plans',
+        MESSAGE: '/staff/messaging',
+    },
+    admin: {
+        TASK: '/admin/tasks',
+        SHOOT: '/admin/shoots',
+        CONTENT_PLAN: '/admin/content-plans',
+        MESSAGE: '/admin/messaging',
+    },
 };
 
 interface Props {
@@ -26,7 +52,17 @@ export default function NotificationBell({ accentColor = 'orange' }: Props) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+    const location = useLocation();
     const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+
+    const panel = location.pathname.startsWith('/admin') ? 'admin'
+        : location.pathname.startsWith('/staff') ? 'staff' : 'client';
+
+    const getRoute = (n: NotificationResponse): string | null => {
+        if (!n.referenceType) return null;
+        const routes = refRoutes[panel];
+        return routes?.[n.referenceType] || null;
+    };
 
     useEffect(() => {
         const handleClick = (e: MouseEvent) => {
@@ -95,7 +131,12 @@ export default function NotificationBell({ accentColor = 'orange' }: Props) {
                             notifications.map(n => (
                                 <button
                                     key={n.id}
-                                    onClick={() => { markRead(n); setOpen(false); }}
+                                    onClick={() => {
+                                        markRead(n);
+                                        const route = getRoute(n);
+                                        if (route) navigate(route);
+                                        setOpen(false);
+                                    }}
                                     className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-white/[0.03] transition-colors border-b border-white/[0.04] last:border-0 ${!n.isRead ? 'bg-white/[0.02]' : ''}`}
                                 >
                                     <span className="text-lg mt-0.5">{typeIcons[n.type] || '🔔'}</span>

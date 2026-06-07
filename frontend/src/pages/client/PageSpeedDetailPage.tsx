@@ -1,408 +1,698 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState, type ElementType } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
-    ArrowLeft, RefreshCw, Smartphone, Monitor, Gauge,
-    Zap, Shield, Search, Code, Clock, AlertCircle,
-    CheckCircle2, TrendingUp, Info, ExternalLink, Loader2,
+    AlertCircle,
+    ArrowLeft,
+    BarChart3,
+    CheckCircle2,
+    CircleAlert,
+    ExternalLink,
+    Gauge,
+    Globe2,
+    Info,
+    Loader2,
+    Monitor,
+    RefreshCw,
+    Save,
+    Search,
+    ShieldCheck,
+    Smartphone,
+    Sparkles,
+    TrendingUp,
+    XCircle,
+    Zap,
 } from 'lucide-react';
 import { webDesignApi, type PageSpeedReport, type PageSpeedScore } from '../../api/webDesign';
 
-// ─── Yardımcı fonksiyonlar ────────────────────────────────────────────────────
+type Strategy = 'mobile' | 'desktop';
+type HealthTone = 'good' | 'warning' | 'bad' | 'unknown';
 
-function scoreLabel(s?: number | null): string {
-    if (s == null) return '—';
-    if (s >= 90) return 'İyi';
-    if (s >= 50) return 'Geliştirilmeli';
-    return 'Kritik';
-}
-
-function scoreColorClass(s?: number | null): string {
-    if (s == null) return 'text-zinc-500';
-    if (s >= 90) return 'text-emerald-400';
-    if (s >= 50) return 'text-amber-400';
-    return 'text-red-400';
-}
-
-function scoreBgClass(s?: number | null): string {
-    if (s == null) return 'bg-zinc-800/50 border-zinc-700/50';
-    if (s >= 90) return 'bg-emerald-500/8 border-emerald-500/20';
-    if (s >= 50) return 'bg-amber-500/8 border-amber-500/20';
-    return 'bg-red-500/8 border-red-500/20';
-}
-
-function ScoreRing({ score, size = 80 }: { score?: number | null; size?: number }) {
-    const radius = size / 2 - 7;
-    const circ = 2 * Math.PI * radius;
-    const offset = circ - ((score ?? 0) / 100) * circ;
-    const color = score == null ? '#3f3f46' : score >= 90 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171';
-
-    return (
-        <svg width={size} height={size} className="-rotate-90">
-            <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
-            {score != null && (
-                <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
-                    stroke={color} strokeWidth="6" strokeLinecap="round"
-                    strokeDasharray={circ} strokeDashoffset={offset}
-                    className="transition-all duration-700" />
-            )}
-        </svg>
-    );
-}
-
-function vitalStatus(key: string, value?: number | null): 'good' | 'needs-improvement' | 'poor' | 'unknown' {
-    if (value == null) return 'unknown';
-    switch (key) {
-        case 'lcp': return value <= 2500 ? 'good' : value <= 4000 ? 'needs-improvement' : 'poor';
-        case 'fcp': return value <= 1800 ? 'good' : value <= 3000 ? 'needs-improvement' : 'poor';
-        case 'tbt': return value <= 200 ? 'good' : value <= 600 ? 'needs-improvement' : 'poor';
-        case 'cls': return value <= 0.1 ? 'good' : value <= 0.25 ? 'needs-improvement' : 'poor';
-        default: return 'unknown';
-    }
-}
-
-const statusStyle: Record<string, { text: string; bg: string; border: string; label: string }> = {
-    good: { text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'İyi' },
-    'needs-improvement': { text: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', label: 'Geliştirilmeli' },
-    poor: { text: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Kritik' },
-    unknown: { text: 'text-zinc-500', bg: 'bg-zinc-800/50', border: 'border-zinc-700/50', label: '—' },
+type ToneStyle = {
+    label: string;
+    text: string;
+    border: string;
+    bg: string;
+    iconBg: string;
+    softBg: string;
 };
 
-function fmt(ms?: number | null, unit: 'ms' | 'cls' = 'ms'): string {
-    if (ms == null) return '—';
-    if (unit === 'cls') return ms.toFixed(3);
-    return ms >= 1000 ? `${(ms / 1000).toFixed(2)} sn` : `${Math.round(ms)} ms`;
+const toneStyles: Record<HealthTone, ToneStyle> = {
+    good: {
+        label: 'Sağlıklı',
+        text: 'text-emerald-400',
+        border: 'border-emerald-500/20',
+        bg: 'bg-emerald-500/10',
+        iconBg: 'bg-emerald-500/15',
+        softBg: 'bg-emerald-500/5',
+    },
+    warning: {
+        label: 'Dikkat',
+        text: 'text-amber-400',
+        border: 'border-amber-500/20',
+        bg: 'bg-amber-500/10',
+        iconBg: 'bg-amber-500/15',
+        softBg: 'bg-amber-500/5',
+    },
+    bad: {
+        label: 'Kritik',
+        text: 'text-red-400',
+        border: 'border-red-500/20',
+        bg: 'bg-red-500/10',
+        iconBg: 'bg-red-500/15',
+        softBg: 'bg-red-500/5',
+    },
+    unknown: {
+        label: 'Bekliyor',
+        text: 'text-zinc-500',
+        border: 'border-white/[0.08]',
+        bg: 'bg-white/[0.04]',
+        iconBg: 'bg-white/[0.05]',
+        softBg: 'bg-white/[0.02]',
+    },
+};
+
+function normalizeInputUrl(value: string): string {
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    return `https://${trimmed}`;
 }
 
-// ─── Score Card ───────────────────────────────────────────────────────────────
+function scoreTone(score?: number | null): HealthTone {
+    if (score == null) return 'unknown';
+    if (score >= 90) return 'good';
+    if (score >= 50) return 'warning';
+    return 'bad';
+}
 
-function ScoreCard({ title, desc, score, icon: Icon, delay }: {
-    title: string; desc: string; score?: number | null;
-    icon: React.ElementType; delay: number;
-}) {
+function metricTone(metric: 'lcp' | 'fcp' | 'tbt' | 'cls' | 'fid', value?: number | null): HealthTone {
+    if (value == null) return 'unknown';
+    if (metric === 'cls') {
+        if (value <= 0.1) return 'good';
+        if (value <= 0.25) return 'warning';
+        return 'bad';
+    }
+    if (metric === 'lcp') {
+        if (value <= 2500) return 'good';
+        if (value <= 4000) return 'warning';
+        return 'bad';
+    }
+    if (metric === 'fcp') {
+        if (value <= 1800) return 'good';
+        if (value <= 3000) return 'warning';
+        return 'bad';
+    }
+    if (metric === 'fid') {
+        if (value <= 100) return 'good';
+        if (value <= 300) return 'warning';
+        return 'bad';
+    }
+    if (value <= 200) return 'good';
+    if (value <= 600) return 'warning';
+    return 'bad';
+}
+
+function statusIcon(tone: HealthTone): ElementType {
+    if (tone === 'good') return CheckCircle2;
+    if (tone === 'warning') return CircleAlert;
+    if (tone === 'bad') return XCircle;
+    return Info;
+}
+
+function formatMs(ms?: number | null): string {
+    if (ms == null) return '-';
+    if (ms < 1000) return `${Math.round(ms)} ms`;
+    return `${(ms / 1000).toFixed(2)} sn`;
+}
+
+function formatCls(value?: number | null): string {
+    if (value == null) return '-';
+    return value.toFixed(3);
+}
+
+function formatDate(value?: string | null): string {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleString('tr-TR', {
+        day: '2-digit',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+function averageScore(score?: PageSpeedScore): number | null {
+    if (!score) return null;
+    const scores = [score.performance, score.accessibility, score.bestPractices, score.seo]
+        .filter((value): value is number => value != null);
+    if (scores.length === 0) return null;
+    return Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length);
+}
+
+function overallMessage(tone: HealthTone, strategy: Strategy): string {
+    const device = strategy === 'mobile' ? 'mobilde' : 'masaüstünde';
+    if (tone === 'good') return `Site ${device} iyi durumda. Ziyaretçi deneyimi ve Google sinyalleri sağlıklı görünüyor.`;
+    if (tone === 'warning') return `Site ${device} çalışıyor ama hız ve deneyim tarafında iyileştirme alanları var.`;
+    if (tone === 'bad') return `Site ${device} ziyaretçiyi kaybettirebilecek seviyede sorunlar gösteriyor. Öncelik hız ve stabilite olmalı.`;
+    return 'Google PageSpeed verisi henüz okunamadı. Bağlantı durumunu ve site erişimini kontrol edin.';
+}
+
+function HealthSummary({ score, strategy }: { score?: PageSpeedScore; strategy: Strategy }) {
+    const average = averageScore(score);
+    const tone = score?.fetchError ? 'bad' : scoreTone(average);
+    const style = toneStyles[tone];
+    const Icon = statusIcon(tone);
+
     return (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: delay * 0.08 }}
-            className={`rounded-2xl border p-5 ${scoreBgClass(score)}`}>
-            <div className="flex items-start justify-between mb-4">
-                <div className={`h-10 w-10 rounded-xl bg-white/[0.04] flex items-center justify-center`}>
-                    <Icon className={`w-5 h-5 ${scoreColorClass(score)}`} />
+        <section className={`rounded-2xl border ${style.border} ${style.softBg} p-5 md:p-6`}>
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-start gap-4">
+                    <div className={`h-12 w-12 rounded-xl ${style.iconBg} flex items-center justify-center shrink-0`}>
+                        <Icon className={`w-6 h-6 ${style.text}`} />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-lg font-bold text-white">Genel Site Sağlığı</h2>
+                            <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full ${style.bg} ${style.text} border ${style.border}`}>
+                                {style.label}
+                            </span>
+                        </div>
+                        <p className="text-sm text-zinc-400 mt-2 max-w-2xl leading-relaxed">
+                            {overallMessage(tone, strategy)}
+                        </p>
+                    </div>
                 </div>
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${scoreBgClass(score)} ${scoreColorClass(score)}`}>
-                    {scoreLabel(score)}
-                </span>
-            </div>
-            <div className="flex items-end justify-between">
-                <div>
-                    <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">{title}</p>
-                    <p className={`text-4xl font-bold ${scoreColorClass(score)}`}>{score ?? '—'}</p>
-                    <p className="text-[11px] text-zinc-500 mt-0.5">/ 100</p>
+
+                <div className="flex items-end gap-3">
+                    <div className="text-right">
+                        <p className="text-[11px] text-zinc-500 uppercase tracking-wider">Ortalama Skor</p>
+                        <p className={`text-5xl font-bold leading-none ${style.text}`}>{average ?? '-'}</p>
+                    </div>
+                    <p className="text-zinc-600 text-sm pb-1">/ 100</p>
                 </div>
-                <ScoreRing score={score} size={72} />
             </div>
-            <p className="text-xs text-zinc-400 mt-4 leading-relaxed border-t border-white/[0.04] pt-3">{desc}</p>
-        </motion.div>
+        </section>
     );
 }
 
-// ─── Vital Row ────────────────────────────────────────────────────────────────
-
-function VitalRow({ label, hint, value, vKey, displayValue }: {
-    label: string; hint: string; value?: number | null;
-    vKey: string; displayValue: string;
+function DeviceCompareCard({ label, icon: Icon, score, active, onClick }: {
+    label: string;
+    icon: ElementType;
+    score?: PageSpeedScore;
+    active: boolean;
+    onClick: () => void;
 }) {
-    const st = vitalStatus(vKey, value);
-    const s = statusStyle[st];
-    const thresholds: Record<string, string> = {
-        lcp: 'İyi: < 2.5 sn · Orta: 2.5–4 sn · Kötü: > 4 sn',
-        fcp: 'İyi: < 1.8 sn · Orta: 1.8–3 sn · Kötü: > 3 sn',
-        tbt: 'İyi: < 200 ms · Orta: 200–600 ms · Kötü: > 600 ms',
-        cls: 'İyi: < 0.10 · Orta: 0.10–0.25 · Kötü: > 0.25',
-    };
+    const avg = averageScore(score);
+    const tone = score?.fetchError ? 'bad' : scoreTone(avg);
+    const style = toneStyles[tone];
+
     return (
-        <div className={`rounded-xl border p-4 ${s.bg} ${s.border}`}>
-            <div className="flex items-center justify-between mb-2">
-                <div>
-                    <p className="text-sm font-semibold text-white">{label}</p>
-                    <p className="text-[11px] text-zinc-500 mt-0.5">{hint}</p>
+        <button
+            onClick={onClick}
+            className={`text-left rounded-2xl border p-4 transition-all ${
+                active ? `${style.border} ${style.softBg}` : 'border-white/[0.06] bg-[#0C0C0E] hover:border-white/[0.12]'
+            }`}
+        >
+            <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <div className={`h-10 w-10 rounded-xl ${style.iconBg} flex items-center justify-center`}>
+                        <Icon className={`w-5 h-5 ${style.text}`} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-white">{label}</p>
+                        <p className={`text-[11px] ${style.text}`}>{style.label}</p>
+                    </div>
                 </div>
-                <div className="text-right">
-                    <p className={`text-xl font-bold ${s.text}`}>{displayValue}</p>
-                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${s.text}`}>{s.label}</span>
+                <p className={`text-2xl font-bold ${style.text}`}>{avg ?? '-'}</p>
+            </div>
+        </button>
+    );
+}
+
+function ConnectionCard({ active, label, value, icon: Icon, healthyText, missingText }: {
+    active: boolean;
+    label: string;
+    value: string;
+    icon: ElementType;
+    healthyText: string;
+    missingText: string;
+}) {
+    const tone: HealthTone = active ? 'good' : 'warning';
+    const style = toneStyles[tone];
+    const StatusIcon = statusIcon(tone);
+
+    return (
+        <div className={`rounded-2xl border ${style.border} ${style.softBg} p-4 min-w-0`}>
+            <div className="flex items-start gap-3">
+                <div className={`h-10 w-10 rounded-xl ${style.iconBg} flex items-center justify-center shrink-0`}>
+                    <Icon className={`w-5 h-5 ${style.text}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-white">{label}</p>
+                        <StatusIcon className={`w-4 h-4 ${style.text} shrink-0`} />
+                    </div>
+                    <p className="text-xs text-zinc-500 truncate mt-1" title={value}>{value}</p>
+                    <p className={`text-[11px] mt-3 ${style.text}`}>
+                        {active ? healthyText : missingText}
+                    </p>
                 </div>
             </div>
-            {thresholds[vKey] && (
-                <p className="text-[10px] text-zinc-600 pt-2 border-t border-white/[0.04]">{thresholds[vKey]}</p>
-            )}
         </div>
     );
 }
 
-// ─── Ana sayfa ─────────────────────────────────────────────────────────────────
+function ScoreInsightCard({ icon: Icon, title, score, meaning, healthy, warning, bad }: {
+    icon: ElementType;
+    title: string;
+    score?: number | null;
+    meaning: string;
+    healthy: string;
+    warning: string;
+    bad: string;
+}) {
+    const tone = scoreTone(score);
+    const style = toneStyles[tone];
+    const StatusIcon = statusIcon(tone);
+    const action = tone === 'good' ? healthy : tone === 'warning' ? warning : tone === 'bad' ? bad : 'Skor alındığında durum burada görünecek.';
 
-type Strategy = 'mobile' | 'desktop';
+    return (
+        <div className={`rounded-2xl border ${style.border} bg-[#0C0C0E] p-5`}>
+            <div className="flex items-start justify-between gap-3">
+                <div className={`h-11 w-11 rounded-xl ${style.iconBg} flex items-center justify-center`}>
+                    <Icon className={`w-5 h-5 ${style.text}`} />
+                </div>
+                <div className="flex items-center gap-2">
+                    <StatusIcon className={`w-4 h-4 ${style.text}`} />
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${style.text}`}>
+                        {style.label}
+                    </span>
+                </div>
+            </div>
+            <div className="mt-5 flex items-end gap-2">
+                <p className={`text-4xl font-bold leading-none ${style.text}`}>{score ?? '-'}</p>
+                <p className="text-sm text-zinc-600 pb-1">/ 100</p>
+            </div>
+            <h3 className="text-sm font-semibold text-white mt-4">{title}</h3>
+            <p className="text-xs text-zinc-500 mt-2 leading-relaxed">{meaning}</p>
+            <div className={`mt-4 rounded-xl ${style.softBg} border ${style.border} p-3`}>
+                <p className={`text-xs leading-relaxed ${style.text}`}>{action}</p>
+            </div>
+        </div>
+    );
+}
+
+function VitalCard({ metric, title, value, formatted, meaning, good, warning, bad }: {
+    metric: 'lcp' | 'fcp' | 'tbt' | 'cls' | 'fid';
+    title: string;
+    value?: number | null;
+    formatted: string;
+    meaning: string;
+    good: string;
+    warning: string;
+    bad: string;
+}) {
+    const tone = metricTone(metric, value);
+    const style = toneStyles[tone];
+    const StatusIcon = statusIcon(tone);
+    const summary = tone === 'good' ? good : tone === 'warning' ? warning : tone === 'bad' ? bad : 'Bu metrik henüz ölçülemedi.';
+
+    return (
+        <div className={`rounded-2xl border ${style.border} bg-[#0C0C0E] p-4`}>
+            <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-white">{title}</p>
+                <StatusIcon className={`w-4 h-4 ${style.text}`} />
+            </div>
+            <p className={`text-2xl font-bold mt-3 ${style.text}`}>{formatted}</p>
+            <p className="text-[11px] text-zinc-500 mt-2 leading-relaxed">{meaning}</p>
+            <p className={`text-[11px] mt-3 leading-relaxed ${style.text}`}>{summary}</p>
+        </div>
+    );
+}
+
+function ReadinessRow({ done, label, detail }: { done: boolean; label: string; detail: string }) {
+    return (
+        <div className="flex items-start gap-3 py-3 border-b border-white/[0.04] last:border-b-0">
+            <div className={`h-6 w-6 rounded-lg flex items-center justify-center shrink-0 ${
+                done ? 'bg-emerald-500/10' : 'bg-amber-500/10'
+            }`}>
+                {done ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <CircleAlert className="w-3.5 h-3.5 text-amber-400" />}
+            </div>
+            <div>
+                <p className="text-sm font-medium text-white">{label}</p>
+                <p className="text-xs text-zinc-500 mt-0.5">{detail}</p>
+            </div>
+        </div>
+    );
+}
 
 export default function PageSpeedDetailPage() {
     const navigate = useNavigate();
     const [report, setReport] = useState<PageSpeedReport | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [strategy, setStrategy] = useState<Strategy>('mobile');
+    const [websiteInput, setWebsiteInput] = useState('');
+    const [formError, setFormError] = useState('');
 
-    const fetch = async (refresh = false) => {
-        if (refresh) setRefreshing(true); else setLoading(true);
+    const score: PageSpeedScore | undefined = strategy === 'mobile' ? report?.mobile : report?.desktop;
+    const normalizedInput = useMemo(() => normalizeInputUrl(websiteInput), [websiteInput]);
+    const mobileAverage = averageScore(report?.mobile);
+    const desktopAverage = averageScore(report?.desktop);
+
+    const loadReport = async (refresh = false) => {
+        if (refresh) setRefreshing(true);
+        else setLoading(true);
+
         try {
             const data = await webDesignApi.getMyPageSpeed(refresh);
             setReport(data);
+            setWebsiteInput(data.websiteUrl ?? '');
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     };
 
-    useEffect(() => { fetch(); }, []);
+    useEffect(() => {
+        loadReport();
+    }, []);
 
-    const score: PageSpeedScore | undefined = strategy === 'mobile' ? report?.mobile : report?.desktop;
+    const handleSaveWebsite = async () => {
+        setFormError('');
+        if (!normalizedInput) {
+            setFormError('Web sitesi adresi giriniz.');
+            return;
+        }
 
-    const lastChecked = score?.fetchedAt
-        ? new Date(score.fetchedAt).toLocaleString('tr-TR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })
-        : null;
+        setSaving(true);
+        try {
+            const data = await webDesignApi.updateMyWebsite(normalizedInput);
+            setReport(data);
+            setWebsiteInput(data.websiteUrl ?? normalizedInput);
+        } catch {
+            setFormError('Web sitesi kaydedilemedi. Adresi kontrol edip tekrar deneyin.');
+        } finally {
+            setSaving(false);
+        }
+    };
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="w-8 h-8 text-[#F5BEC8] animate-spin" />
-                    <p className="text-zinc-400 text-sm">Site skorları yükleniyor...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (score?.fetchError) {
-        return (
-            <div className="space-y-6">
-                <button onClick={() => navigate('/client/analytics')}
-                    className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors text-sm">
-                    <ArrowLeft className="w-4 h-4" /> Analitiğe Dön
-                </button>
-                <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-8 flex flex-col items-center gap-4 text-center">
-                    <AlertCircle className="w-10 h-10 text-amber-400" />
-                    <div>
-                        <p className="text-lg font-semibold text-white">Site Skoru Alınamadı</p>
-                        <p className="text-sm text-zinc-500 mt-1 max-w-md">{score.fetchError}</p>
-                    </div>
-                    <button onClick={() => navigate('/client/analytics')}
-                        className="bg-[#C8697A] hover:bg-[#B5556A] text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors">
-                        Analitiğe Dön
-                    </button>
+            <div className="min-h-[60vh] flex items-center justify-center">
+                <div className="flex items-center gap-3 text-zinc-500 text-sm">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Web Tasarım verileri yükleniyor...
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8">
-            {/* ── Header ── */}
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="space-y-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex items-start gap-4">
-                    <button onClick={() => navigate('/client/analytics')}
-                        className="h-10 w-10 mt-0.5 rounded-xl bg-[#0C0C0E] border border-white/[0.06] flex items-center justify-center text-zinc-400 hover:text-white hover:border-white/[0.12] transition-all flex-shrink-0">
+                    <button
+                        onClick={() => navigate('/client/analytics')}
+                        className="h-10 w-10 rounded-xl bg-[#0C0C0E] border border-white/[0.06] text-zinc-400 hover:text-white flex items-center justify-center"
+                        title="Geri"
+                    >
                         <ArrowLeft className="w-4 h-4" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+                        <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
                             <Gauge className="w-6 h-6 text-[#F5BEC8]" />
-                            Web Sitesi Sağlık Raporu
+                            Site Sağlık Merkezi
                         </h1>
-                        {report?.websiteUrl && (
-                            <a href={report.websiteUrl.startsWith('http') ? report.websiteUrl : `https://${report.websiteUrl}`}
-                                target="_blank" rel="noopener noreferrer"
-                                className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white mt-1 transition-colors">
-                                {report.websiteUrl}
-                                <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                        )}
-                        {lastChecked && (
-                            <p className="text-[11px] text-zinc-600 mt-1">Son ölçüm: {lastChecked}</p>
-                        )}
+                        <p className="text-sm text-zinc-500 mt-1">
+                            Site hızı, kullanıcı deneyimi, SEO ve Google bağlantılarını anlaşılır kartlarla takip edin.
+                        </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    {/* Mobil / Masaüstü toggle */}
+
+                <button
+                    onClick={() => loadReport(true)}
+                    disabled={refreshing || !report?.websiteUrl}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#0C0C0E] border border-white/[0.06] text-sm text-zinc-300 hover:text-white disabled:opacity-50"
+                >
+                    <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                    Verileri Yenile
+                </button>
+            </div>
+
+            <section className="rounded-2xl border border-white/[0.06] bg-[#0C0C0E] p-5">
+                <div className="flex items-center gap-2 mb-4">
+                    <Globe2 className="w-4 h-4 text-[#F5BEC8]" />
+                    <h2 className="text-sm font-semibold text-zinc-200">Site Bağlantısı</h2>
+                </div>
+                <div className="flex flex-col md:flex-row gap-3">
+                    <input
+                        value={websiteInput}
+                        onChange={(event) => setWebsiteInput(event.target.value)}
+                        placeholder="https://ornek.com"
+                        className="flex-1 h-11 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 text-sm text-white outline-none focus:border-[#C8697A]/50"
+                    />
+                    <button
+                        onClick={handleSaveWebsite}
+                        disabled={saving}
+                        className="h-11 px-5 rounded-xl bg-[#C8697A] hover:bg-[#B5556A] text-white text-sm font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Bağlantıyı Kaydet
+                    </button>
+                </div>
+                {formError && <p className="text-xs text-red-400 mt-2">{formError}</p>}
+                {report?.websiteUrl && (
+                    <a
+                        href={report.websiteUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-3 inline-flex items-center gap-1.5 text-xs text-[#F5BEC8] hover:text-white"
+                    >
+                        {report.websiteUrl}
+                        <ExternalLink className="w-3 h-3" />
+                    </a>
+                )}
+            </section>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-4">
+                <HealthSummary score={score} strategy={strategy} />
+
+                <section className="rounded-2xl border border-white/[0.06] bg-[#0C0C0E] p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Sparkles className="w-4 h-4 text-[#F5BEC8]" />
+                        <h2 className="text-sm font-semibold text-zinc-200">Hazırlık Kontrolü</h2>
+                    </div>
+                    <ReadinessRow
+                        done={Boolean(report?.websiteUrl)}
+                        label="Web sitesi tanımlı"
+                        detail={report?.websiteUrl ?? 'Site adresi eklenmeden sağlık takibi başlayamaz.'}
+                    />
+                    <ReadinessRow
+                        done={Boolean(report?.searchConsoleConnected)}
+                        label="Search Console bağlı"
+                        detail={report?.searchConsoleConnected ? 'Arama performansı okunabilir.' : 'Google arama verileri için bağlantı bekleniyor.'}
+                    />
+                    <ReadinessRow
+                        done={Boolean(report?.analyticsConnected)}
+                        label="Google Analytics bağlı"
+                        detail={report?.analyticsConnected ? 'Ziyaretçi davranışları okunabilir.' : 'Trafik ve kullanıcı verileri için bağlantı bekleniyor.'}
+                    />
+                    <ReadinessRow
+                        done={mobileAverage != null || desktopAverage != null}
+                        label="PageSpeed ölçümü"
+                        detail={mobileAverage != null || desktopAverage != null ? 'Mobil veya masaüstü skorları alındı.' : 'Google PageSpeed skoru henüz alınamadı.'}
+                    />
+                </section>
+            </div>
+
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <ConnectionCard
+                    active={Boolean(report?.websiteUrl)}
+                    icon={Globe2}
+                    label="Web Sitesi"
+                    value={report?.websiteUrl ?? 'Tanımlı değil'}
+                    healthyText="Sağlık ölçümü için site adresi hazır."
+                    missingText="Önce site adresi eklenmeli."
+                />
+                <ConnectionCard
+                    active={Boolean(report?.searchConsoleConnected)}
+                    icon={Search}
+                    label="Search Console"
+                    value={report?.searchConsoleSiteUrl ?? 'Bağlantı yok'}
+                    healthyText="Google arama verileri panelde kullanılabilir."
+                    missingText="Arama verileri görünmez."
+                />
+                <ConnectionCard
+                    active={Boolean(report?.analyticsConnected)}
+                    icon={BarChart3}
+                    label="Google Analytics"
+                    value={report?.gaPropertyId ? `GA4 ${report.gaPropertyId}` : 'Bağlantı yok'}
+                    healthyText="Ziyaretçi verileri panelde kullanılabilir."
+                    missingText="Trafik verileri eksik kalır."
+                />
+            </section>
+
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <DeviceCompareCard
+                    label="Mobil Deneyim"
+                    icon={Smartphone}
+                    score={report?.mobile}
+                    active={strategy === 'mobile'}
+                    onClick={() => setStrategy('mobile')}
+                />
+                <DeviceCompareCard
+                    label="Masaüstü Deneyim"
+                    icon={Monitor}
+                    score={report?.desktop}
+                    active={strategy === 'desktop'}
+                    onClick={() => setStrategy('desktop')}
+                />
+            </section>
+
+            {score?.fetchError && (
+                <section className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 flex gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-semibold text-amber-300">PageSpeed skoru şu an alınamadı</p>
+                        <p className="text-xs text-zinc-500 mt-1 leading-relaxed">{score.fetchError}</p>
+                        <p className="text-xs text-amber-300 mt-3">
+                            Site tarayıcıda açılsa bile Google Lighthouse botu engelleniyor, yavaş yanıt alıyor veya SSL/yönlendirme sorununa takılıyor olabilir.
+                        </p>
+                    </div>
+                </section>
+            )}
+
+            <section className="rounded-2xl border border-white/[0.06] bg-[#0C0C0E] p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+                    <div>
+                        <h2 className="text-sm font-semibold text-zinc-200">PageSpeed Skorları</h2>
+                        <p className="text-xs text-zinc-500 mt-1">
+                            Seçili cihaz: {strategy === 'mobile' ? 'Mobil' : 'Masaüstü'} • Son ölçüm: {formatDate(score?.fetchedAt)}
+                        </p>
+                    </div>
                     <div className="flex bg-white/[0.04] border border-white/[0.06] rounded-lg p-0.5">
                         <button
                             onClick={() => setStrategy('mobile')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${strategy === 'mobile' ? 'bg-white/[0.08] text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium ${strategy === 'mobile' ? 'bg-white/[0.08] text-white' : 'text-zinc-400'}`}
                         >
-                            <Smartphone className="w-3.5 h-3.5" /> Mobil
+                            <Smartphone className="w-3.5 h-3.5" />
+                            Mobil
                         </button>
                         <button
                             onClick={() => setStrategy('desktop')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${strategy === 'desktop' ? 'bg-white/[0.08] text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium ${strategy === 'desktop' ? 'bg-white/[0.08] text-white' : 'text-zinc-400'}`}
                         >
-                            <Monitor className="w-3.5 h-3.5" /> Masaüstü
+                            <Monitor className="w-3.5 h-3.5" />
+                            Masaüstü
                         </button>
                     </div>
-                    <button onClick={() => fetch(true)} disabled={refreshing}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0C0C0E] border border-white/[0.06] text-sm text-zinc-400 hover:text-white hover:border-white/[0.12] transition-all disabled:opacity-50">
-                        <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                        Yenile
-                    </button>
                 </div>
-            </div>
 
-            {/* ── Özet bilgi ── */}
-            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5 flex items-start gap-4">
-                <div className="h-10 w-10 rounded-xl bg-[#C8697A]/10 flex items-center justify-center flex-shrink-0">
-                    <Info className="w-5 h-5 text-[#F5BEC8]" />
-                </div>
-                <div>
-                    <p className="text-sm font-semibold text-white">Bu rapor ne anlama geliyor?</p>
-                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed max-w-2xl">
-                        Google'ın PageSpeed aracı sitenizi gerçek bir ziyaretçi gibi ziyaret ederek dört farklı alanda puan verir.
-                        <span className="text-emerald-400 font-medium"> 90–100 arası iyi</span>,
-                        <span className="text-amber-400 font-medium"> 50–89 arası geliştirilmeli</span>,
-                        <span className="text-red-400 font-medium"> 50 altı kritik</span> anlamına gelir.
-                        Puanlar doğrudan Google sıralamanızı, ziyaretçi memnuniyetini ve satış dönüşümünü etkiler.
-                    </p>
-                </div>
-            </div>
-
-            {/* ── 4 Skor kartı ── */}
-            <section>
-                <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">Genel Puanlar</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <ScoreCard
-                        title="Hız"
-                        desc="Sitenizin ne kadar hızlı yüklendiği. Yavaş yüklenen siteler ziyaretçileri kaçırır — her 1 saniye gecikme dönüşümleri yaklaşık %7 düşürür."
-                        score={score?.performance}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <ScoreInsightCard
                         icon={Zap}
-                        delay={0}
+                        title="Performans"
+                        score={score?.performance}
+                        meaning="Sayfanın ne kadar hızlı açıldığını ve kullanıcıya ne kadar çabuk tepki verdiğini gösterir."
+                        healthy="Hız iyi. Kullanıcı siteye girince bekleme hissi düşük olur."
+                        warning="Site açılıyor ama görsel, yazılım veya sunucu tarafında hızlandırma yapılabilir."
+                        bad="Ziyaretçiler sayfa yüklenmeden çıkabilir. Görseller, cache ve sunucu yanıtı öncelikli incelenmeli."
                     />
-                    <ScoreCard
+                    <ScoreInsightCard
+                        icon={ShieldCheck}
                         title="Erişilebilirlik"
-                        desc="Sitenizin görme güçlüğü çekenler dahil tüm kullanıcılar için ne kadar kullanışlı olduğu. Yasal gereklilik ve daha geniş kitleye ulaşma."
                         score={score?.accessibility}
-                        icon={Shield}
-                        delay={1}
+                        meaning="Buton, yazı, kontrast ve ekran okuyucu uyumluluğunun ne kadar sağlıklı olduğunu ölçer."
+                        healthy="Arayüz okunabilir ve erişilebilir durumda."
+                        warning="Bazı yazılar, kontrastlar veya alan etiketleri iyileştirilebilir."
+                        bad="Kullanıcıların bir kısmı siteyi kullanmakta zorlanabilir. Formlar, renkler ve etiketler kontrol edilmeli."
                     />
-                    <ScoreCard
-                        title="SEO"
-                        desc="Google'ın sitenizi ne kadar iyi anlayabildiği ve dizine ekleyebildiği. Yüksek puan = daha üst arama sıralaması = daha fazla ücretsiz ziyaretçi."
-                        score={score?.seo}
-                        icon={Search}
-                        delay={2}
-                    />
-                    <ScoreCard
-                        title="Teknik Kalite"
-                        desc="Sitenizin modern web standartlarına ve güvenlik gerekliliklerine ne kadar uyduğu. Güvenilirlik ve kullanıcı güveni için önemli."
+                    <ScoreInsightCard
+                        icon={CheckCircle2}
+                        title="Teknik Sağlık"
                         score={score?.bestPractices}
-                        icon={Code}
-                        delay={3}
+                        meaning="SSL, güvenli kaynaklar, tarayıcı uyumu ve temel teknik kaliteyi gösterir."
+                        healthy="Teknik temel iyi görünüyor."
+                        warning="Bazı tarayıcı/güvenlik uyarıları iyileştirilebilir."
+                        bad="Sitede güvenlik veya eski teknoloji kaynaklı problemler olabilir."
+                    />
+                    <ScoreInsightCard
+                        icon={Search}
+                        title="SEO"
+                        score={score?.seo}
+                        meaning="Google'ın sayfayı anlaması için başlık, açıklama, link ve taranabilirlik sinyallerini ölçer."
+                        healthy="Arama motorları sayfayı anlamakta zorlanmıyor."
+                        warning="Başlık, açıklama veya sayfa yapısı daha iyi hale getirilebilir."
+                        bad="Google görünürlüğü zarar görebilir. Meta alanları, indekslenebilirlik ve sayfa yapısı incelenmeli."
                     />
                 </div>
             </section>
 
-            {/* ── Core Web Vitals ── */}
-            <section>
-                <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Hız Detayları</h2>
-                    <span className="text-[11px] text-zinc-500">Google'ın resmi sıralama kriterleri</span>
-                </div>
-                <p className="text-xs text-zinc-500 mb-4">
-                    Bu değerler, ziyaretçilerinizin sitenizde ne hissettiğini ölçer. Google bu değerleri
-                    arama sıralamasında doğrudan kullanmaktadır.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <VitalRow
-                        label="LCP — Ana İçerik Yüklenme"
-                        hint="Sayfadaki en büyük görsel veya metin bloğunun ekrana gelmesi"
-                        value={score?.lcpMs}
-                        vKey="lcp"
-                        displayValue={fmt(score?.lcpMs)}
-                    />
-                    <VitalRow
-                        label="FCP — İlk İçerik Görünümü"
-                        hint="Ziyaretçinin sayfada ilk bir şey gördüğü an"
-                        value={score?.fcpMs}
-                        vKey="fcp"
-                        displayValue={fmt(score?.fcpMs)}
-                    />
-                    <VitalRow
-                        label="TBT — Tıklama Tepki Gecikmesi"
-                        hint="Sayfa yüklenirken butona basınca ne kadar gecikmeli yanıt alınıyor"
-                        value={score?.tbtMs}
-                        vKey="tbt"
-                        displayValue={fmt(score?.tbtMs)}
-                    />
-                    <VitalRow
-                        label="CLS — Sayfa Kayma Skoru"
-                        hint="Yüklenirken içerikler ne kadar sıçrıyor / kayıyor"
-                        value={score?.clsValue}
-                        vKey="cls"
-                        displayValue={fmt(score?.clsValue, 'cls')}
-                    />
-                </div>
-            </section>
-
-            {/* ── Neden önemli ── */}
-            <section>
-                <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6 space-y-4">
-                    <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-[#F5BEC8]" />
-                        Bu Puanlar İşinizi Nasıl Etkiler?
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {[
-                            {
-                                icon: Search,
-                                color: 'text-blue-400',
-                                bg: 'bg-blue-500/10',
-                                title: 'Google Sıralaması',
-                                desc: 'Google, hızlı ve kaliteli siteleri daha üst sıralarda gösterir. Yüksek skor = daha fazla ücretsiz organik trafik.'
-                            },
-                            {
-                                icon: Clock,
-                                color: 'text-amber-400',
-                                bg: 'bg-amber-500/10',
-                                title: 'Ziyaretçi Kaybı',
-                                desc: 'Araştırmalar, 3 saniyeden yavaş yüklenen sitelerin ziyaretçilerinin %53\'ünü kaybettiğini gösteriyor.'
-                            },
-                            {
-                                icon: CheckCircle2,
-                                color: 'text-emerald-400',
-                                bg: 'bg-emerald-500/10',
-                                title: 'Satış Dönüşümü',
-                                desc: '0.1 saniyelik hız iyileştirmesi, perakende sitelerinde dönüşümleri ortalama %8 artırıyor.'
-                            },
-                        ].map((item, i) => (
-                            <div key={i} className="flex gap-3">
-                                <div className={`h-9 w-9 rounded-xl ${item.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                                    <item.icon className={`w-4 h-4 ${item.color}`} />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-semibold text-white">{item.title}</p>
-                                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{item.desc}</p>
-                                </div>
-                            </div>
-                        ))}
+            <section className="rounded-2xl border border-white/[0.06] bg-[#0C0C0E] p-5">
+                <div className="flex items-center gap-2 mb-5">
+                    <TrendingUp className="w-4 h-4 text-[#F5BEC8]" />
+                    <div>
+                        <h2 className="text-sm font-semibold text-zinc-200">Kullanıcı Deneyimi Metrikleri</h2>
+                        <p className="text-xs text-zinc-500 mt-1">Bu kartlar ziyaretçinin siteyi nasıl hissettiğini pratik dille anlatır.</p>
                     </div>
                 </div>
-            </section>
 
-            {/* ── Ajans notu ── */}
-            <div className="bg-[#C8697A]/5 border border-[#C8697A]/15 rounded-2xl p-5 flex items-start gap-4">
-                <div className="h-10 w-10 rounded-xl bg-[#C8697A]/10 flex items-center justify-center flex-shrink-0">
-                    <Gauge className="w-5 h-5 text-[#F5BEC8]" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+                    <VitalCard
+                        metric="lcp"
+                        title="Ana İçerik Hızı"
+                        value={score?.lcpMs}
+                        formatted={formatMs(score?.lcpMs)}
+                        meaning="Sayfadaki ana görsel veya büyük içerik ne kadar sürede görünüyor?"
+                        good="Ana içerik hızlı geliyor."
+                        warning="İlk izlenim biraz yavaş olabilir."
+                        bad="Kullanıcı sayfa açılmadan beklemek zorunda kalır."
+                    />
+                    <VitalCard
+                        metric="fcp"
+                        title="İlk Görünme"
+                        value={score?.fcpMs}
+                        formatted={formatMs(score?.fcpMs)}
+                        meaning="Ekranda ilk yazı veya görselin görünme süresi."
+                        good="Sayfa hızlı tepki veriyor."
+                        warning="İlk görüntü gecikebilir."
+                        bad="Boş ekran hissi oluşabilir."
+                    />
+                    <VitalCard
+                        metric="tbt"
+                        title="Tıklama Gecikmesi"
+                        value={score?.tbtMs}
+                        formatted={formatMs(score?.tbtMs)}
+                        meaning="Sayfa açılırken tıklama ve kaydırmanın ne kadar bloklandığını gösterir."
+                        good="Etkileşim akıcı."
+                        warning="Bazı tıklamalar gecikmeli hissedilebilir."
+                        bad="Site donuyor gibi algılanabilir."
+                    />
+                    <VitalCard
+                        metric="cls"
+                        title="Sayfa Kayması"
+                        value={score?.clsValue}
+                        formatted={formatCls(score?.clsValue)}
+                        meaning="Sayfa açılırken buton ve yazıların yer değiştirip değiştirmediğini ölçer."
+                        good="Sayfa stabil, kayma az."
+                        warning="Bazı alanlar açılırken oynayabilir."
+                        bad="Kullanıcı yanlış yere tıklayabilir."
+                    />
+                    <VitalCard
+                        metric="fid"
+                        title="İlk Tepki"
+                        value={score?.fidMs}
+                        formatted={formatMs(score?.fidMs)}
+                        meaning="Kullanıcının ilk tıklamasına sitenin cevap verme süresi."
+                        good="İlk tepki hızlı."
+                        warning="İlk etkileşim biraz gecikebilir."
+                        bad="Kullanıcı tıkladığında site geç cevap verebilir."
+                    />
                 </div>
-                <div>
-                    <p className="text-sm font-semibold text-[#F5BEC8]">Ajansınız Takip Ediyor</p>
-                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                        FOG İstanbul ekibi bu metrikleri düzenli olarak takip etmekte ve gerektiğinde iyileştirme çalışmaları yapmaktadır.
-                        Sorularınız için ekibinizle iletişime geçebilirsiniz.
-                    </p>
-                </div>
-            </div>
+            </section>
         </div>
     );
 }

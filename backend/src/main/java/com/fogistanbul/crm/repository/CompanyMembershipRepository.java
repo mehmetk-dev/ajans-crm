@@ -26,6 +26,18 @@ public interface CompanyMembershipRepository extends JpaRepository<CompanyMember
     @Query("SELECT m.company.id FROM CompanyMembership m WHERE m.user.id = :userId")
     List<UUID> findCompanyIdsByUserId(@Param("userId") UUID userId);
 
+    @Query("""
+            SELECT m.company.id
+            FROM CompanyMembership m
+            WHERE m.user.id = :userId
+              AND m.company.kind = com.fogistanbul.crm.entity.enums.CompanyKind.CLIENT
+              AND m.membershipRole IN (
+                  com.fogistanbul.crm.entity.enums.MembershipRole.OWNER,
+                  com.fogistanbul.crm.entity.enums.MembershipRole.EMPLOYEE
+              )
+            """)
+    List<UUID> findClientCompanyIdsForUser(@Param("userId") UUID userId);
+
     @Query("SELECT DISTINCT m.user.id FROM CompanyMembership m WHERE m.company.id IN :companyIds")
     List<UUID> findDistinctUserIdsByCompanyIds(@Param("companyIds") List<UUID> companyIds);
 
@@ -43,4 +55,7 @@ public interface CompanyMembershipRepository extends JpaRepository<CompanyMember
     List<UUID> findAgencyStaffUserIdsByCompanyIds(@Param("companyIds") List<UUID> companyIds);
 
     List<CompanyMembership> findByUserIdIn(List<UUID> userIds);
+
+    @Query("SELECT m.user.id FROM CompanyMembership m WHERE m.company.id = :companyId AND m.membershipRole IN (com.fogistanbul.crm.entity.enums.MembershipRole.OWNER, com.fogistanbul.crm.entity.enums.MembershipRole.EMPLOYEE)")
+    List<UUID> findCompanyUserIdsByCompanyId(@Param("companyId") UUID companyId);
 }

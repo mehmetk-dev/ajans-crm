@@ -8,6 +8,7 @@ import com.fogistanbul.crm.entity.ShootEquipment;
 import com.fogistanbul.crm.entity.ShootParticipant;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
+import com.fogistanbul.crm.entity.enums.NotificationType;
 import com.fogistanbul.crm.entity.enums.ShootStatus;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
@@ -38,6 +39,7 @@ public class ShootService {
     private final UserProfileRepository userProfileRepository;
     private final CompanyMembershipRepository membershipRepository;
     private final ContentPlanRepository contentPlanRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public ShootResponse createShoot(CreateShootRequest req, UUID createdById) {
@@ -92,6 +94,13 @@ public class ShootService {
         }
 
         log.info("Shoot created: {} for company {}", shoot.getTitle(), company.getName());
+
+        // Notify company members
+        notifyCompanyMembers(company.getId(), createdById, NotificationType.SHOOT_CREATED,
+                "Yeni çekim planlandı: " + shoot.getTitle(),
+                shoot.getShootDate() != null ? "Tarih: " + shoot.getShootDate().toString().substring(0, 10) : null,
+                "SHOOT", shoot.getId());
+
         return toResponse(shoot);
     }
 
@@ -135,8 +144,22 @@ public class ShootService {
                 && !shoot.getCreatedBy().getId().equals(userId)) {
             throw new RuntimeException("Bu cekimi guncelleme yetkiniz yok");
         }
+        ShootStatus oldStatus = shoot.getStatus();
         shoot.setStatus(ShootStatus.valueOf(status));
         shoot = shootRepository.save(shoot);
+
+        // Notify on status change
+        if (oldStatus != shoot.getStatus()) {
+            String statusLabel = switch (shoot.getStatus()) {
+                case COMPLETED -> "tamamlandı";
+                case CANCELLED -> "iptal edildi";
+                default -> shoot.getStatus().name();
+            };
+            notifyCompanyMembers(shoot.getCompany().getId(), userId, NotificationType.SHOOT_UPDATED,
+                    "Çekim " + statusLabel + ": " + shoot.getTitle(), null,
+                    "SHOOT", shoot.getId());
+        }
+
         return toResponse(shoot);
     }
 
@@ -151,6 +174,16 @@ public class ShootService {
             throw new RuntimeException("Bu cekimi silme yetkiniz yok");
         }
         shootRepository.delete(shoot);
+    }
+
+    private void notifyCompanyMembers(UUID companyId, UUID excludeUserId, NotificationType type,
+                                       String title, String message, String refType, UUID refId) {
+        List<UUID> memberIds = membershipRepository.findCompanyUserIdsByCompanyId(companyId);
+        for (UUID memberId : memberIds) {
+            if (!memberId.equals(excludeUserId)) {
+                notificationService.send(memberId, type, title, message, refType, refId);
+            }
+        }
     }
 
     private void ensureCompanyAccess(UserProfile user, UUID companyId) {

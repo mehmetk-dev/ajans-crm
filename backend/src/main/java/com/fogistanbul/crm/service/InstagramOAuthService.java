@@ -56,7 +56,7 @@ public class InstagramOAuthService {
 
 
 
-    private static final String SCOPE = "pages_show_list,pages_read_engagement";
+    private static final String SCOPE = "pages_show_list,pages_read_engagement,ads_read,ads_management";
 
 
 
@@ -466,6 +466,28 @@ public class InstagramOAuthService {
 
         return token.getAccessToken();
 
+    }
+
+    // ─── Meta Ads Ad Account ID ─────────────────────────────────
+
+    @Transactional
+    public void saveMetaAdAccountId(UUID companyId, String adAccountId) {
+        tokenRepository.findByCompanyId(companyId).ifPresent(token -> {
+            String cleaned = adAccountId.startsWith("act_") ? adAccountId : "act_" + adAccountId.replaceAll("[^0-9]", "");
+            token.setMetaAdAccountId(cleaned);
+            tokenRepository.save(token);
+        });
+    }
+
+    public java.util.Optional<String> getMetaAdAccountId(UUID companyId) {
+        return tokenRepository.findByCompanyId(companyId)
+                .map(InstagramToken::getMetaAdAccountId);
+    }
+
+    public boolean hasMetaAdAccount(UUID companyId) {
+        return tokenRepository.findByCompanyId(companyId)
+                .map(t -> t.getMetaAdAccountId() != null && !t.getMetaAdAccountId().isBlank())
+                .orElse(false);
     }
 
 }

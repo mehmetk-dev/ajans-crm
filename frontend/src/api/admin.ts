@@ -87,6 +87,7 @@ export interface CreateCompanyRequest {
     ownerPassword: string;
     ownerPhone?: string;
     ownerPosition?: string;
+    selectedServices?: string[];  // Hangi hizmet kategorilerinin aktif başlayacağı
 }
 
 export interface UpdateCompanyRequest {
@@ -235,7 +236,20 @@ export const adminApi = {
         api.put<AdminRoutineResponse>(`/admin/routines/${id}`, data).then(r => r.data),
     deleteRoutine: (id: string) =>
         api.delete(`/admin/routines/${id}`).then(r => r.data),
+
+    // Company Services
+    getCompanyServices: (companyId: string) =>
+        api.get<CompanyServiceItem[]>(`/admin/companies/${companyId}/services`).then(r => r.data),
+    toggleCompanyService: (companyId: string, category: string, active: boolean) =>
+        api.put<CompanyServiceItem>(`/admin/companies/${companyId}/services/${category}/toggle`, { active }).then(r => r.data),
 };
+
+export interface CompanyServiceItem {
+    id: string | null;
+    category: string;
+    active: boolean;
+}
+
 
 // --- Routine Types ---
 export interface AdminRoutineResponse {

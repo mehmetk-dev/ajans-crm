@@ -19,4 +19,9 @@ public class PageSpeedReportResponse {
     private String cmsType;
     private String cmsVersion;
     private String themeName;
+
+    private boolean analyticsConnected;
+    private boolean searchConsoleConnected;
+    private String gaPropertyId;
+    private String searchConsoleSiteUrl;
 }

@@ -41,6 +41,8 @@ public class CompanyService {
     private final PermissionService permissionService;
     private final GroupMessagingService groupMessagingService;
     private final EntityManager entityManager;
+    private final CompanyServicesManager companyServicesManager;
+
 
     @Transactional
     public CompanyResponse createCompanyWithOwner(CreateCompanyRequest req) {
@@ -92,8 +94,13 @@ public class CompanyService {
         membership.setMembershipRole(MembershipRole.OWNER);
         membershipRepository.save(membership);
 
+        permissionService.setDefaultPermissions(userProfile.getId(), company.getId(), "OWNER");
+
         // Auto-create company group chat and add owner
         groupMessagingService.createCompanyGroup(company, userProfile);
+
+        // Initialize service categories (selected or all false)
+        companyServicesManager.initializeServicesForCompany(company.getId(), req.getSelectedServices());
 
         return toResponse(company);
     }

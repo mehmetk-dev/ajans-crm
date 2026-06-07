@@ -27,9 +27,24 @@ public class GoogleOAuthService {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleOAuthService.class);
 
-    private static final String AUTH_URL      = "https://accounts.google.com/o/oauth2/v2/auth";
-    private static final String TOKEN_URL     = "https://oauth2.googleapis.com/token";
-    private static final String SCOPE         = "https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly";
+    private static final String AUTH_URL  = "https://accounts.google.com/o/oauth2/v2/auth";
+    private static final String TOKEN_URL = "https://oauth2.googleapis.com/token";
+
+    public static final String SVC_ANALYTICS      = "ANALYTICS";
+    public static final String SVC_SEARCH_CONSOLE  = "SEARCH_CONSOLE";
+    public static final String SVC_GOOGLE_ADS      = "GOOGLE_ADS";
+
+    private static final Map<String, String> SCOPE_MAP = Map.of(
+            SVC_ANALYTICS,      "https://www.googleapis.com/auth/analytics.readonly",
+            SVC_SEARCH_CONSOLE, "https://www.googleapis.com/auth/webmasters.readonly",
+            SVC_GOOGLE_ADS,     "https://www.googleapis.com/auth/adwords"
+    );
+
+    private static final Map<String, String> REDIRECT_MAP = Map.of(
+            SVC_ANALYTICS,      "/client/google-analytics?connected=true",
+            SVC_SEARCH_CONSOLE, "/client/search-console?connected=true",
+            SVC_GOOGLE_ADS,     "/client/google-ads?connected=true"
+    );
 
     @Value("${app.google-oauth.client-id}")
     private String clientId;
@@ -47,32 +62,43 @@ public class GoogleOAuthService {
     private final CompanyRepository companyRepository;
     private final RestTemplate restTemplate;
 
-    // ─── Authorization URL ────────────────────────────────────────────────────
+    // ─── Authorization URL (servis bazlı) ────────────────────────────────────
 
-    /**
-     * Müşterinin Google hesabına yönlendirileceği OAuth URL'ini üretir.
-     * state parametresi = companyId (callback'te hangi şirkete ait olduğunu anlamak için)
-     */
-    public String buildAuthorizationUrl(UUID companyId) {
+    public String buildAuthorizationUrl(UUID companyId, String serviceType) {
+        String scope = SCOPE_MAP.getOrDefault(serviceType, SCOPE_MAP.get(SVC_ANALYTICS));
+        String state = companyId.toString() + ":" + serviceType;
         return UriComponentsBuilder.fromHttpUrl(AUTH_URL)
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("response_type", "code")
-                .queryParam("scope", SCOPE)
+                .queryParam("scope", scope)
                 .queryParam("access_type", "offline")
-                .queryParam("prompt", "consent")     // her zaman refresh_token gelsin
-                .queryParam("state", companyId.toString())
+                .queryParam("prompt", "consent")
+                .queryParam("state", state)
                 .build()
                 .toUriString();
+    }
+
+    /** Eski tek-scope buildAuthorizationUrl — geriye uyumluluk */
+    public String buildAuthorizationUrl(UUID companyId) {
+        return buildAuthorizationUrl(companyId, SVC_ANALYTICS);
     }
 
     // ─── Callback: code → token exchange ─────────────────────────────────────
 
     @Transactional
-    public void handleCallback(String code, String state) {
-        UUID companyId = UUID.fromString(state);
+    public String handleCallback(String code, String state) {
+        // state = "companyId:SERVICE_TYPE" veya sadece "companyId"
+        String serviceType = SVC_ANALYTICS;
+        UUID companyId;
+        if (state.contains(":")) {
+            String[] parts = state.split(":", 2);
+            companyId = UUID.fromString(parts[0]);
+            serviceType = parts[1];
+        } else {
+            companyId = UUID.fromString(state);
+        }
 
-        // Token exchange
         Map<String, Object> tokenResponse = exchangeCodeForTokens(code);
 
         String accessToken  = (String) tokenResponse.get("access_token");
@@ -89,9 +115,9 @@ public class GoogleOAuthService {
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new IllegalArgumentException("Şirket bulunamadı: " + companyId));
 
-        // Upsert
-        GoogleOAuthToken token = tokenRepository.findByCompanyId(companyId)
-                .orElse(GoogleOAuthToken.builder().company(company).build());
+        // Upsert — servis bazlı
+        GoogleOAuthToken token = tokenRepository.findByCompanyIdAndServiceType(companyId, serviceType)
+                .orElse(GoogleOAuthToken.builder().company(company).serviceType(serviceType).build());
 
         token.setAccessToken(accessToken);
         token.setRefreshToken(refreshToken);
@@ -99,15 +125,16 @@ public class GoogleOAuthService {
         token.setScope(scope);
 
         tokenRepository.save(token);
-        log.info("GA OAuth token kaydedildi, company={}", companyId);
+        log.info("Google OAuth token kaydedildi, company={}, serviceType={}", companyId, serviceType);
+
+        return REDIRECT_MAP.getOrDefault(serviceType, "/client/analytics");
     }
 
-    // ─── Token erişimi (refresh gerekirse otomatik yenile) ────────────────────
+    // ─── Token erişimi (servis bazlı, refresh gerekirse otomatik yenile) ─────
 
     @Transactional
-    public Optional<String> getValidAccessToken(UUID companyId) {
-        return tokenRepository.findByCompanyId(companyId).map(token -> {
-            // Süresi dolmuş veya 60 saniye içinde dolacaksa yenile
+    public Optional<String> getValidAccessToken(UUID companyId, String serviceType) {
+        return tokenRepository.findByCompanyIdAndServiceType(companyId, serviceType).map(token -> {
             if (Instant.now().isAfter(token.getTokenExpiry().minusSeconds(60))) {
                 return refreshAccessToken(token);
             }
@@ -115,54 +142,88 @@ public class GoogleOAuthService {
         });
     }
 
-    // ─── GA Property ID güncelle ─────────────────────────────────────────────
+    /** Eski — geriye uyumluluk (ANALYTICS varsayılan) */
+    @Transactional
+    public Optional<String> getValidAccessToken(UUID companyId) {
+        return getValidAccessToken(companyId, SVC_ANALYTICS);
+    }
+
+    // ─── GA Property ID ──────────────────────────────────────────────────────
 
     @Transactional
     public void savePropertyId(UUID companyId, String propertyId) {
-        tokenRepository.findByCompanyId(companyId).ifPresent(token -> {
+        tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_ANALYTICS).ifPresent(token -> {
             token.setGaPropertyId(propertyId);
             tokenRepository.save(token);
         });
     }
 
-    // ─── Search Console Site URL güncelle ──────────────────────────────────────
+    public Optional<String> getPropertyId(UUID companyId) {
+        return tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_ANALYTICS)
+                .map(GoogleOAuthToken::getGaPropertyId);
+    }
+
+    // ─── Search Console Site URL ─────────────────────────────────────────────
 
     @Transactional
     public void saveSiteUrl(UUID companyId, String siteUrl) {
-        tokenRepository.findByCompanyId(companyId).ifPresent(token -> {
+        tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_SEARCH_CONSOLE).ifPresent(token -> {
             token.setScSiteUrl(siteUrl);
             tokenRepository.save(token);
         });
     }
 
     public Optional<String> getSiteUrl(UUID companyId) {
-        return tokenRepository.findByCompanyId(companyId)
+        return tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_SEARCH_CONSOLE)
                 .map(GoogleOAuthToken::getScSiteUrl);
     }
 
-    // ─── Bağlantıyı kes ──────────────────────────────────────────────────────
+    // ─── Google Ads Customer ID ──────────────────────────────────────────────
+
+    @Transactional
+    public void saveAdsCustomerId(UUID companyId, String customerId) {
+        tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_GOOGLE_ADS).ifPresent(token -> {
+            token.setAdsCustomerId(customerId.replaceAll("[^0-9]", ""));
+            tokenRepository.save(token);
+        });
+    }
+
+    public Optional<String> getAdsCustomerId(UUID companyId) {
+        return tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_GOOGLE_ADS)
+                .map(GoogleOAuthToken::getAdsCustomerId);
+    }
+
+    // ─── Bağlantı durumu (servis bazlı) ──────────────────────────────────────
+
+    public boolean isConnected(UUID companyId, String serviceType) {
+        return tokenRepository.existsByCompanyIdAndServiceType(companyId, serviceType);
+    }
+
+    public boolean isConnected(UUID companyId) {
+        return isConnected(companyId, SVC_ANALYTICS);
+    }
+
+    // ─── Bağlantıyı kes (servis bazlı) ──────────────────────────────────────
+
+    @Transactional
+    public void disconnect(UUID companyId, String serviceType) {
+        tokenRepository.deleteByCompanyIdAndServiceType(companyId, serviceType);
+        log.info("Google bağlantısı kaldırıldı, company={}, serviceType={}", companyId, serviceType);
+    }
 
     @Transactional
     public void disconnect(UUID companyId) {
-        tokenRepository.deleteByCompanyId(companyId);
-        log.info("Google bağlantısı kaldırıldı, company={}", companyId);
+        disconnect(companyId, SVC_ANALYTICS);
     }
 
-    // ─── Bağlantı durumu ─────────────────────────────────────────────────────
-
-    public boolean isConnected(UUID companyId) {
-        return tokenRepository.existsByCompanyId(companyId);
-    }
-
-    public Optional<String> getPropertyId(UUID companyId) {
-        return tokenRepository.findByCompanyId(companyId)
-                .map(GoogleOAuthToken::getGaPropertyId);
-    }
+    // ── Geriye uyumluluk metodları (eski kodun kırılmaması için) ──────────────
 
     public boolean hasScScope(UUID companyId) {
-        return tokenRepository.findByCompanyId(companyId)
-                .map(token -> token.getScope() != null && token.getScope().contains("webmasters"))
-                .orElse(false);
+        return tokenRepository.existsByCompanyIdAndServiceType(companyId, SVC_SEARCH_CONSOLE);
+    }
+
+    public boolean hasAdsScope(UUID companyId) {
+        return tokenRepository.existsByCompanyIdAndServiceType(companyId, SVC_GOOGLE_ADS);
     }
 
     // ─── Yardımcı: token exchange ─────────────────────────────────────────────

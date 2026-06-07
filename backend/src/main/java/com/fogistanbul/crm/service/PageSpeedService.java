@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -33,16 +34,19 @@ public class PageSpeedService {
     private final CompanyRepository companyRepository;
     private final PageSpeedSnapshotRepository snapshotRepository;
     private final CompanyMembershipRepository membershipRepository;
+    private final GoogleOAuthService googleOAuthService;
     private final String apiKey;
     private final RestClient restClient;
 
     public PageSpeedService(CompanyRepository companyRepository,
                             PageSpeedSnapshotRepository snapshotRepository,
                             CompanyMembershipRepository membershipRepository,
+                            GoogleOAuthService googleOAuthService,
                             @Value("${app.pagespeed.api-key:}") String apiKey) {
         this.companyRepository = companyRepository;
         this.snapshotRepository = snapshotRepository;
         this.membershipRepository = membershipRepository;
+        this.googleOAuthService = googleOAuthService;
         this.apiKey = apiKey;
         this.restClient = RestClient.builder().build();
     }
@@ -54,28 +58,52 @@ public class PageSpeedService {
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
 
-        String url = normalizeUrl(company.getWebsite());
+        String websiteUrl = resolveWebsiteUrl(company);
+        String url = normalizeUrl(websiteUrl);
         boolean configured = url != null && !apiKey.isBlank();
 
         return PageSpeedReportResponse.builder()
-                .websiteUrl(company.getWebsite())
+                .websiteUrl(websiteUrl)
                 .configured(configured)
-                .mobile(getOrFetch(company, "mobile", url, refresh))
-                .desktop(getOrFetch(company, "desktop", url, refresh))
+                .mobile(getOrFetch(company, "mobile", websiteUrl, url, refresh))
+                .desktop(getOrFetch(company, "desktop", websiteUrl, url, refresh))
                 .hostingProvider(company.getHostingProvider())
                 .domainExpiry(company.getDomainExpiry())
                 .sslExpiry(company.getSslExpiry())
                 .cmsType(company.getCmsType())
                 .cmsVersion(company.getCmsVersion())
                 .themeName(company.getThemeName())
+                .analyticsConnected(googleOAuthService.isConnected(company.getId(), GoogleOAuthService.SVC_ANALYTICS))
+                .searchConsoleConnected(googleOAuthService.isConnected(company.getId(), GoogleOAuthService.SVC_SEARCH_CONSOLE))
+                .gaPropertyId(googleOAuthService.getPropertyId(company.getId()).orElse(null))
+                .searchConsoleSiteUrl(googleOAuthService.getSiteUrl(company.getId()).orElse(null))
                 .build();
     }
 
-    private PageSpeedScoreResponse getOrFetch(Company company, String strategy, String url, boolean refresh) {
+    @Transactional
+    public void updateWebsite(UUID companyId, UUID userId, String role, String websiteUrl) {
+        ensureReadAccess(companyId, userId, role);
+
+        String normalized = normalizeUrl(websiteUrl);
+        if (normalized == null) {
+            throw new RuntimeException("Website adresi bos olamaz");
+        }
+
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+        company.setWebsite(normalized);
+        companyRepository.save(company);
+    }
+
+    private PageSpeedScoreResponse getOrFetch(Company company, String strategy, String websiteUrl, String url, boolean refresh) {
         Optional<PageSpeedSnapshot> existing = snapshotRepository
                 .findByCompanyIdAndStrategy(company.getId(), strategy);
 
-        if (!refresh && existing.isPresent() && existing.get().getFetchedAt() != null) {
+        if (!refresh
+                && existing.isPresent()
+                && existing.get().getFetchedAt() != null
+                && url != null
+                && url.equals(existing.get().getTestedUrl())) {
             Instant ageCutoff = Instant.now().minus(CACHE_TTL);
             if (existing.get().getFetchedAt().isAfter(ageCutoff)) {
                 return toResponse(existing.get());
@@ -90,7 +118,7 @@ public class PageSpeedService {
         });
 
         if (url == null) {
-            snap.setTestedUrl(company.getWebsite() != null ? company.getWebsite() : "");
+            snap.setTestedUrl(websiteUrl != null ? websiteUrl : "");
             snap.setFetchedAt(Instant.now());
             snap.setFetchError("Sirket icin website adresi tanimli degil");
             return toResponse(snapshotRepository.save(snap));
@@ -120,18 +148,24 @@ public class PageSpeedService {
 
     private Map<?, ?> callApi(String url, String strategy) {
         // PageSpeed API requires the url param unencoded — URI.create avoids encoding
-        URI uri = URI.create(PAGESPEED_ENDPOINT
-                + "?url=" + url
-                + "&strategy=" + strategy
-                + "&category=PERFORMANCE&category=ACCESSIBILITY&category=BEST_PRACTICES&category=SEO"
-                + "&key=" + apiKey);
+        URI uri = UriComponentsBuilder.fromUriString(PAGESPEED_ENDPOINT)
+                .queryParam("url", url)
+                .queryParam("strategy", strategy)
+                .queryParam("category", "PERFORMANCE")
+                .queryParam("category", "ACCESSIBILITY")
+                .queryParam("category", "BEST_PRACTICES")
+                .queryParam("category", "SEO")
+                .queryParam("key", apiKey)
+                .build()
+                .encode()
+                .toUri();
 
         return restClient.get()
                 .uri(uri)
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, (req, res) -> {
                     String body = new String(res.getBody().readAllBytes(), StandardCharsets.UTF_8);
-                    throw new RuntimeException("PageSpeed API " + res.getStatusCode() + ": " + truncate(body, 200));
+                    throw new RuntimeException(toPageSpeedErrorMessage(res.getStatusCode().toString(), body));
                 })
                 .body(Map.class);
     }
@@ -192,14 +226,32 @@ public class PageSpeedService {
                 .tbtMs(s.getTbtMs())
                 .fcpMs(s.getFcpMs())
                 .fetchedAt(s.getFetchedAt())
-                .fetchError(s.getFetchError())
+                .fetchError(toDisplayFetchError(s.getFetchError()))
                 .build();
     }
 
-    private String normalizeUrl(String raw) {
+    private String resolveWebsiteUrl(Company company) {
+        String companyWebsite = normalizeBlank(company.getWebsite());
+        if (companyWebsite != null) {
+            return companyWebsite;
+        }
+        return googleOAuthService.getSiteUrl(company.getId())
+                .map(this::normalizeBlank)
+                .orElse(null);
+    }
+
+    private String normalizeBlank(String raw) {
         if (raw == null) return null;
         String trimmed = raw.trim();
-        if (trimmed.isEmpty()) return null;
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeUrl(String raw) {
+        String trimmed = normalizeBlank(raw);
+        if (trimmed == null) return null;
+        if (trimmed.startsWith("sc-domain:")) {
+            trimmed = trimmed.substring("sc-domain:".length());
+        }
         if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
             trimmed = "https://" + trimmed;
         }
@@ -218,5 +270,32 @@ public class PageSpeedService {
     private String truncate(String s, int max) {
         if (s == null) return null;
         return s.length() <= max ? s : s.substring(0, max);
+    }
+
+    private String toPageSpeedErrorMessage(String status, String body) {
+        if (body != null && body.contains("FAILED_DOCUMENT_REQUEST")) {
+            return "Google PageSpeed siteyi yukleyemedi. Site tarayicida acilsa bile Google Lighthouse tarafindan engelleniyor, cok yavas yanit veriyor veya bot/guvenlik kurallarina takiliyor olabilir.";
+        }
+        if (body != null && body.contains("API key not valid")) {
+            return "PAGESPEED_API_KEY gecersiz gorunuyor.";
+        }
+        if (body != null && body.contains("quota")) {
+            return "PageSpeed API kotasi dolmus olabilir. Bir sure sonra tekrar deneyin.";
+        }
+        return "PageSpeed API " + status + ": " + truncate(body, 200);
+    }
+
+    private String toDisplayFetchError(String error) {
+        if (error == null) return null;
+        if (error.contains("FAILED_DOCUMENT_REQUEST")) {
+            return "Google PageSpeed siteyi yukleyemedi. Site tarayicida acilsa bile Google Lighthouse tarafindan engelleniyor, cok yavas yanit veriyor veya bot/guvenlik kurallarina takiliyor olabilir.";
+        }
+        if (error.contains("API key not valid")) {
+            return "PAGESPEED_API_KEY gecersiz gorunuyor.";
+        }
+        if (error.toLowerCase().contains("quota") || error.contains("429")) {
+            return "PageSpeed API kotasi dolmus olabilir. Bir sure sonra tekrar deneyin.";
+        }
+        return error;
     }
 }

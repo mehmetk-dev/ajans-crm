@@ -15,6 +15,7 @@ import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
 import com.fogistanbul.crm.entity.enums.Priority;
 import com.fogistanbul.crm.entity.enums.PrProjectStatus;
+import com.fogistanbul.crm.entity.enums.NotificationType;
 import com.fogistanbul.crm.entity.enums.TaskCategory;
 import com.fogistanbul.crm.entity.enums.TaskStatus;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
@@ -49,6 +50,7 @@ public class TaskService {
     private final CompanyMembershipRepository membershipRepository;
     private final PrProjectPhaseRepository phaseRepository;
     private final PrProjectRepository prProjectRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public TaskResponse createTask(CreateTaskRequest req, UUID createdById) {
@@ -87,6 +89,23 @@ public class TaskService {
 
         task = taskRepository.save(task);
         log.info("Task created: {} assigned to {}", task.getTitle(), assignee.getEmail());
+
+        // Notify assignee
+        if (!assignee.getId().equals(createdById)) {
+            notificationService.send(assignee.getId(), NotificationType.TASK_ASSIGNED,
+                    "Yeni görev atandı: " + task.getTitle(),
+                    creator.getPerson() != null ? creator.getPerson().getFullName() + " size bir görev atadı" : "Size bir görev atandı",
+                    "TASK", task.getId());
+        }
+
+        // Notify company owners
+        if (company != null) {
+            notifyCompanyMembers(company.getId(), createdById, NotificationType.TASK_ASSIGNED,
+                    "Yeni görev oluşturuldu: " + task.getTitle(),
+                    (assignee.getPerson() != null ? assignee.getPerson().getFullName() : "Bir kullanıcı") + " görevlendirildi",
+                    "TASK", task.getId());
+        }
+
         return toResponse(task);
     }
 
@@ -175,6 +194,7 @@ public class TaskService {
             task.setDescription(req.getDescription());
         }
         if (req.getStatus() != null) {
+            TaskStatus oldStatus = task.getStatus();
             task.setStatus(req.getStatus());
             if (req.getStatus() == TaskStatus.DONE) {
                 task.setCompletedAt(Instant.now());
@@ -182,6 +202,27 @@ public class TaskService {
                 completeLinkedPhase(task);
             } else {
                 task.setCompletedAt(null);
+            }
+
+            // Notify on status change
+            if (oldStatus != req.getStatus() && task.getCompany() != null) {
+                String statusLabel = switch (req.getStatus()) {
+                    case DONE -> "tamamlandı";
+                    case IN_PROGRESS -> "başladı";
+                    case OVERDUE -> "gecikti";
+                    default -> req.getStatus().name();
+                };
+                NotificationType nType = req.getStatus() == TaskStatus.DONE ? NotificationType.TASK_COMPLETED : NotificationType.TASK_STATUS_CHANGED;
+                notifyCompanyMembers(task.getCompany().getId(), userId, nType,
+                        "Görev " + statusLabel + ": " + task.getTitle(), null,
+                        "TASK", task.getId());
+
+                // Also notify task creator if different
+                if (!task.getCreatedBy().getId().equals(userId)) {
+                    notificationService.send(task.getCreatedBy().getId(), nType,
+                            "Görev " + statusLabel + ": " + task.getTitle(), null,
+                            "TASK", task.getId());
+                }
             }
         }
         if (req.getCategory() != null) {
@@ -223,6 +264,16 @@ public class TaskService {
             throw new RuntimeException("Bu gorevi silme yetkiniz yok");
         }
         taskRepository.delete(task);
+    }
+
+    private void notifyCompanyMembers(UUID companyId, UUID excludeUserId, NotificationType type,
+                                       String title, String message, String refType, UUID refId) {
+        List<UUID> memberIds = membershipRepository.findCompanyUserIdsByCompanyId(companyId);
+        for (UUID memberId : memberIds) {
+            if (!memberId.equals(excludeUserId)) {
+                notificationService.send(memberId, type, title, message, refType, refId);
+            }
+        }
     }
 
     private void ensureCompanyAccess(UserProfile user, UUID companyId) {

@@ -41,4 +41,9 @@ public record IgOverviewResponse(
                             String permalink, String timestamp,
                             long likeCount, long commentsCount,
                             long plays, long reach, long saved, long shares) {}
+
+    public record IgPostRow(String id, String caption, String mediaType,
+                            String mediaUrl, String permalink, String timestamp,
+                            long likeCount, long commentsCount,
+                            long impressions, long reach, long saved, long shares) {}
 }

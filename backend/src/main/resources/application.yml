@@ -75,6 +75,10 @@ app:
 
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
 
+  google-ads:
+    developer-token: ${GOOGLE_ADS_DEVELOPER_TOKEN:}
+    manager-customer-id: ${GOOGLE_ADS_MANAGER_CUSTOMER_ID:}
+
   pagespeed:
     api-key: ${PAGESPEED_API_KEY:}
 

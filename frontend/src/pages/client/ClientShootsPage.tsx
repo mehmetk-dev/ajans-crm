@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { clientApi } from '../../api/clientPanel';
 import type { ShootResponse, ShootParticipantInfo, ShootEquipmentInfo } from '../../api/clientPanel';
 import type { ContentPlanResponse } from '../../api/contentPlan';
@@ -220,8 +221,10 @@ function ShootDetailModal({ shoot, onClose }: { shoot: ShootResponse; onClose: (
 /* ─── Main Page ───────────────────────────────────────── */
 
 export default function ClientShootsPage() {
+    const [searchParams] = useSearchParams();
+    const initialTab = (searchParams.get('tab') as ShootTab) ?? 'PLANNED';
     const [page, setPage] = useState(0);
-    const [activeTab, setActiveTab] = useState<ShootTab>('PLANNED');
+    const [activeTab, setActiveTab] = useState<ShootTab>(initialTab);
     const [selectedShoot, setSelectedShoot] = useState<ShootResponse | null>(null);
 
     const { data, isLoading } = useQuery<PageResponse<ShootResponse>>({

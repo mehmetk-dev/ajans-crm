@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { useUnreadCount } from '../hooks/useUnreadCount';
+import { useClientDataPrefetch } from '../hooks/useClientDataPrefetch';
+import { useActiveServices } from '../hooks/useActiveServices';
 import { clientApi } from '../api/clientPanel';
 import NotificationBell from '../components/NotificationBell';
 import GlobalSearch from '../components/GlobalSearch';
@@ -10,15 +12,31 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import FogLogo from '../components/brand/FogLogo';
 import {
     BarChart3, Image, ListTodo, ShoppingBag,
-    Settings, MessageSquare, LogOut, Star, Menu, X, TrendingUp, Sparkles, Search, Users, Camera
+    Settings, MessageSquare, LogOut, Star, Menu, X, TrendingUp, Sparkles, Search, Users, Camera, FileText, LayoutTemplate,
+    Loader2, Globe, Megaphone, Instagram
 } from 'lucide-react';
 
-const navItems = [
+// Nav items with optional requiredService — shown based on active services
+const ALL_NAV_ITEMS = [
     { to: '/client', icon: BarChart3, label: 'Raporlar', end: true },
     { to: '/client/analytics', icon: TrendingUp, label: 'Analitik' },
+    // Dijital Pazarlama
+    { to: '/client/google-analytics', icon: Globe, label: 'Google Analytics', requiredService: 'DIGITAL_MARKETING' },
+    { to: '/client/search-console', icon: Search, label: 'Search Console', requiredService: 'DIGITAL_MARKETING' },
+    // Web Tasarımı
+    { to: '/client/web-design', icon: LayoutTemplate, label: 'Web Tasarım', requiredService: 'WEB_DESIGN' },
+    // Reklam Yönetimi
+    { to: '/client/google-ads', icon: Megaphone, label: 'Google Ads', requiredService: 'AD_MANAGEMENT' },
+    { to: '/client/meta-ads', icon: Megaphone, label: 'Meta Ads', requiredService: 'AD_MANAGEMENT' },
+    // Sosyal Medya
+    { to: '/client/instagram', icon: Instagram, label: 'Instagram', requiredService: 'SOCIAL_MEDIA' },
+    // Prodüksiyon
+    { to: '/client/shoots', icon: Camera, label: 'Çekim Takvimi', requiredService: 'PRODUCTION' },
+    // İçerik Pazarlama
+    { to: '/client/content-plans', icon: FileText, label: 'İçerik Planı', requiredService: 'CONTENT_MARKETING' },
+    // Bağımsız
     { to: '/client/media', icon: Image, label: 'Medya Kütüphanesi' },
     { to: '/client/tasks', icon: ListTodo, label: 'Görevler' },
-    { to: '/client/shoots', icon: Camera, label: 'Çekim Takvimi' },
     { to: '/client/services', icon: ShoppingBag, label: 'Ek Hizmet Al', ownerOnly: true },
     { to: '/client/messaging', icon: MessageSquare, label: 'Mesajlar' },
     { to: '/client/team', icon: Users, label: 'Ekibimiz', ownerOnly: true },
@@ -30,9 +48,70 @@ const navItems = [
 export default function ClientLayout() {
     const { user, logout } = useAuth();
     const msgCount = useUnreadCount(clientApi.getMyConversations);
+    const { isLoading, isAllSettled } = useClientDataPrefetch();
+    const { hasService, isLoading: servicesLoading } = useActiveServices();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [splashDone, setSplashDone] = useState(false);
+    const splashMinElapsed = useRef(false);
     const isOwner = user?.membershipRole === 'OWNER';
-    const filteredNavItems = navItems.filter(item => !item.ownerOnly || isOwner);
+
+    // Filter: hide ownerOnly items for non-owners, hide service items if service inactive
+    const filteredNavItems = ALL_NAV_ITEMS.filter(item => {
+        if (item.ownerOnly && !isOwner) return false;
+        if (item.requiredService && !servicesLoading && !hasService(item.requiredService)) return false;
+        return true;
+    });
+
+    // Minimum 1.6s splash so animation plays + data finishes
+    useEffect(() => {
+        const t = setTimeout(() => { splashMinElapsed.current = true; }, 1600);
+        return () => clearTimeout(t);
+    }, []);
+
+    useEffect(() => {
+        if (!isLoading && isAllSettled && splashMinElapsed.current) {
+            setSplashDone(true);
+        }
+        if (!isLoading && isAllSettled) {
+            const t = setTimeout(() => setSplashDone(true), 400);
+            return () => clearTimeout(t);
+        }
+    }, [isLoading, isAllSettled]);
+
+    // ─── Splash Screen ─────────────────────────────────────────────
+    if (!splashDone) {
+        return (
+            <div className="fixed inset-0 z-[9999] bg-[#07070A] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-8">
+                    {/* Glow */}
+                    <div className="absolute w-[500px] h-[500px] rounded-full opacity-30"
+                         style={{ background: 'radial-gradient(circle, rgba(209,24,28,0.25) 0%, transparent 70%)' }} />
+                    {/* Logo */}
+                    <div className="relative z-10 flex flex-col items-center gap-6 animate-fade-in">
+                        <div className="text-5xl font-bold tracking-tight">
+                            <span style={{ color: '#C8697A', fontWeight: 800 }}>FOG</span>
+                            <span className="font-light text-white/80" style={{ marginLeft: '0.08em' }}>istanbul</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#C8697A] animate-pulse" />
+                            <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-[0.2em]">Müşteri Portalı</p>
+                        </div>
+                    </div>
+                    {/* Progress */}
+                    <div className="relative z-10 flex flex-col items-center gap-3 mt-2">
+                        <div className="w-48 h-[3px] rounded-full bg-white/[0.06] overflow-hidden">
+                            <div className="h-full rounded-full animate-splash-bar"
+                                 style={{ background: 'linear-gradient(90deg, #D1181C, #C8697A)' }} />
+                        </div>
+                        <div className="flex items-center gap-2 text-zinc-600">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span className="text-[11px] font-medium">Veriler yükleniyor...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="fog-client-shell flex min-h-dvh">

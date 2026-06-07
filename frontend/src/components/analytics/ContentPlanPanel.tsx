@@ -3,9 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     FileText, Plus, X, ChevronDown, Instagram, Youtube,
-    Globe, Linkedin, Twitter, Monitor, Loader2,
-    User, Building2, Smartphone, Maximize2, Navigation,
-    Users, Calendar, Edit3, Trash2,
+    Globe, Linkedin, Twitter, Monitor, Smartphone, Loader2,
+    Calendar, Edit3, Trash2,
     CheckCircle2, Clock, RotateCcw, Sparkles, Camera, MapPin
 } from 'lucide-react';
 import {
@@ -19,6 +18,7 @@ import { staffApi } from '../../api/staff';
 interface Props {
     companyId: string;
     readOnly?: boolean;
+    limit?: number;
 }
 
 const PLATFORMS = [
@@ -52,12 +52,13 @@ function getStatus(val: string) {
     return STATUSES[val] ?? STATUSES.DRAFT;
 }
 
-export default function ContentPlanPanel({ companyId, readOnly = false }: Props) {
+export default function ContentPlanPanel({ companyId, readOnly = false, limit }: Props) {
     const qc = useQueryClient();
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [filterStatus, setFilterStatus] = useState<string>('');
-    const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [showAll, setShowAll] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState<ContentPlanResponse | null>(null);
     const [approveModal, setApproveModal] = useState<string | null>(null);
     const [shootDetailId, setShootDetailId] = useState<string | null>(null);
 
@@ -79,12 +80,16 @@ export default function ContentPlanPanel({ companyId, readOnly = false }: Props)
 
     const updateMut = useMutation({
         mutationFn: ({ id, data: d }: { id: string; data: UpdateContentPlanRequest }) => contentPlanApi.update(id, d),
-        onSuccess: () => { qc.invalidateQueries({ queryKey }); setEditingId(null); },
+        onSuccess: (updated) => {
+            qc.invalidateQueries({ queryKey });
+            setEditingId(null);
+            if (selectedPlan?.id === updated.id) setSelectedPlan(updated);
+        },
     });
 
     const deleteMut = useMutation({
         mutationFn: (id: string) => contentPlanApi.delete(id),
-        onSuccess: () => qc.invalidateQueries({ queryKey }),
+        onSuccess: () => { qc.invalidateQueries({ queryKey }); setSelectedPlan(null); },
     });
 
     const approveWithShootMut = useMutation({
@@ -139,7 +144,7 @@ export default function ContentPlanPanel({ companyId, readOnly = false }: Props)
         <>
         <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
             {/* Header */}
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-pink-500/20 flex items-center justify-center">
                         <FileText className="w-4 h-4 text-violet-400" />
@@ -150,7 +155,6 @@ export default function ContentPlanPanel({ companyId, readOnly = false }: Props)
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    {/* Status filter */}
                     <div className="relative">
                         <select
                             value={filterStatus}
@@ -170,13 +174,13 @@ export default function ContentPlanPanel({ companyId, readOnly = false }: Props)
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[11px] font-medium hover:bg-violet-500/20 transition-all"
                         >
                             <Plus className="w-3.5 h-3.5" />
-                            Yeni İçerik
+                            Yeni
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* Create / Edit Form */}
+            {/* Create Form */}
             <AnimatePresence>
                 {showForm && !readOnly && (
                     <ContentForm
@@ -188,49 +192,127 @@ export default function ContentPlanPanel({ companyId, readOnly = false }: Props)
                 )}
             </AnimatePresence>
 
-            {/* Loading */}
             {isLoading && (
-                <div className="flex items-center justify-center py-12">
+                <div className="flex items-center justify-center py-10">
                     <Loader2 className="w-5 h-5 text-violet-400 animate-spin" />
                 </div>
             )}
 
-            {/* Empty */}
             {!isLoading && plans.length === 0 && (
-                <div className="text-center py-12">
+                <div className="text-center py-10">
                     <FileText className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
                     <p className="text-sm text-zinc-500">Henüz içerik planı eklenmemiş</p>
                     {!readOnly && (
-                        <button
-                            onClick={() => setShowForm(true)}
-                            className="mt-3 text-[12px] text-violet-400 hover:text-violet-300 font-medium"
-                        >
+                        <button onClick={() => setShowForm(true)} className="mt-3 text-[12px] text-violet-400 hover:text-violet-300 font-medium">
                             İlk içeriği ekle →
                         </button>
                     )}
                 </div>
             )}
 
-            {/* Content List */}
-            <div className="space-y-2">
-                {plans.map(plan => {
-                    const platform = getPlatform(plan.platform);
-                    const status = getStatus(plan.status);
-                    const StatusIcon = status.icon;
-                    const PlatformIcon = platform.icon;
-                    const isExpanded = expandedId === plan.id;
+            {/* Compact Content List */}
+            {(() => {
+                const visiblePlans = limit && !showAll ? plans.slice(0, limit) : plans;
+                const hiddenCount = limit ? plans.length - limit : 0;
+                return (
+                    <>
+                        <div className="divide-y divide-white/[0.04]">
+                            {visiblePlans.map(plan => {
+                                const platform = getPlatform(plan.platform);
+                                const status = getStatus(plan.status);
+                                const StatusIcon = status.icon;
+                                const PlatformIcon = platform.icon;
 
-                    return (
-                        <motion.div
-                            key={plan.id}
-                            layout
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-[#111114] border border-white/[0.06] rounded-xl overflow-hidden hover:border-white/[0.1] transition-colors"
-                        >
-                            {/* Editing inline */}
-                            {editingId === plan.id && !readOnly ? (
+                                return (
+                                    <button
+                                        key={plan.id}
+                                        onClick={() => setSelectedPlan(plan)}
+                                        className="w-full flex items-center gap-3 py-2.5 px-1 text-left hover:bg-white/[0.02] rounded-lg transition-colors group"
+                                    >
+                                        <div className={`shrink-0 h-8 w-8 rounded-lg ${platform.bg} flex items-center justify-center`}>
+                                            <PlatformIcon className={`w-3.5 h-3.5 ${platform.color}`} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[12px] font-medium text-white truncate group-hover:text-zinc-100">{plan.title}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className="text-[10px] text-zinc-600">{plan.authorName}</span>
+                                                {plan.plannedDate && (
+                                                    <>
+                                                        <span className="text-zinc-700">·</span>
+                                                        <span className="text-[10px] text-zinc-600 flex items-center gap-0.5">
+                                                            <Calendar className="w-2.5 h-2.5" />
+                                                            {new Date(plan.plannedDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                                                        </span>
+                                                    </>
+                                                )}
+                                                {plan.shootId && plan.status === 'APPROVED' && (
+                                                    <>
+                                                        <span className="text-zinc-700">·</span>
+                                                        <span className="text-[10px] text-emerald-500 flex items-center gap-0.5">
+                                                            <Camera className="w-2.5 h-2.5" />
+                                                            Çekim var
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className={`shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full ${status.bg}`}>
+                                            <StatusIcon className={`w-2.5 h-2.5 ${status.color}`} />
+                                            <span className={`text-[9px] font-semibold ${status.color}`}>{status.label}</span>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {limit && hiddenCount > 0 && (
+                            <button
+                                onClick={() => setShowAll(v => !v)}
+                                className="mt-2 w-full text-center text-[11px] text-zinc-500 hover:text-zinc-300 py-1.5 border-t border-white/[0.04] transition-colors"
+                            >
+                                {showAll ? 'Daha az göster ↑' : `${hiddenCount} içerik daha göster ↓`}
+                            </button>
+                        )}
+                    </>
+                );
+            })()}
+        </div>
+
+        {/* Detail Modal */}
+        <AnimatePresence>
+            {selectedPlan && (
+                <ContentPlanDetailModal
+                    plan={selectedPlan}
+                    readOnly={readOnly}
+                    companyId={companyId}
+                    onClose={() => { setSelectedPlan(null); setEditingId(null); }}
+                    onEdit={() => { setEditingId(selectedPlan.id); setSelectedPlan(null); }}
+                    onDelete={() => deleteMut.mutate(selectedPlan.id)}
+                    onStatusChange={(status, note) => updateMut.mutate({ id: selectedPlan.id, data: { status, revisionNote: note } })}
+                    onApprove={() => setApproveModal(selectedPlan.id)}
+                    onShootDetail={(id) => setShootDetailId(id)}
+                    isUpdating={updateMut.isPending}
+                    isDeleting={deleteMut.isPending}
+                />
+            )}
+        </AnimatePresence>
+
+        {/* Edit Form Modal */}
+        <AnimatePresence>
+            {editingId && !readOnly && (
+                <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                    onClick={() => setEditingId(null)}
+                >
+                    <motion.div
+                        initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                        className="bg-[#0C0C0E] border border-white/[0.08] rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="p-5">
+                            {plans.filter(p => p.id === editingId).map(plan => (
                                 <ContentForm
+                                    key={plan.id}
                                     companyId={companyId}
                                     initial={plan}
                                     onSubmit={d => updateMut.mutate({ id: plan.id, data: d })}
@@ -238,197 +320,12 @@ export default function ContentPlanPanel({ companyId, readOnly = false }: Props)
                                     isLoading={updateMut.isPending}
                                     isEdit
                                 />
-                            ) : (
-                                <>
-                                    {/* Row summary */}
-                                    <button
-                                        onClick={() => setExpandedId(isExpanded ? null : plan.id)}
-                                        className="w-full flex items-center gap-3 px-4 py-3 text-left"
-                                    >
-                                        {/* Platform icon */}
-                                        <div className={`shrink-0 h-9 w-9 rounded-lg ${platform.bg} flex items-center justify-center`}>
-                                            <PlatformIcon className={`w-4 h-4 ${platform.color}`} />
-                                        </div>
-
-                                        {/* Title + meta */}
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-[13px] font-medium text-white truncate">{plan.title}</p>
-                                            <div className="flex items-center gap-3 mt-0.5">
-                                                <span className="text-[10px] text-zinc-500 flex items-center gap-1">
-                                                    <User className="w-2.5 h-2.5" />
-                                                    {plan.authorName}
-                                                </span>
-                                                <span className={`text-[10px] ${platform.color}`}>{platform.label}</span>
-                                                {plan.contentSize && (
-                                                    <span className="text-[10px] text-zinc-600">{plan.contentSize}</span>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Status badge */}
-                                        <div className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full ${status.bg}`}>
-                                            <StatusIcon className={`w-3 h-3 ${status.color}`} />
-                                            <span className={`text-[10px] font-medium ${status.color}`}>{status.label}</span>
-                                        </div>
-
-                                        <ChevronDown className={`shrink-0 w-4 h-4 text-zinc-600 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                                    </button>
-
-                                    {/* Expanded detail */}
-                                    <AnimatePresence>
-                                        {isExpanded && (
-                                            <motion.div
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: 'auto', opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                transition={{ duration: 0.2 }}
-                                                className="overflow-hidden"
-                                            >
-                                                <div className="px-4 pb-4 pt-1 border-t border-white/[0.04]">
-                                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-                                                        <DetailItem icon={User} label="Yazar" value={plan.authorName} />
-                                                        <DetailItem icon={Building2} label="Şirket" value={plan.companyName} />
-                                                        <DetailItem icon={Smartphone} label="Platform" value={platform.label} />
-                                                        <DetailItem icon={Maximize2} label="Boyut" value={plan.contentSize || '—'} />
-                                                        <DetailItem icon={Navigation} label="Yönlendirme" value={plan.direction || '—'} />
-                                                        <DetailItem icon={Users} label="Konuşmacı/Manken" value={plan.speakerModel || '—'} />
-                                                        {plan.plannedDate && (
-                                                            <DetailItem icon={Calendar} label="Önerilen Çekim Tarihi" value={new Date(plan.plannedDate).toLocaleDateString('tr-TR')} />
-                                                        )}
-                                                        {plan.shootId && plan.status !== 'WAITING_APPROVAL' && plan.status !== 'DRAFT' && plan.status !== 'REVISION' && (
-                                                            <button onClick={(e) => { e.stopPropagation(); setShootDetailId(plan.shootId); }} className="text-left w-full group/shoot">
-                                                                <DetailItem icon={Camera} label="Çekim Planı" value={plan.shootTitle || '—'} />
-                                                            </button>
-                                                        )}
-                                                        {plan.shootDate && plan.status !== 'WAITING_APPROVAL' && plan.status !== 'DRAFT' && plan.status !== 'REVISION' && (
-                                                            <DetailItem icon={MapPin} label="Çekim Tarihi" value={new Date(plan.shootDate).toLocaleDateString('tr-TR')} />
-                                                        )}
-                                                    </div>
-
-                                                    {plan.description && (
-                                                        <div className="mt-3 p-3 bg-white/[0.02] rounded-lg">
-                                                            <p className="text-[11px] text-zinc-400 leading-relaxed">{plan.description}</p>
-                                                        </div>
-                                                    )}
-
-                                                    {plan.revisionNote && (
-                                                        <div className="mt-2 p-3 bg-orange-500/5 border border-orange-500/10 rounded-lg">
-                                                            <p className="text-[10px] text-orange-400 font-medium mb-1">Revize Notu:</p>
-                                                            <p className="text-[11px] text-zinc-400">{plan.revisionNote}</p>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Actions - Staff */}
-                                                    {!readOnly && (
-                                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.04]">
-                                                            {plan.status === 'DRAFT' && (
-                                                                <StatusButton
-                                                                    label="Onaya Gönder"
-                                                                    color="amber"
-                                                                    onClick={() => updateMut.mutate({ id: plan.id, data: { status: 'WAITING_APPROVAL' } })}
-                                                                />
-                                                            )}
-                                                            {plan.status === 'WAITING_APPROVAL' && (
-                                                                <>
-                                                                    <StatusButton
-                                                                        label="Onayla"
-                                                                        color="emerald"
-                                                                        onClick={() => updateMut.mutate({ id: plan.id, data: { status: 'APPROVED' } })}
-                                                                    />
-                                                                    <StatusButton
-                                                                        label="Revize Et"
-                                                                        color="orange"
-                                                                        onClick={() => {
-                                                                            const note = prompt('Revize notu:');
-                                                                            if (note) updateMut.mutate({ id: plan.id, data: { status: 'REVISION', revisionNote: note } });
-                                                                        }}
-                                                                    />
-                                                                </>
-                                                            )}
-                                                            {plan.status === 'REVISION' && (
-                                                                <StatusButton
-                                                                    label="Tekrar Onaya Gönder"
-                                                                    color="amber"
-                                                                    onClick={() => updateMut.mutate({ id: plan.id, data: { status: 'WAITING_APPROVAL' } })}
-                                                                />
-                                                            )}
-                                                            {plan.status === 'APPROVED' && (
-                                                                <StatusButton
-                                                                    label="Yayınlandı İşaretle"
-                                                                    color="pink"
-                                                                    onClick={() => updateMut.mutate({ id: plan.id, data: { status: 'PUBLISHED' } })}
-                                                                />
-                                                            )}
-                                                            <div className="flex-1" />
-                                                            <button
-                                                                onClick={() => setEditingId(plan.id)}
-                                                                className="p-1.5 rounded-lg hover:bg-white/[0.05] text-zinc-500 hover:text-violet-400 transition-colors"
-                                                                title="Düzenle"
-                                                            >
-                                                                <Edit3 className="w-3.5 h-3.5" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    if (confirm('Bu içerik planını silmek istediğinize emin misiniz?'))
-                                                                        deleteMut.mutate(plan.id);
-                                                                }}
-                                                                className="p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-500 hover:text-red-400 transition-colors"
-                                                                title="Sil"
-                                                            >
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                            </button>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Actions - Client */}
-                                                    {readOnly && (
-                                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.04]">
-                                                            {plan.status === 'WAITING_APPROVAL' && (
-                                                                <>
-                                                                    <StatusButton
-                                                                        label="Onayla + Çekim Planla"
-                                                                        color="emerald"
-                                                                        onClick={() => setApproveModal(plan.id)}
-                                                                    />
-                                                                    <StatusButton
-                                                                        label="Revize İste"
-                                                                        color="orange"
-                                                                        onClick={() => {
-                                                                            const note = prompt('Revize notu:');
-                                                                            if (note) updateMut.mutate({ id: plan.id, data: { status: 'REVISION', revisionNote: note } });
-                                                                        }}
-                                                                    />
-                                                                </>
-                                                            )}
-                                                            {plan.shootId && plan.status !== 'WAITING_APPROVAL' && plan.status !== 'DRAFT' && plan.status !== 'REVISION' && (
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); setShootDetailId(plan.shootId); }}
-                                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer"
-                                                                >
-                                                                    <Camera className="w-3.5 h-3.5 text-emerald-400" />
-                                                                    <span className="text-[11px] font-medium text-emerald-400">
-                                                                        Çekim: {plan.shootDate ? new Date(plan.shootDate).toLocaleDateString('tr-TR') : plan.shootTitle}
-                                                                    </span>
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    )}
-
-                                                    <p className="text-[9px] text-zinc-600 mt-2">
-                                                        {plan.createdByName && <>Oluşturan: {plan.createdByName} · </>}
-                                                        {plan.createdAt && new Date(plan.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                    </p>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </>
-                            )}
-                        </motion.div>
-                    );
-                })}
-            </div>
-        </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
 
         {/* Shoot Detail Modal */}
         <AnimatePresence>
@@ -458,19 +355,206 @@ export default function ContentPlanPanel({ companyId, readOnly = false }: Props)
     );
 }
 
-/* ─── Sub-components ─────────────────────────────────────── */
+/* ─── Content Plan Detail Modal ──────────────────────────── */
 
-function DetailItem({ icon: Icon, label, value }: { icon: typeof User; label: string; value: string }) {
+function ContentPlanDetailModal({
+    plan, readOnly, onClose, onEdit, onDelete, onStatusChange, onApprove, onShootDetail, isUpdating, isDeleting,
+}: {
+    plan: ContentPlanResponse;
+    readOnly: boolean;
+    companyId: string;
+    onClose: () => void;
+    onEdit: () => void;
+    onDelete: () => void;
+    onStatusChange: (status: string, note?: string) => void;
+    onApprove: () => void;
+    onShootDetail: (id: string) => void;
+    isUpdating: boolean;
+    isDeleting: boolean;
+}) {
+    const platform = getPlatform(plan.platform);
+    const status = getStatus(plan.status);
+    const StatusIcon = status.icon;
+    const PlatformIcon = platform.icon;
+
     return (
-        <div className="flex items-start gap-2">
-            <Icon className="w-3.5 h-3.5 text-zinc-600 mt-0.5 shrink-0" />
-            <div>
-                <p className="text-[9px] text-zinc-600 uppercase tracking-wider">{label}</p>
-                <p className="text-[12px] text-zinc-300 mt-0.5">{value}</p>
-            </div>
-        </div>
+        <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+            onClick={onClose}
+        >
+            <motion.div
+                initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                className="bg-[#0C0C0E] border border-white/[0.08] rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Header */}
+                <div className="sticky top-0 bg-[#0C0C0E]/95 backdrop-blur-sm border-b border-white/[0.06] px-5 py-4 z-10 flex items-start gap-3">
+                    <div className={`shrink-0 h-10 w-10 rounded-xl ${platform.bg} flex items-center justify-center`}>
+                        <PlatformIcon className={`w-5 h-5 ${platform.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h2 className="text-sm font-semibold text-white leading-snug">{plan.title}</h2>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${status.bg} ${status.color}`}>
+                                <StatusIcon className="w-2.5 h-2.5" />
+                                {status.label}
+                            </span>
+                            <span className={`text-[10px] ${platform.color}`}>{platform.label}</span>
+                            {plan.contentSize && <span className="text-[10px] text-zinc-600">{plan.contentSize}</span>}
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors shrink-0">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+
+                <div className="px-5 py-4 space-y-4">
+                    {/* Meta grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-white/[0.02] rounded-xl p-3">
+                            <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-1">Yazar</p>
+                            <p className="text-[12px] text-white font-medium">{plan.authorName}</p>
+                        </div>
+                        <div className="bg-white/[0.02] rounded-xl p-3">
+                            <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-1">Platform</p>
+                            <p className={`text-[12px] font-medium ${platform.color}`}>{platform.label}</p>
+                        </div>
+                        {plan.contentSize && (
+                            <div className="bg-white/[0.02] rounded-xl p-3">
+                                <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-1">Boyut</p>
+                                <p className="text-[12px] text-white font-medium">{plan.contentSize}</p>
+                            </div>
+                        )}
+                        {plan.plannedDate && (
+                            <div className="bg-white/[0.02] rounded-xl p-3">
+                                <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-1">Önerilen Çekim</p>
+                                <p className="text-[12px] text-white font-medium">{new Date(plan.plannedDate).toLocaleDateString('tr-TR')}</p>
+                            </div>
+                        )}
+                        {plan.speakerModel && (
+                            <div className="bg-white/[0.02] rounded-xl p-3">
+                                <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-1">Konuşmacı/Manken</p>
+                                <p className="text-[12px] text-white font-medium">{plan.speakerModel}</p>
+                            </div>
+                        )}
+                        {plan.companyName && (
+                            <div className="bg-white/[0.02] rounded-xl p-3">
+                                <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-1">Şirket</p>
+                                <p className="text-[12px] text-white font-medium">{plan.companyName}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Direction / Brief */}
+                    {plan.direction && (
+                        <div className="bg-white/[0.02] rounded-xl p-3">
+                            <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Yönlendirme / Brief</p>
+                            <p className="text-[12px] text-zinc-300 leading-relaxed">{plan.direction}</p>
+                        </div>
+                    )}
+
+                    {/* Description */}
+                    {plan.description && (
+                        <div className="bg-white/[0.02] rounded-xl p-3">
+                            <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Açıklama</p>
+                            <p className="text-[12px] text-zinc-300 leading-relaxed">{plan.description}</p>
+                        </div>
+                    )}
+
+                    {/* Revision note */}
+                    {plan.revisionNote && (
+                        <div className="bg-orange-500/5 border border-orange-500/15 rounded-xl p-3">
+                            <p className="text-[9px] font-bold text-orange-400 uppercase tracking-widest mb-1.5">Revize Notu</p>
+                            <p className="text-[12px] text-zinc-300 leading-relaxed">{plan.revisionNote}</p>
+                        </div>
+                    )}
+
+                    {/* Linked shoot */}
+                    {plan.shootId && plan.status !== 'WAITING_APPROVAL' && plan.status !== 'DRAFT' && plan.status !== 'REVISION' && (
+                        <button
+                            onClick={() => onShootDetail(plan.shootId!)}
+                            className="w-full flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-3 hover:bg-emerald-500/10 transition-colors text-left"
+                        >
+                            <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
+                            <div>
+                                <p className="text-[9px] font-bold text-emerald-500/70 uppercase tracking-widest">Bağlı Çekim</p>
+                                <p className="text-[12px] text-white font-medium mt-0.5">
+                                    {plan.shootTitle || 'Çekim detayları'}
+                                    {plan.shootDate && <span className="text-zinc-500 ml-2">· {new Date(plan.shootDate).toLocaleDateString('tr-TR')}</span>}
+                                </p>
+                            </div>
+                            <ChevronDown className="-rotate-90 w-4 h-4 text-zinc-500 ml-auto" />
+                        </button>
+                    )}
+
+                    {/* Meta footer */}
+                    <p className="text-[9px] text-zinc-700">
+                        {plan.createdByName && <>Oluşturan: {plan.createdByName} · </>}
+                        {plan.createdAt && new Date(plan.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
+
+                    {/* Actions */}
+                    <div className="border-t border-white/[0.06] pt-4 space-y-2">
+                        {/* Staff actions */}
+                        {!readOnly && (
+                            <div className="flex flex-wrap items-center gap-2">
+                                {plan.status === 'DRAFT' && (
+                                    <StatusButton label="Onaya Gönder" color="amber" onClick={() => onStatusChange('WAITING_APPROVAL')} />
+                                )}
+                                {plan.status === 'WAITING_APPROVAL' && (
+                                    <>
+                                        <StatusButton label="Onayla" color="emerald" onClick={() => onStatusChange('APPROVED')} />
+                                        <StatusButton label="Revize Et" color="orange" onClick={() => {
+                                            const note = prompt('Revize notu:');
+                                            if (note) onStatusChange('REVISION', note);
+                                        }} />
+                                    </>
+                                )}
+                                {plan.status === 'REVISION' && (
+                                    <StatusButton label="Tekrar Onaya Gönder" color="amber" onClick={() => onStatusChange('WAITING_APPROVAL')} />
+                                )}
+                                {plan.status === 'APPROVED' && (
+                                    <StatusButton label="Yayınlandı İşaretle" color="pink" onClick={() => onStatusChange('PUBLISHED')} />
+                                )}
+                                <div className="flex-1" />
+                                <button onClick={onEdit} className="p-1.5 rounded-lg hover:bg-white/[0.05] text-zinc-500 hover:text-violet-400 transition-colors" title="Düzenle">
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                    onClick={() => { if (confirm('Bu içerik planını silmek istediğinize emin misiniz?')) onDelete(); }}
+                                    disabled={isDeleting}
+                                    className="p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-500 hover:text-red-400 transition-colors" title="Sil"
+                                >
+                                    {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Client actions */}
+                        {readOnly && plan.status === 'WAITING_APPROVAL' && (
+                            <div className="flex flex-wrap gap-2">
+                                <StatusButton label="Onayla + Çekim Planla" color="emerald" onClick={onApprove} />
+                                <StatusButton label="Revize İste" color="orange" onClick={() => {
+                                    const note = prompt('Revize notu:');
+                                    if (note) onStatusChange('REVISION', note);
+                                }} />
+                            </div>
+                        )}
+
+                        {isUpdating && (
+                            <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Kaydediliyor...
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </motion.div>
+        </motion.div>
     );
 }
+
 
 function StatusButton({ label, color, onClick }: { label: string; color: string; onClick: () => void }) {
     const colorMap: Record<string, string> = {

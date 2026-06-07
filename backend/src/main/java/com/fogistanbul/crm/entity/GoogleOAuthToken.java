@@ -20,9 +20,13 @@ public class GoogleOAuthToken {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "company_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = false)
     private Company company;
+
+    @Column(name = "service_type", nullable = false, length = 30)
+    @Builder.Default
+    private String serviceType = "ANALYTICS";
 
     @Column(name = "access_token", nullable = false, columnDefinition = "TEXT")
     private String accessToken;
@@ -41,6 +45,9 @@ public class GoogleOAuthToken {
 
     @Column(name = "sc_site_url")
     private String scSiteUrl;
+
+    @Column(name = "ads_customer_id", length = 30)
+    private String adsCustomerId;
 
     @Column(name = "connected_at", nullable = false, updatable = false)
     @Builder.Default

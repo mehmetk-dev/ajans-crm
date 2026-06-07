@@ -87,6 +87,10 @@ export const clientApi = {
     // Approval Requests
     createApprovalRequest: (data: { type: string; referenceId?: string; companyId: string; title: string; description?: string; metadata?: string }) =>
         api.post('/client/approval-requests', data).then(r => r.data),
+
+    // Active Services
+    getActiveServices: () =>
+        api.get<{ activeServices: string[] }>('/client/active-services').then(r => r.data),
 };
 
 export interface TeamMemberResponse {

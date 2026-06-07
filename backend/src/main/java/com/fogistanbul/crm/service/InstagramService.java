@@ -10,6 +10,8 @@ import com.fogistanbul.crm.dto.IgOverviewResponse.IgMediaRow;
 
 import com.fogistanbul.crm.dto.IgOverviewResponse.IgReelRow;
 
+import com.fogistanbul.crm.dto.IgOverviewResponse.IgPostRow;
+
 import com.fogistanbul.crm.entity.InstagramToken;
 
 import lombok.RequiredArgsConstructor;
@@ -316,13 +318,11 @@ public class InstagramService {
 
         try {
 
-            // Fetch recent media with media_product_type to identify reels
-
             String url = GRAPH_URL + "/" + igUserId + "/media"
 
                     + "?fields=id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count"
 
-                    + "&limit=50"
+                    + "&limit=100"
 
                     + "&access_token=" + accessToken;
 
@@ -336,11 +336,13 @@ public class InstagramService {
 
 
 
-            // Filter reels only
+            // Filter reels only - current month
 
             List<Map<String, Object>> reels = data.stream()
 
                     .filter(m -> "REELS".equalsIgnoreCase((String) m.get("media_product_type")))
+
+                    .filter(m -> isCurrentMonth((String) m.getOrDefault("timestamp", "")))
 
                     .limit(limit)
 
@@ -384,7 +386,7 @@ public class InstagramService {
 
         } catch (Exception e) {
 
-            log.error("Instagram reels hatası, companyId={}: {}", companyId, e.getMessage());
+            log.error("Instagram reels hatasi, companyId={}: {}", companyId, e.getMessage());
 
             return List.of();
 
@@ -394,11 +396,121 @@ public class InstagramService {
 
 
 
-    // ─── Helpers ─────────────────────────────────────────────────────
+    // ─── Posts ─────────────────────────────────────────────────────────────────
 
 
 
     @SuppressWarnings("unchecked")
+
+    public List<IgPostRow> getPosts(UUID companyId, int limit) {
+
+        Optional<InstagramToken> tokenOpt = oAuthService.getToken(companyId);
+
+        if (tokenOpt.isEmpty()) return List.of();
+
+
+
+        InstagramToken token = tokenOpt.get();
+
+        String igUserId = token.getIgUserId();
+
+        if (igUserId == null || igUserId.isBlank()) return List.of();
+
+
+
+        String accessToken = oAuthService.getValidAccessToken(companyId).orElse(null);
+
+        if (accessToken == null) return List.of();
+
+
+
+        try {
+
+            String url = GRAPH_URL + "/" + igUserId + "/media"
+
+                    + "?fields=id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count"
+
+                    + "&limit=100"
+
+                    + "&access_token=" + accessToken;
+
+
+
+            Map<String, Object> result = fetchJson(url);
+
+            List<Map<String, Object>> data = (List<Map<String, Object>>) result.get("data");
+
+            if (data == null) return List.of();
+
+
+
+            // Filter non-reels (IMAGE, CAROUSEL_ALBUM, VIDEO) - current month only
+
+            List<Map<String, Object>> filteredPosts = data.stream()
+
+                    .filter(m -> !"REELS".equalsIgnoreCase((String) m.get("media_product_type")))
+
+                    .filter(m -> isCurrentMonth((String) m.getOrDefault("timestamp", "")))
+
+                    .limit(limit)
+
+                    .toList();
+
+
+
+            List<IgPostRow> rows = new ArrayList<>();
+
+            for (Map<String, Object> post : filteredPosts) {
+
+                String mediaId = (String) post.getOrDefault("id", "");
+
+                PostInsightStats insightStats = fetchPostInsights(mediaId, accessToken);
+
+                Object rawUrl = post.getOrDefault("media_url", post.getOrDefault("thumbnail_url", ""));
+
+                String mediaUrl = rawUrl instanceof String s ? s : "";
+
+
+
+                rows.add(new IgPostRow(
+
+                        mediaId,
+
+                        truncate((String) post.getOrDefault("caption", ""), 80),
+
+                        (String) post.getOrDefault("media_type", ""),
+
+                        mediaUrl,
+
+                        (String) post.getOrDefault("permalink", ""),
+
+                        (String) post.getOrDefault("timestamp", ""),
+
+                        toLong(post.get("like_count")),
+
+                        toLong(post.get("comments_count")),
+
+                        insightStats.impressions(), insightStats.reach(),
+
+                        insightStats.saved(), insightStats.shares()
+
+                ));
+
+            }
+
+            return rows;
+
+        } catch (Exception e) {
+
+            log.error("Instagram posts hatasi, companyId={}: {}", companyId, e.getMessage());
+
+            return List.of();
+
+        }
+
+    }
+
+
 
     private List<Map<String, Object>> fetchInsight(String igUserId, String accessToken,
 
@@ -1206,11 +1318,63 @@ public class InstagramService {
 
 
 
+    private boolean isCurrentMonth(String timestamp) {
+
+        if (timestamp == null || timestamp.isBlank()) return true;
+
+        try {
+
+            String normalized = timestamp.replace("+0000", "Z");
+
+            Instant postTime = Instant.parse(normalized);
+
+            InsightRange monthRange = currentMonthRange();
+
+            return postTime.getEpochSecond() >= monthRange.since();
+
+        } catch (Exception e) {
+
+            return true;
+
+        }
+
+    }
+
+
+
+    private PostInsightStats fetchPostInsights(String mediaId, String accessToken) {
+
+        if (mediaId == null || mediaId.isBlank()) return new PostInsightStats(0, 0, 0, 0);
+
+
+
+        long impressions = firstAvailableReelMetric(mediaId, accessToken,
+
+                List.of("impressions", "views", "reach"));
+
+        long reach = fetchMediaInsightValue(mediaId, accessToken, "reach").orElse(0);
+
+        long saved = fetchMediaInsightValue(mediaId, accessToken, "saved").orElse(0);
+
+        long shares = fetchMediaInsightValue(mediaId, accessToken, "shares").orElse(0);
+
+
+
+        return new PostInsightStats(impressions, reach, saved, shares);
+
+    }
+
+
+
     private record InsightRange(long since, long until) {}
 
 
 
     private record ReelInsightStats(long views, long reach, long saved, long shares) {}
+
+
+
+    private record PostInsightStats(long impressions, long reach, long saved, long shares) {}
 
 
 

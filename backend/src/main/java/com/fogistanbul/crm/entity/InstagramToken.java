@@ -39,6 +39,9 @@ public class InstagramToken {
     @Column(name = "page_id", length = 50)
     private String pageId;
 
+    @Column(name = "meta_ad_account_id", length = 50)
+    private String metaAdAccountId;
+
     @Column(name = "connected_at", nullable = false, updatable = false)
     @Builder.Default
     private Instant connectedAt = Instant.now();

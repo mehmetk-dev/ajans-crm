@@ -45,9 +45,14 @@ import ClientAnalyticsPage from './pages/client/ClientAnalyticsPage';
 import GoogleAnalyticsDetailPage from './pages/client/GoogleAnalyticsDetailPage';
 import SearchConsoleDetailPage from './pages/client/SearchConsoleDetailPage';
 import InstagramDetailPage from './pages/client/InstagramDetailPage';
+import InstagramReelsPage from './pages/client/InstagramReelsPage';
+import InstagramPostsPage from './pages/client/InstagramPostsPage';
 import PageSpeedDetailPage from './pages/client/PageSpeedDetailPage';
 import ClientTeamPage from './pages/client/ClientTeamPage';
 import ClientShootsPage from './pages/client/ClientShootsPage';
+import ClientContentPlanPage from './pages/client/ClientContentPlanPage';
+import GoogleAdsDetailPage from './pages/client/GoogleAdsDetailPage';
+import MetaAdsDetailPage from './pages/client/MetaAdsDetailPage';
 
 // New feature pages
 import ActivityLogPage from './pages/admin/ActivityLogPage';
@@ -57,12 +62,16 @@ import RoutineManagementPage from './pages/admin/RoutineManagementPage';
 import StaffSettingsPage from './pages/staff/StaffSettingsPage';
 import ContentPlansPage from './pages/staff/ContentPlansPage';
 import StaffRequestsPage from './pages/staff/StaffRequestsPage';
+import { ServicePageGate } from './components/ServiceUpsellOverlay';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      staleTime: 10 * 60 * 1000,   // 10 min — data stays fresh
+      gcTime: 30 * 60 * 1000,      // 30 min — keep in memory
     },
   },
 });
@@ -151,10 +160,12 @@ export default function App() {
             >
               <Route index element={<ClientDashboard />} />
               <Route path="analytics" element={<ClientAnalyticsPage />} />
-              <Route path="google-analytics" element={<GoogleAnalyticsDetailPage />} />
-              <Route path="search-console" element={<SearchConsoleDetailPage />} />
-              <Route path="instagram" element={<InstagramDetailPage />} />
-              <Route path="web-design" element={<PageSpeedDetailPage />} />
+              <Route path="google-analytics" element={<ServicePageGate service="DIGITAL_MARKETING"><GoogleAnalyticsDetailPage /></ServicePageGate>} />
+              <Route path="search-console" element={<ServicePageGate service="DIGITAL_MARKETING"><SearchConsoleDetailPage /></ServicePageGate>} />
+              <Route path="instagram" element={<ServicePageGate service="SOCIAL_MEDIA"><InstagramDetailPage /></ServicePageGate>} />
+              <Route path="instagram/reels" element={<ServicePageGate service="SOCIAL_MEDIA"><InstagramReelsPage /></ServicePageGate>} />
+              <Route path="instagram/posts" element={<ServicePageGate service="SOCIAL_MEDIA"><InstagramPostsPage /></ServicePageGate>} />
+              <Route path="web-design" element={<ServicePageGate service="WEB_DESIGN"><PageSpeedDetailPage /></ServicePageGate>} />
               <Route path="media" element={<MediaLibraryPage />} />
               <Route path="tasks" element={<ClientTasksPage />} />
               <Route path="completed" element={<Navigate to="/client/tasks" replace />} />
@@ -163,7 +174,10 @@ export default function App() {
               <Route path="team" element={<ProtectedRoute membershipRoles={['OWNER']}><ClientTeamPage /></ProtectedRoute>} />
               <Route path="surveys" element={<ProtectedRoute membershipRoles={['OWNER']}><SurveyPage /></ProtectedRoute>} />
               <Route path="onboarding" element={<ProtectedRoute membershipRoles={['OWNER']}><OnboardingPage /></ProtectedRoute>} />
-              <Route path="shoots" element={<ClientShootsPage />} />
+              <Route path="shoots" element={<ServicePageGate service="PRODUCTION"><ClientShootsPage /></ServicePageGate>} />
+              <Route path="content-plans" element={<ServicePageGate service="CONTENT_MARKETING"><ClientContentPlanPage /></ServicePageGate>} />
+              <Route path="google-ads" element={<ServicePageGate service="AD_MANAGEMENT"><GoogleAdsDetailPage /></ServicePageGate>} />
+              <Route path="meta-ads" element={<ServicePageGate service="AD_MANAGEMENT"><MetaAdsDetailPage /></ServicePageGate>} />
               <Route path="settings" element={<ClientSettingsPage />} />
             </Route>
 

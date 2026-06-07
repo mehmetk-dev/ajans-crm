@@ -1,12 +1,18 @@
 package com.fogistanbul.crm.controller;
 
 import com.fogistanbul.crm.dto.ScOverviewResponse;
+import com.fogistanbul.crm.entity.enums.ServiceCategory;
+import com.fogistanbul.crm.service.CompanyServiceAccessGuard;
 import com.fogistanbul.crm.service.GoogleOAuthService;
 import com.fogistanbul.crm.service.SearchConsoleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/client/analytics/sc")
@@ -15,46 +21,47 @@ public class SearchConsoleController {
 
     private final SearchConsoleService searchConsoleService;
     private final GoogleOAuthService googleOAuthService;
+    private final CompanyServiceAccessGuard serviceAccessGuard;
 
-    /** Belirli şirketin SC bağlantı durumu */
     @GetMapping("/status")
-    public Map<String, Object> status(@RequestParam UUID companyId) {
-        boolean connected = googleOAuthService.isConnected(companyId);
+    public Map<String, Object> status(@RequestParam UUID companyId, Authentication auth) {
+        serviceAccessGuard.requireService((UUID) auth.getPrincipal(), companyId, ServiceCategory.DIGITAL_MARKETING);
+        boolean connected = googleOAuthService.isConnected(companyId, "SEARCH_CONSOLE");
         String siteUrl = googleOAuthService.getSiteUrl(companyId).orElse(null);
-        boolean hasScScope = connected && googleOAuthService.hasScScope(companyId);
-        boolean needsReconnect = connected && !hasScScope;
-        String authUrl = googleOAuthService.buildAuthorizationUrl(companyId);
+        String authUrl = googleOAuthService.buildAuthorizationUrl(companyId, "SEARCH_CONSOLE");
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("connected", connected);
         result.put("siteUrl", siteUrl != null ? siteUrl : "");
-        result.put("hasScScope", hasScScope);
-        result.put("needsReconnect", needsReconnect);
+        result.put("hasScScope", connected);
+        result.put("needsReconnect", false);
         result.put("authUrl", authUrl);
         return result;
     }
 
-    /** Kullanıcının erişebildiği SC sitelerini listele */
     @GetMapping("/sites")
-    public List<Map<String, String>> listSites(@RequestParam UUID companyId) {
+    public List<Map<String, String>> listSites(@RequestParam UUID companyId, Authentication auth) {
+        serviceAccessGuard.requireService((UUID) auth.getPrincipal(), companyId, ServiceCategory.DIGITAL_MARKETING);
         return searchConsoleService.listSites(companyId);
     }
 
-    /** SC verilerini getir */
     @GetMapping("/overview")
     public ScOverviewResponse overview(@RequestParam UUID companyId,
-                                       @RequestParam(required = false) String startDate,
-                                       @RequestParam(required = false) String endDate) {
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            Authentication auth) {
+        serviceAccessGuard.requireService((UUID) auth.getPrincipal(), companyId, ServiceCategory.DIGITAL_MARKETING);
         return searchConsoleService.getOverview(companyId, startDate, endDate);
     }
 
-    /** Search Console Site URL'ini kaydet */
     @PostMapping("/site-url")
     public Map<String, String> saveSiteUrl(@RequestParam UUID companyId,
-                                            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body,
+            Authentication auth) {
+        serviceAccessGuard.requireService((UUID) auth.getPrincipal(), companyId, ServiceCategory.DIGITAL_MARKETING);
         String siteUrl = body.get("siteUrl");
         if (siteUrl == null || siteUrl.isBlank()) {
-            return Map.of("error", "siteUrl boş olamaz");
+            return Map.of("error", "siteUrl bos olamaz");
         }
         googleOAuthService.saveSiteUrl(companyId, siteUrl.trim());
         return Map.of("status", "ok");

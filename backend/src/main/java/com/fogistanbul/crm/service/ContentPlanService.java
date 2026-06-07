@@ -10,6 +10,8 @@ import com.fogistanbul.crm.entity.Shoot;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.ContentPlatform;
 import com.fogistanbul.crm.entity.enums.ContentStatus;
+import com.fogistanbul.crm.entity.enums.NotificationType;
+import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.ContentPlanRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
@@ -32,6 +34,8 @@ public class ContentPlanService {
     private final CompanyRepository companyRepo;
     private final UserProfileRepository userProfileRepo;
     private final ShootService shootService;
+    private final NotificationService notificationService;
+    private final CompanyMembershipRepository membershipRepo;
 
     @Transactional
     public ContentPlanResponse create(CreateContentPlanRequest req, UUID createdById) {
@@ -55,6 +59,13 @@ public class ContentPlanService {
                 .build();
 
         plan = contentPlanRepo.save(plan);
+
+        // Notify company members
+        notifyCompanyMembers(company.getId(), createdById, NotificationType.CONTENT_PLAN_CREATED,
+                "Yeni içerik planı: " + plan.getTitle(),
+                plan.getPlatform() != null ? "Platform: " + plan.getPlatform().name() : null,
+                "CONTENT_PLAN", plan.getId());
+
         return toResponse(plan);
     }
 
@@ -75,6 +86,20 @@ public class ContentPlanService {
         if (req.getPlannedDate() != null) plan.setPlannedDate(LocalDate.parse(req.getPlannedDate()));
 
         plan = contentPlanRepo.save(plan);
+
+        // Notify on status change
+        if (req.getStatus() != null) {
+            String statusLabel = switch (ContentStatus.valueOf(req.getStatus())) {
+                case APPROVED -> "onaylandı";
+                case REVISION -> "revizyona alındı";
+                case PUBLISHED -> "yayınlandı";
+                default -> req.getStatus();
+            };
+            notifyCompanyMembers(plan.getCompany().getId(), null, NotificationType.CONTENT_PLAN_UPDATED,
+                    "İçerik planı " + statusLabel + ": " + plan.getTitle(), null,
+                    "CONTENT_PLAN", plan.getId());
+        }
+
         return toResponse(plan);
     }
 
@@ -175,6 +200,16 @@ public class ContentPlanService {
         plan = contentPlanRepo.save(plan);
 
         return toResponse(plan);
+    }
+
+    private void notifyCompanyMembers(UUID companyId, UUID excludeUserId, NotificationType type,
+                                       String title, String message, String refType, UUID refId) {
+        java.util.List<UUID> memberIds = membershipRepo.findCompanyUserIdsByCompanyId(companyId);
+        for (UUID memberId : memberIds) {
+            if (excludeUserId == null || !memberId.equals(excludeUserId)) {
+                notificationService.send(memberId, type, title, message, refType, refId);
+            }
+        }
     }
 
     private ContentPlanResponse toResponse(ContentPlan p) {

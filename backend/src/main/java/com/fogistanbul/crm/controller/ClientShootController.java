@@ -1,7 +1,9 @@
 package com.fogistanbul.crm.controller;
 
 import com.fogistanbul.crm.dto.ShootResponse;
+import com.fogistanbul.crm.entity.enums.ServiceCategory;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
+import com.fogistanbul.crm.service.CompanyServiceAccessGuard;
 import com.fogistanbul.crm.service.ShootService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,6 +23,7 @@ public class ClientShootController {
 
     private final ShootService shootService;
     private final CompanyMembershipRepository membershipRepository;
+    private final CompanyServiceAccessGuard serviceAccessGuard;
 
     @GetMapping
     public ResponseEntity<Page<ShootResponse>> getMyCompanyShoots(
@@ -31,7 +34,9 @@ public class ClientShootController {
         if (companyIds.isEmpty()) {
             return ResponseEntity.ok(Page.empty(pageable));
         }
-        return ResponseEntity.ok(shootService.getShootsByCompany(companyIds.get(0), pageable, userId));
+        UUID companyId = companyIds.get(0);
+        serviceAccessGuard.requireService(userId, companyId, ServiceCategory.PRODUCTION);
+        return ResponseEntity.ok(shootService.getShootsByCompany(companyId, pageable, userId));
     }
 
     @GetMapping("/{id}")
@@ -39,6 +44,8 @@ public class ClientShootController {
             @PathVariable UUID id,
             Authentication auth) {
         UUID userId = (UUID) auth.getPrincipal();
-        return ResponseEntity.ok(shootService.getShootById(id, userId));
+        ShootResponse response = shootService.getShootById(id, userId);
+        serviceAccessGuard.requireService(userId, response.getCompanyId(), ServiceCategory.PRODUCTION);
+        return ResponseEntity.ok(response);
     }
 }

@@ -1,5 +1,8 @@
 -- V29: Approval requests table — unified request tracking for content, shoots, tasks, meetings
-CREATE TABLE IF NOT EXISTS approval_requests (
+-- Drop old schema from V1 and recreate with new unified schema
+DROP TABLE IF EXISTS approval_requests CASCADE;
+
+CREATE TABLE approval_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type VARCHAR(30) NOT NULL,
     reference_id UUID,
@@ -15,6 +18,6 @@ CREATE TABLE IF NOT EXISTS approval_requests (
     reviewed_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE INDEX IF NOT EXISTS idx_approval_requests_status ON approval_requests(status);
-CREATE INDEX IF NOT EXISTS idx_approval_requests_company ON approval_requests(company_id);
-CREATE INDEX IF NOT EXISTS idx_approval_requests_type ON approval_requests(type);
+CREATE INDEX idx_approval_requests_status ON approval_requests(status);
+CREATE INDEX idx_approval_requests_company ON approval_requests(company_id);
+CREATE INDEX idx_approval_requests_type ON approval_requests(type);

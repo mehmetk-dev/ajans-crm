@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '../../api/admin';
 import type { CompanyResponse, CreateCompanyRequest, UpdateCompanyRequest } from '../../api/admin';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Plus, Users, ListTodo, X, Pencil, Trash2, Briefcase, Shield } from 'lucide-react';
+import { Building2, Plus, Users, ListTodo, X, Pencil, Trash2, Briefcase, Shield, BarChart3, LayoutTemplate, Megaphone, Instagram, Camera, FileText, Check } from 'lucide-react';
 
 export default function CompaniesPage() {
     const [companies, setCompanies] = useState<CompanyResponse[]>([]);
@@ -22,7 +22,17 @@ export default function CompaniesPage() {
         taxId: '', foundedYear: undefined,
         socialInstagram: '', socialFacebook: '', socialTwitter: '', socialLinkedin: '', socialYoutube: '', socialTiktok: '',
         ownerFullName: '', ownerEmail: '', ownerPassword: '', ownerPhone: '', ownerPosition: '',
+        selectedServices: [],
     });
+
+    const toggleService = (cat: string) => {
+        setForm(prev => ({
+            ...prev,
+            selectedServices: prev.selectedServices?.includes(cat)
+                ? prev.selectedServices.filter(s => s !== cat)
+                : [...(prev.selectedServices ?? []), cat]
+        }));
+    };
 
     useEffect(() => {
         loadCompanies();
@@ -52,7 +62,8 @@ export default function CompaniesPage() {
                 name: '', industry: '', email: '', phone: '', address: '', website: '', notes: '',
                 taxId: '', foundedYear: undefined,
                 socialInstagram: '', socialFacebook: '', socialTwitter: '', socialLinkedin: '', socialYoutube: '', socialTiktok: '',
-                ownerFullName: '', ownerEmail: '', ownerPassword: '', ownerPhone: '', ownerPosition: ''
+                ownerFullName: '', ownerEmail: '', ownerPassword: '', ownerPhone: '', ownerPosition: '',
+                selectedServices: [],
             });
             loadCompanies();
         } catch (err: any) {
@@ -305,6 +316,46 @@ export default function CompaniesPage() {
                                             <input value={form.ownerPosition} onChange={e => updateField('ownerPosition', e.target.value)} className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none" placeholder="Pozisyon (Genel Müdür, CEO vb.)" />
                                         </div>
                                     </div>
+                                </div>
+
+                                {/* Sunulan Hizmetler */}
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Sunulan Hizmetler</p>
+                                        <button type="button" onClick={() => setForm(p => ({ ...p, selectedServices: p.selectedServices?.length === 6 ? [] : ['DIGITAL_MARKETING','WEB_DESIGN','AD_MANAGEMENT','SOCIAL_MEDIA','PRODUCTION','CONTENT_MARKETING'] }))}
+                                            className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors">
+                                            {form.selectedServices?.length === 6 ? 'Tümünü Kaldır' : 'Tümünü Seç'}
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                            { cat: 'DIGITAL_MARKETING', label: 'Dijital Pazarlama', sub: 'GA + Search Console', icon: BarChart3, color: 'blue' },
+                                            { cat: 'WEB_DESIGN', label: 'Web Tasarımı', sub: 'PageSpeed + Site', icon: LayoutTemplate, color: 'cyan' },
+                                            { cat: 'AD_MANAGEMENT', label: 'Reklam Yönetimi', sub: 'Google + Meta Ads', icon: Megaphone, color: 'amber' },
+                                            { cat: 'SOCIAL_MEDIA', label: 'Sosyal Medya', sub: 'Instagram + Reels', icon: Instagram, color: 'pink' },
+                                            { cat: 'PRODUCTION', label: 'Prodüksiyon', sub: 'Çekim Takvimi', icon: Camera, color: 'violet' },
+                                            { cat: 'CONTENT_MARKETING', label: 'İçerik Pazarlama', sub: 'İçerik Planı', icon: FileText, color: 'emerald' },
+                                        ].map(({ cat, label, sub, icon: Icon }) => {
+                                            const active = form.selectedServices?.includes(cat);
+                                            return (
+                                                <button key={cat} type="button" onClick={() => toggleService(cat)}
+                                                    className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${
+                                                        active ? 'bg-orange-500/10 border-orange-500/30' : 'bg-white/[0.02] border-white/[0.05] opacity-60 hover:opacity-80'
+                                                    }`}>
+                                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                                        active ? 'bg-orange-500/20' : 'bg-white/[0.04]'
+                                                    }`}>
+                                                        {active ? <Check className="w-3.5 h-3.5 text-orange-400" /> : <Icon className="w-3.5 h-3.5 text-zinc-600" />}
+                                                    </div>
+                                                    <div>
+                                                        <p className={`text-[11px] font-semibold ${active ? 'text-white' : 'text-zinc-500'}`}>{label}</p>
+                                                        <p className="text-[9px] text-zinc-600">{sub}</p>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-[9px] text-zinc-700">Seçilen hizmetlere ait paneller müşteri portalında görünecektir</p>
                                 </div>
 
                                 <button type="submit" disabled={saving} className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-[13px] shadow-lg shadow-orange-500/20 transition-all disabled:opacity-50">

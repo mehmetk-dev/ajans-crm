@@ -46,4 +46,7 @@ public class CreateCompanyRequest {
 
     private String ownerPhone;
     private String ownerPosition;
+
+    // Seçilen hizmet kategorileri (opsiyonel — boş gelirse hepsi false olarak başlar)
+    private java.util.List<String> selectedServices;
 }

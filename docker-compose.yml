@@ -44,6 +44,8 @@ services:
       - INSTAGRAM_APP_SECRET=${INSTAGRAM_APP_SECRET:-}
       - INSTAGRAM_REDIRECT_URI=${INSTAGRAM_REDIRECT_URI:-http://localhost:8080/api/oauth/instagram/callback}
       - PAGESPEED_API_KEY=${PAGESPEED_API_KEY:-}
+      - GOOGLE_ADS_DEVELOPER_TOKEN=${GOOGLE_ADS_DEVELOPER_TOKEN:-}
+      - GOOGLE_ADS_MANAGER_CUSTOMER_ID=${GOOGLE_ADS_MANAGER_CUSTOMER_ID:-}
     volumes:
       - ./backend:/app
       - /app/target

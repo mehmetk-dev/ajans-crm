@@ -13,4 +13,10 @@ public interface GoogleOAuthTokenRepository extends JpaRepository<GoogleOAuthTok
     boolean existsByCompanyId(UUID companyId);
 
     void deleteByCompanyId(UUID companyId);
+
+    Optional<GoogleOAuthToken> findByCompanyIdAndServiceType(UUID companyId, String serviceType);
+
+    boolean existsByCompanyIdAndServiceType(UUID companyId, String serviceType);
+
+    void deleteByCompanyIdAndServiceType(UUID companyId, String serviceType);
 }
