@@ -11,7 +11,7 @@ import { useState } from 'react';
 import type { MembershipInfo } from '../../api/admin';
 import { ContentPlanPanel } from '../../components/analytics';
 import { FileText, Wrench } from 'lucide-react';
-import MaintenanceLogPanel from '../../components/staff/MaintenanceLogPanel';
+import { MaintenanceLogPanel } from '../../features/maintenance-log';
 
 export default function StaffCompanyDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -201,7 +201,7 @@ export default function StaffCompanyDetailPage() {
                 </div>
 
                 {/* Owner */}
-                {company.members?.filter(m => m.membershipRole === 'OWNER').length! > 0 && (
+                {(company.members?.some(member => member.membershipRole === 'OWNER') ?? false) && (
                     <div className="mb-4">
                         <h4 className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                             <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />

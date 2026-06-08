@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
     Gauge, RefreshCw, AlertCircle, Loader2, Smartphone, Monitor,
-    Server, Calendar, ShieldCheck, Layers, Clock, Wrench,
+    Server, Calendar, ShieldCheck, Layers,
     CheckCircle2, ExternalLink, ArrowRight, BarChart3, Search,
 } from 'lucide-react';
 import {
     webDesignApi,
     type PageSpeedReport,
     type PageSpeedScore,
-    type MaintenanceLogEntry,
 } from '../../api/webDesign';
+import { MaintenanceTimeline } from '../../features/maintenance-log';
 
 interface Props {
     /** When omitted, hits the client endpoints (own company). */
@@ -19,16 +18,6 @@ interface Props {
 }
 
 type Strategy = 'mobile' | 'desktop';
-
-const CATEGORY_LABELS: Record<string, string> = {
-    update: 'Güncelleme',
-    fix: 'Hata Düzeltme',
-    feature: 'Yeni Özellik',
-    security: 'Güvenlik',
-    content: 'İçerik',
-    seo: 'SEO',
-    other: 'Diğer',
-};
 
 function scoreColor(score?: number | null): string {
     if (score == null) return 'text-zinc-500';
@@ -317,80 +306,9 @@ function InfrastructureCard({ report }: { report: PageSpeedReport | null }) {
     );
 }
 
-function MaintenanceTimeline({ entries }: { entries: MaintenanceLogEntry[] }) {
-    if (entries.length === 0) {
-        return (
-            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-4">
-                    <Wrench className="w-4 h-4 text-[#F5BEC8]" />
-                    <h3 className="text-sm font-semibold text-zinc-200">Bakım Günlüğü</h3>
-                </div>
-                <p className="text-xs text-zinc-500 text-center py-8">
-                    Henüz bakım kaydı yok.
-                </p>
-            </div>
-        );
-    }
-
-    return (
-        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-[#F5BEC8]" />
-                    <h3 className="text-sm font-semibold text-zinc-200">Bakım Günlüğü</h3>
-                </div>
-                <span className="text-xs text-zinc-500">{entries.length} kayıt</span>
-            </div>
-            <div className="space-y-3">
-                {entries.map((entry, i) => (
-                    <motion.div
-                        key={entry.id}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.04 }}
-                        className="flex gap-3 group"
-                    >
-                        <div className="flex flex-col items-center">
-                            <div className="h-8 w-8 rounded-full bg-[#C8697A]/10 border border-[#C8697A]/20 flex items-center justify-center flex-shrink-0">
-                                <CheckCircle2 className="w-4 h-4 text-[#F5BEC8]" />
-                            </div>
-                            {i < entries.length - 1 && (
-                                <div className="w-px flex-1 bg-white/[0.04] mt-1" />
-                            )}
-                        </div>
-                        <div className="flex-1 pb-3 min-w-0">
-                            <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                                <h4 className="text-sm font-semibold text-white">{entry.title}</h4>
-                                <span className="text-[11px] text-zinc-500 flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {formatDate(entry.performedAt)}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1 mb-1">
-                                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/[0.04] text-zinc-400 border border-white/[0.04]">
-                                    {CATEGORY_LABELS[entry.category] ?? entry.category}
-                                </span>
-                                {entry.performedByName && (
-                                    <span className="text-[11px] text-zinc-500">
-                                        {entry.performedByName}
-                                    </span>
-                                )}
-                            </div>
-                            {entry.description && (
-                                <p className="text-xs text-zinc-400 leading-relaxed">{entry.description}</p>
-                            )}
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
 export default function WebDesignPanel({ companyId }: Props) {
     const navigate = useNavigate();
     const [report, setReport] = useState<PageSpeedReport | null>(null);
-    const [log, setLog] = useState<MaintenanceLogEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -401,19 +319,12 @@ export default function WebDesignPanel({ companyId }: Props) {
         setReport(data);
     };
 
-    const fetchLog = async () => {
-        const data = companyId
-            ? await webDesignApi.getCompanyMaintenanceLog(companyId)
-            : await webDesignApi.getMyMaintenanceLog();
-        setLog(data);
-    };
-
     useEffect(() => {
         let cancelled = false;
         setLoading(true);
-        Promise.all([fetchReport(false), fetchLog()])
+        fetchReport(false)
             .catch(() => {
-                /* report/log already null */
+                /* report already null */
             })
             .finally(() => {
                 if (!cancelled) setLoading(false);
@@ -462,7 +373,7 @@ export default function WebDesignPanel({ companyId }: Props) {
                 onDetail={!companyId ? () => navigate('/client/web-design') : undefined} />
             <SiteConnectionCard report={report} />
             <InfrastructureCard report={report} />
-            <MaintenanceTimeline entries={log} />
+            <MaintenanceTimeline companyId={companyId} />
         </div>
     );
 }

@@ -1,20 +1,21 @@
-package com.fogistanbul.crm.dto;
+package com.fogistanbul.crm.maintenance.dto;
 
 import lombok.Builder;
 import lombok.Data;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Data
 @Builder
 public class MaintenanceLogResponse {
-    private String id;
-    private String companyId;
+    private UUID id;
+    private UUID companyId;
     private String title;
     private String description;
     private String category;
     private Instant performedAt;
-    private String performedById;
+    private UUID performedById;
     private String performedByName;
     private Instant createdAt;
     private Instant updatedAt;
