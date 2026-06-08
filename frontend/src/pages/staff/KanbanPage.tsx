@@ -2,17 +2,18 @@ import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { staffApi } from '../../api/staff';
 import { settingsApi } from '../../api/settings';
-import type { TaskResponse, ShootResponse, MeetingResponse, PrProjectResponse, NoteResponse, PageResponse } from '../../api/staff';
+import type { TaskResponse, ShootResponse, MeetingResponse, PrProjectResponse, PageResponse } from '../../api/staff';
 import { useAuth } from '../../store/AuthContext';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     Sun, Moon, Coffee, Sunrise,
     CheckCircle2, Clock, AlertTriangle, Camera, Rocket, Users, Calendar,
-    ArrowRight, ChevronRight, Target, TrendingUp, Zap,
-    StickyNote, Plus, Trash2, Circle, CircleCheck, MapPin, Briefcase, Star, Pencil
+    ArrowRight, Target, TrendingUp,
+    MapPin, Pencil
 } from 'lucide-react';
 import TaskDetailPanel from '../../components/TaskDetailPanel';
+import { QuickNotes } from '../../features/notes';
 
 /* ─── Helpers ─── */
 function getGreeting(): { text: string; icon: React.ReactNode } {
@@ -37,19 +38,6 @@ function isToday(iso: string | null) {
 function isFuture(iso: string | null) {
     if (!iso) return false;
     return new Date(iso) >= new Date(new Date().toDateString());
-}
-
-function isThisWeek(iso: string | null) {
-    if (!iso) return false;
-    const d = new Date(iso);
-    const now = new Date();
-    const start = new Date(now);
-    start.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    end.setHours(23, 59, 59, 999);
-    return d >= start && d <= end;
 }
 
 function isOverdue(task: TaskResponse) {
@@ -260,7 +248,6 @@ export default function KanbanPage() {
     const queryClient = useQueryClient();
     const greeting = getGreeting();
     const quote = MOTIVATIONAL[new Date().getDate() % MOTIVATIONAL.length];
-    const [newNote, setNewNote] = useState('');
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const [selectedTask, setSelectedTask] = useState<TaskResponse | null>(null);
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -300,32 +287,10 @@ export default function KanbanPage() {
         queryFn: () => staffApi.getPrProjects(0, 50),
     });
 
-    const { data: notesData } = useQuery<PageResponse<NoteResponse>>({
-        queryKey: ['my-panel-notes'],
-        queryFn: () => staffApi.getNotes(0, 10),
-    });
-
-    const createNote = useMutation({
-        mutationFn: (content: string) => staffApi.createNote({ content }),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['my-panel-notes'] }); setNewNote(''); },
-    });
-
-    const toggleNote = useMutation({
-        mutationFn: (id: string) => staffApi.toggleNote(id),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-panel-notes'] }),
-    });
-
-    const deleteNote = useMutation({
-        mutationFn: (id: string) => staffApi.deleteNote(id),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-panel-notes'] }),
-    });
-
     const allTasks = myTasksData?.content ?? [];
     const allShoots = shootsData?.content ?? [];
     const allMeetings = meetingsData?.content ?? [];
     const allPr = prData?.content ?? [];
-    const notes = notesData?.content ?? [];
-
     // --- Derived data ---
     const activeTasks = allTasks.filter(t => t.status !== 'DONE');
     const overdueTasks = allTasks.filter(isOverdue);
@@ -343,7 +308,9 @@ export default function KanbanPage() {
             await staffApi.updateTask(taskId, { status });
             queryClient.invalidateQueries({ queryKey: ['my-panel-tasks'] });
             setSelectedTask(null);
-        } catch { }
+        } catch {
+            // Keep the selected task open when the status update fails.
+        }
     };
 
     const isLoading = loadingTasks || loadingShoots;
@@ -551,8 +518,6 @@ export default function KanbanPage() {
                     {selectedDay ? (() => {
                         const dayShoots = allShoots.filter(s => dateToKey(s.shootDate) === selectedDay);
                         const dayMeetings = allMeetings.filter(m => m.meetingDate && dateToKey(m.meetingDate) === selectedDay);
-                        const hasAny = dayShoots.length > 0 || dayMeetings.length > 0;
-
                         return (
                             <>
                                 {/* Day Shoots */}
@@ -715,48 +680,8 @@ export default function KanbanPage() {
             </div>
             )}
 
-            {/* ─── Quick Notes ─── */}
-            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5 space-y-4">
-                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                    <StickyNote className="w-4 h-4 text-amber-400" />
-                    Hızlı Notlar
-                </h3>
-                <div className="flex gap-2">
-                    <input
-                        value={newNote}
-                        onChange={e => setNewNote(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter' && newNote.trim()) createNote.mutate(newNote.trim()); }}
-                        placeholder="Not ekle..."
-                        className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-pink-500/30 transition-colors"
-                    />
-                    <button
-                        onClick={() => { if (newNote.trim()) createNote.mutate(newNote.trim()); }}
-                        disabled={!newNote.trim() || createNote.isPending}
-                        className="px-3 py-2.5 bg-pink-500/10 text-pink-400 rounded-xl hover:bg-pink-500/20 disabled:opacity-40 transition-colors"
-                    >
-                        <Plus className="w-4 h-4" />
-                    </button>
-                </div>
-                {notes.length === 0 ? (
-                    <p className="text-center text-zinc-600 text-xs py-4">Henüz not yok</p>
-                ) : (
-                    <div className="space-y-1">
-                        <AnimatePresence mode="popLayout">
-                            {notes.map(n => (
-                                <motion.div key={n.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-3 px-3 py-2 rounded-lg group hover:bg-white/[0.02]">
-                                    <button onClick={() => toggleNote.mutate(n.id)} className="shrink-0">
-                                        {n.isOpen ? <Circle className="w-3.5 h-3.5 text-zinc-600" /> : <CircleCheck className="w-3.5 h-3.5 text-pink-500" />}
-                                    </button>
-                                    <span className={`flex-1 text-sm ${n.isOpen ? 'text-zinc-300' : 'text-zinc-600 line-through'}`}>{n.content}</span>
-                                    {n.companyName && <span className="text-[9px] text-zinc-600 bg-white/[0.04] px-1.5 py-0.5 rounded">{n.companyName}</span>}
-                                    <button onClick={() => deleteNote.mutate(n.id)} className="text-zinc-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
-                                        <Trash2 className="w-3 h-3" />
-                                    </button>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                    </div>
-                )}
+            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
+                <QuickNotes limit={10} />
             </div>
 
             <TaskDetailPanel

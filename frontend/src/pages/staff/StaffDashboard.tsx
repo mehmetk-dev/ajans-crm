@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { staffApi } from '../../api/staff';
-import type { TaskResponse, NoteResponse, PageResponse } from '../../api/staff';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ListTodo, Clock, CheckCircle2, ArrowRight, StickyNote, Plus, Trash2, Circle, CircleCheck } from 'lucide-react';
+import type { TaskResponse } from '../../api/staff';
+import { motion } from 'framer-motion';
+import { ListTodo, Clock, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import TaskDetailPanel from '../../components/TaskDetailPanel';
+import { QuickNotes } from '../../features/notes';
 
 const statusBadge: Record<string, { bg: string; text: string; label: string }> = {
     TODO: { bg: 'bg-zinc-800', text: 'text-zinc-400', label: 'Bekliyor' },
@@ -15,10 +15,8 @@ const statusBadge: Record<string, { bg: string; text: string; label: string }> =
 };
 
 export default function StaffDashboard() {
-    const queryClient = useQueryClient();
     const [tasks, setTasks] = useState<TaskResponse[]>([]);
     const [loading, setLoading] = useState(true);
-    const [newNote, setNewNote] = useState('');
     const [selectedTask, setSelectedTask] = useState<TaskResponse | null>(null);
 
     const handleStatusChange = async (taskId: string, status: string) => {
@@ -26,7 +24,9 @@ export default function StaffDashboard() {
             const updated = await staffApi.updateTask(taskId, { status });
             setTasks(prev => prev.map(t => t.id === taskId ? updated : t));
             if (selectedTask?.id === taskId) setSelectedTask(updated);
-        } catch { }
+        } catch {
+            // Existing task state remains visible when the update fails.
+        }
     };
 
     useEffect(() => {
@@ -35,31 +35,6 @@ export default function StaffDashboard() {
             .catch(() => setTasks([]))
             .finally(() => setLoading(false));
     }, []);
-
-    const { data: notesData } = useQuery<PageResponse<NoteResponse>>({
-        queryKey: ['staff-notes'],
-        queryFn: () => staffApi.getNotes(0, 20),
-    });
-
-    const createNoteMutation = useMutation({
-        mutationFn: (content: string) => staffApi.createNote({ content }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['staff-notes'] });
-            setNewNote('');
-        },
-    });
-
-    const toggleNoteMutation = useMutation({
-        mutationFn: (noteId: string) => staffApi.toggleNote(noteId),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['staff-notes'] }),
-    });
-
-    const deleteNoteMutation = useMutation({
-        mutationFn: (noteId: string) => staffApi.deleteNote(noteId),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['staff-notes'] }),
-    });
-
-    const notes = notesData?.content || [];
 
     const todayTasks = tasks.filter(t => t.status !== 'DONE');
     const doneTasks = tasks.filter(t => t.status === 'DONE');
@@ -147,58 +122,7 @@ export default function StaffDashboard() {
                 )}
             </div>
 
-            {/* Notes */}
-            <div className="space-y-4">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <StickyNote className="w-5 h-5 text-amber-400" /> Notlarım
-                </h2>
-                <div className="flex gap-2">
-                    <input
-                        value={newNote}
-                        onChange={e => setNewNote(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter' && newNote.trim()) createNoteMutation.mutate(newNote.trim()); }}
-                        placeholder="Yeni not ekle..."
-                        className="flex-1 bg-[#0C0C0E] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-amber-500/30"
-                    />
-                    <button
-                        onClick={() => { if (newNote.trim()) createNoteMutation.mutate(newNote.trim()); }}
-                        disabled={!newNote.trim() || createNoteMutation.isPending}
-                        className="px-4 py-2.5 bg-amber-500/10 text-amber-400 rounded-xl hover:bg-amber-500/20 disabled:opacity-50 transition-colors"
-                    >
-                        <Plus className="w-4 h-4" />
-                    </button>
-                </div>
-                {notes.length === 0 ? (
-                    <div className="text-center py-8 bg-[#0C0C0E]/80 border border-white/[0.06] rounded-2xl">
-                        <StickyNote className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-                        <p className="text-zinc-600 text-sm">Henüz not eklenmemiş</p>
-                    </div>
-                ) : (
-                    <div className="space-y-1.5">
-                        <AnimatePresence mode="popLayout">
-                            {notes.map(note => (
-                                <motion.div
-                                    key={note.id}
-                                    layout
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="flex items-center gap-3 bg-[#0C0C0E] border border-white/[0.06] rounded-xl px-4 py-3 group"
-                                >
-                                    <button onClick={() => toggleNoteMutation.mutate(note.id)} className="shrink-0">
-                                        {note.isOpen ? <Circle className="w-4 h-4 text-zinc-600" /> : <CircleCheck className="w-4 h-4 text-pink-500" />}
-                                    </button>
-                                    <span className={`flex-1 text-sm ${note.isOpen ? 'text-white' : 'text-zinc-600 line-through'}`}>{note.content}</span>
-                                    {note.companyName && <span className="text-[10px] text-zinc-600 bg-white/5 px-2 py-0.5 rounded">{note.companyName}</span>}
-                                    <button onClick={() => deleteNoteMutation.mutate(note.id)} className="text-zinc-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                    </div>
-                )}
-            </div>
+            <QuickNotes limit={20} title="Notlarim" accent="amber" />
 
             <TaskDetailPanel
                 task={selectedTask}

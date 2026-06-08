@@ -18,3 +18,12 @@ app:
     secret: test-secret-key-at-least-256-bits-long-for-hmac-sha-signing-fogistanbul
     access-token-expiration-ms: 3600000
     refresh-token-expiration-ms: 86400000
+  google-oauth:
+    client-id: test-google-client-id
+    client-secret: test-google-client-secret
+    redirect-uri: http://localhost:8080/api/oauth/google/callback
+  instagram:
+    app-id: test-instagram-app-id
+    app-secret: test-instagram-app-secret
+    redirect-uri: http://localhost:8080/api/oauth/instagram/callback
+  frontend-url: http://localhost:5173

@@ -192,18 +192,6 @@ export interface UpdatePrProjectRequest {
     phases?: { id?: string; name?: string; assignedToId?: string; startDate?: string; endDate?: string; notes?: string }[];
 }
 
-export interface NoteResponse {
-    id: string;
-    userId: string;
-    userName: string;
-    companyId: string | null;
-    companyName: string | null;
-    content: string;
-    isOpen: boolean;
-    noteDate: string;
-    createdAt: string;
-}
-
 // --- API ---
 export const staffApi = {
     // Tasks
@@ -315,19 +303,6 @@ export const staffApi = {
 
     addPrPhaseNote: (projectId: string, phaseId: string, content: string) =>
         api.post<PrProjectResponse>(`/staff/pr-projects/${projectId}/phases/${phaseId}/notes`, { content }).then(r => r.data),
-
-    // Notes
-    getNotes: (page = 0, size = 20, companyId?: string) =>
-        api.get<PageResponse<NoteResponse>>(`/staff/notes?page=${page}&size=${size}${companyId ? `&companyId=${companyId}` : ''}`).then(r => r.data),
-
-    createNote: (data: { content: string; companyId?: string }) =>
-        api.post<NoteResponse>('/staff/notes', data).then(r => r.data),
-
-    toggleNote: (id: string) =>
-        api.put<NoteResponse>(`/staff/notes/${id}/toggle`).then(r => r.data),
-
-    deleteNote: (id: string) =>
-        api.delete(`/staff/notes/${id}`).then(r => r.data),
 
     // Analytics
     getMyAnalytics: () =>
