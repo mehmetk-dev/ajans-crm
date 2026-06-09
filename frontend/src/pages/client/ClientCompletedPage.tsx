@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { clientApi } from '../../api/clientPanel';
-import type { TaskResponse, PageResponse, TaskReviewResponse } from '../../api/staff';
+import {
+    taskApi,
+    taskKeys,
+    type PageResponse,
+    type TaskResponse,
+    type TaskReviewResponse,
+} from '../../features/tasks';
 import { CheckCircle2, Calendar, Star, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -13,18 +18,18 @@ export default function ClientCompletedPage() {
     const [comment, setComment] = useState('');
 
     const { data, isLoading } = useQuery<PageResponse<TaskResponse>>({
-        queryKey: ['client-completed'],
-        queryFn: () => clientApi.getMyTasks(0, 50, 'DONE'),
+        queryKey: taskKeys.clientList('DONE'),
+        queryFn: () => taskApi.listClient(0, 50, 'DONE'),
     });
 
     // Fetch reviews for all tasks so we know which are already reviewed
     const { data: reviewsMap } = useQuery({
-        queryKey: ['client-task-reviews'],
+        queryKey: [...taskKeys.all, 'client-reviews'],
         queryFn: async () => {
             const tasks = data?.content || [];
             const map: Record<string, TaskReviewResponse[]> = {};
             await Promise.all(tasks.map(async t => {
-                try { map[t.id] = await clientApi.getTaskReviews(t.id); } catch { map[t.id] = []; }
+                try { map[t.id] = await taskApi.listReviews(t.id); } catch { map[t.id] = []; }
             }));
             return map;
         },
@@ -32,9 +37,9 @@ export default function ClientCompletedPage() {
     });
 
     const reviewMutation = useMutation({
-        mutationFn: () => clientApi.reviewTask(reviewTarget!.id, { score, comment: comment || undefined }),
+        mutationFn: () => taskApi.review(reviewTarget!.id, { score, comment: comment || undefined }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['client-task-reviews'] });
+            queryClient.invalidateQueries({ queryKey: taskKeys.all });
             setReviewTarget(null);
             setScore(0);
             setComment('');

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi, type StaffResponse, type CompanyResponse } from '../../api/admin';
+import { companyApi, companyKeys, type CompanyResponse, type StaffResponse } from '../../features/company';
 import {
     ArrowLeft, User, Mail, Phone, Briefcase, Building2,
     Plus, Trash2
@@ -17,18 +17,18 @@ export default function StaffDetailPage() {
 
     const { data: staff, isLoading } = useQuery<StaffResponse>({
         queryKey: ['staff', id],
-        queryFn: () => adminApi.getStaffById(id!),
+        queryFn: () => companyApi.getStaff(id!),
         enabled: !!id,
     });
 
     const { data: companies } = useQuery<CompanyResponse[]>({
-        queryKey: ['companies'],
-        queryFn: () => adminApi.getCompanies(),
+        queryKey: companyKeys.adminList(),
+        queryFn: companyApi.listAdmin,
         enabled: showAssign,
     });
 
     const assignMutation = useMutation({
-        mutationFn: (companyId: string) => adminApi.assignStaff(id!, companyId),
+        mutationFn: (companyId: string) => companyApi.assignStaff(id!, companyId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['staff', id] });
             setShowAssign(false);
@@ -37,7 +37,7 @@ export default function StaffDetailPage() {
     });
 
     const unassignMutation = useMutation({
-        mutationFn: (membershipId: string) => adminApi.unassignStaff(membershipId),
+        mutationFn: (membershipId: string) => companyApi.unassignStaff(membershipId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['staff', id] });
         },

@@ -1,12 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
-import { staffApi } from '../../api/staff';
+import { useStaffCompanies } from '../../features/company';
 import { NotesWorkspace } from '../../features/notes';
 
 export default function NotesPage() {
-    const { data: companies = [] } = useQuery({
-        queryKey: ['staff-companies'],
-        queryFn: () => staffApi.getCompanies(),
-    });
+    const { data: companies = [] } = useStaffCompanies();
 
     return (
         <NotesWorkspace

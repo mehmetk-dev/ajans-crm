@@ -1,9 +1,8 @@
 package com.fogistanbul.crm.note.application;
 
+import com.fogistanbul.crm.company.application.CompanyAccessPolicy;
 import com.fogistanbul.crm.entity.UserProfile;
-import com.fogistanbul.crm.entity.enums.GlobalRole;
 import com.fogistanbul.crm.note.domain.Note;
-import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
@@ -14,15 +13,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class NoteAccessPolicy {
 
-    private final CompanyMembershipRepository membershipRepository;
+    private final CompanyAccessPolicy companyAccessPolicy;
 
     public void requireCompanyAccess(UserProfile user, UUID companyId) {
-        if (user.getGlobalRole() == GlobalRole.ADMIN) {
-            return;
-        }
-        if (!membershipRepository.existsByUserIdAndCompanyId(user.getId(), companyId)) {
-            throw new AccessDeniedException("Bu sirketle not baglama yetkiniz yok");
-        }
+        companyAccessPolicy.requireAccess(user, companyId);
     }
 
     public void requireOwner(Note note, UUID userId) {

@@ -1,14 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { staffApi } from '../../api/staff';
-import type { CompanyResponse } from '../../api/admin';
+import { useStaffCompany, type MembershipInfo } from '../../features/company';
 import {
     ArrowLeft, Building2, Users, Mail, Phone, Globe, MapPin, Calendar,
     ChevronDown, ChevronUp, Briefcase, ExternalLink,
     Instagram, Facebook, Twitter, Linkedin, Youtube
 } from 'lucide-react';
 import { useState } from 'react';
-import type { MembershipInfo } from '../../api/admin';
 import { ContentPlanPanel } from '../../components/analytics';
 import { FileText, Wrench } from 'lucide-react';
 import { MaintenanceLogPanel } from '../../features/maintenance-log';
@@ -18,11 +15,7 @@ export default function StaffCompanyDetailPage() {
     const navigate = useNavigate();
     const [selectedMember, setSelectedMember] = useState<MembershipInfo | null>(null);
 
-    const { data: company, isLoading } = useQuery<CompanyResponse>({
-        queryKey: ['staff-company', id],
-        queryFn: () => staffApi.getCompany(id!),
-        enabled: !!id,
-    });
+    const { data: company, isLoading } = useStaffCompany(id);
 
     if (isLoading) {
         return (

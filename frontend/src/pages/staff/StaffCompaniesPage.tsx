@@ -1,21 +1,11 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { staffApi } from '../../api/staff';
-import type { CompanyResponse } from '../../api/admin';
+import { useStaffCompanies } from '../../features/company';
 import { motion } from 'framer-motion';
 import { Building2, ChevronRight } from 'lucide-react';
 
 export default function StaffCompaniesPage() {
-    const [companies, setCompanies] = useState<CompanyResponse[]>([]);
-    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
-
-    useEffect(() => {
-        staffApi.getCompanies()
-            .then(setCompanies)
-            .catch(() => setCompanies([]))
-            .finally(() => setLoading(false));
-    }, []);
+    const { data: companies = [], isLoading } = useStaffCompanies();
 
     return (
         <div className="space-y-6">
@@ -24,7 +14,7 @@ export default function StaffCompaniesPage() {
                 <p className="text-zinc-600 text-sm mt-1">Atandığınız şirketler</p>
             </div>
 
-            {loading ? (
+            {isLoading ? (
                 <div className="text-center py-20 text-zinc-600">Yükleniyor...</div>
             ) : companies.length === 0 ? (
                 <div className="text-center py-20 bg-[#0C0C0E]/80 border border-white/[0.06] rounded-2xl">

@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { staffApi } from '../../api/staff';
-import type { PrProjectResponse, PrPhaseInfo, AssignableUser, PageResponse, CreatePrProjectRequest } from '../../api/staff';
-import type { CompanyResponse } from '../../api/admin';
+import type { PrProjectResponse, PrPhaseInfo, PageResponse, CreatePrProjectRequest } from '../../api/staff';
+import { taskApi, taskKeys, type AssignableUser } from '../../features/tasks';
+import { companyApi, companyKeys, type CompanyResponse } from '../../features/company';
 import { Rocket, Clock, CheckCircle2, Plus, X, ChevronDown, ChevronUp, User, Building2, Calendar, FileText, Trash2, Send, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -44,13 +45,13 @@ export default function PRProjectsPage() {
     });
 
     const { data: companies } = useQuery<CompanyResponse[]>({
-        queryKey: ['staff-companies'],
-        queryFn: () => staffApi.getCompanies(),
+        queryKey: companyKeys.staffList(),
+        queryFn: companyApi.listStaffAccessible,
     });
 
     const { data: users } = useQuery<AssignableUser[]>({
-        queryKey: ['assignable-users'],
-        queryFn: () => staffApi.getAssignableUsers(),
+        queryKey: taskKeys.assignableUsers(),
+        queryFn: () => taskApi.listAssignableUsers(),
     });
 
     const createMutation = useMutation({

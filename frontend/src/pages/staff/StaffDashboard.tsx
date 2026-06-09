@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
-import { staffApi } from '../../api/staff';
-import type { TaskResponse } from '../../api/staff';
+import { taskApi, TaskDetailPanel, type TaskResponse, type TaskStatus } from '../../features/tasks';
 import { motion } from 'framer-motion';
 import { ListTodo, Clock, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import TaskDetailPanel from '../../components/TaskDetailPanel';
 import { QuickNotes } from '../../features/notes';
 
 const statusBadge: Record<string, { bg: string; text: string; label: string }> = {
@@ -19,9 +17,9 @@ export default function StaffDashboard() {
     const [loading, setLoading] = useState(true);
     const [selectedTask, setSelectedTask] = useState<TaskResponse | null>(null);
 
-    const handleStatusChange = async (taskId: string, status: string) => {
+    const handleStatusChange = async (taskId: string, status: TaskStatus) => {
         try {
-            const updated = await staffApi.updateTask(taskId, { status });
+            const updated = await taskApi.update(taskId, { status });
             setTasks(prev => prev.map(t => t.id === taskId ? updated : t));
             if (selectedTask?.id === taskId) setSelectedTask(updated);
         } catch {
@@ -30,7 +28,7 @@ export default function StaffDashboard() {
     };
 
     useEffect(() => {
-        staffApi.getMyTasks(0, 10)
+        taskApi.listMine(0, 10)
             .then(data => setTasks(data.content))
             .catch(() => setTasks([]))
             .finally(() => setLoading(false));

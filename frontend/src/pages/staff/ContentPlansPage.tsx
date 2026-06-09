@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { staffApi } from '../../api/staff';
-import type { CompanyResponse } from '../../api/admin';
+import { useStaffCompanies } from '../../features/company';
 import { ContentPlanPanel } from '../../components/analytics';
 import {
     PenLine, Building2, Search
@@ -11,10 +9,7 @@ export default function ContentPlansPage() {
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     const [search, setSearch] = useState('');
 
-    const { data: companies = [] } = useQuery<CompanyResponse[]>({
-        queryKey: ['staff-companies'],
-        queryFn: () => staffApi.getCompanies(),
-    });
+    const { data: companies = [] } = useStaffCompanies();
 
     const filtered = companies.filter(c =>
         c.name.toLowerCase().includes(search.toLowerCase())

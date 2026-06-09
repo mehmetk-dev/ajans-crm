@@ -1,24 +1,10 @@
 import api from './client';
-import type { TaskResponse, PageResponse, TaskReviewResponse } from './staff';
+import type { PageResponse } from './staff';
 import type { ContentPlanResponse } from './contentPlan';
 import type { ConversationResponse, MessageResponse, SendMessageRequest, ContactResponse, GroupConversationResponse, GroupMessageResponse } from './messaging';
 
 // Client panel API — uses /api/client/* endpoints accessible to COMPANY_USER role
 export const clientApi = {
-    // Tasks (read-only for client)
-    getMyTasks: (page = 0, size = 50, status?: string) =>
-        api.get<PageResponse<TaskResponse>>(`/client/tasks/my?page=${page}&size=${size}${status ? `&status=${status}` : ''}`).then(r => r.data),
-
-    getTask: (id: string) =>
-        api.get<TaskResponse>(`/client/tasks/${id}`).then(r => r.data),
-
-    // Task Reviews
-    reviewTask: (taskId: string, data: { score: number; comment?: string }) =>
-        api.post<TaskReviewResponse>(`/client/tasks/${taskId}/review`, { taskId, ...data }).then(r => r.data),
-
-    getTaskReviews: (taskId: string) =>
-        api.get<TaskReviewResponse[]>(`/client/tasks/${taskId}/reviews`).then(r => r.data),
-
     // Messaging
     startConversation: (targetUserId: string) =>
         api.post<ConversationResponse>(`/client/messaging/conversations/start/${targetUserId}`).then(r => r.data),
@@ -71,9 +57,6 @@ export const clientApi = {
         api.get<SurveyResponse[]>('/client/surveys/my').then(r => r.data),
 
     // Team
-    getTeam: () =>
-        api.get<TeamResponse>('/client/team').then(r => r.data),
-
     // Shoots
     getMyShoots: (page = 0, size = 20) =>
         api.get<PageResponse<ShootResponse>>(`/client/shoots?page=${page}&size=${size}&sort=shootDate,desc`).then(r => r.data),
@@ -92,23 +75,6 @@ export const clientApi = {
     getActiveServices: () =>
         api.get<{ activeServices: string[] }>('/client/active-services').then(r => r.data),
 };
-
-export interface TeamMemberResponse {
-    id: string;
-    fullName: string;
-    email: string;
-    avatarUrl: string | null;
-    phone: string | null;
-    position: string | null;
-    department: string | null;
-    membershipRole: string;
-    companyName: string;
-}
-
-export interface TeamResponse {
-    agencyStaff: TeamMemberResponse[];
-    employees: TeamMemberResponse[];
-}
 
 export interface SurveyResponse {
     id: string;

@@ -6,7 +6,8 @@ import { gaApi, type GaOverviewResponse } from '../../api/googleAnalytics';
 import { scApi, type ScOverviewResponse } from '../../api/searchConsole';
 import { igApi, type IgOverviewResponse } from '../../api/instagram';
 import { clientApi, type ShootResponse } from '../../api/clientPanel';
-import type { PageResponse, TaskResponse } from '../../api/staff';
+import type { PageResponse } from '../../api/staff';
+import { taskApi, taskKeys, type TaskResponse } from '../../features/tasks';
 import { useActiveServices } from '../../hooks/useActiveServices';
 import { ServiceBlurOverlay } from '../../components/ServiceUpsellOverlay';
 import {
@@ -70,8 +71,8 @@ export default function ClientDashboard() {
         enabled: !!companyId, staleTime: STALE, gcTime: CACHE,
     });
     const { data: tasksData } = useQuery<PageResponse<TaskResponse>>({
-        queryKey: ['client-tasks', companyId],
-        queryFn: () => clientApi.getMyTasks(0, 20),
+        queryKey: taskKeys.clientList(),
+        queryFn: () => taskApi.listClient(0, 20),
         enabled: !!companyId, staleTime: STALE, gcTime: CACHE,
     });
 
@@ -94,7 +95,7 @@ export default function ClientDashboard() {
     }, [shootsData]);
 
     const activeTasks = useMemo(() =>
-        (tasksData?.content ?? []).filter(t => t.status !== 'COMPLETED' && t.status !== 'CANCELLED').slice(0, 5)
+        (tasksData?.content ?? []).filter(t => t.status !== 'DONE').slice(0, 5)
     , [tasksData]);
 
     const gaConnected = ga?.connected && ga?.propertyId;

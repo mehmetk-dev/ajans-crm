@@ -1,10 +1,11 @@
 ﻿import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { staffApi } from '../../api/staff';
-import type { ShootResponse, PageResponse, AssignableUser } from '../../api/staff';
+import type { ShootResponse, PageResponse } from '../../api/staff';
+import { taskApi, taskKeys, type AssignableUser } from '../../features/tasks';
 import { Camera, MapPin, Calendar, Clock, Plus, X, User, Wrench, Package, FileText, Trash2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { CompanyResponse as AdminCompanyResponse } from '../../api/admin';
+import { companyApi, companyKeys, type CompanyResponse as AdminCompanyResponse } from '../../features/company';
 import { contentPlanApi, type ContentPlanResponse } from '../../api/contentPlan';
 
 interface EquipmentForm { name: string; quantity: number; notes: string }
@@ -46,13 +47,13 @@ export default function ShootsPage() {
     });
 
     const { data: companies } = useQuery<AdminCompanyResponse[]>({
-        queryKey: ['staff-companies'],
-        queryFn: () => staffApi.getCompanies(),
+        queryKey: companyKeys.staffList(),
+        queryFn: companyApi.listStaffAccessible,
     });
 
     const { data: users } = useQuery<AssignableUser[]>({
-        queryKey: ['assignable-users'],
-        queryFn: () => staffApi.getAssignableUsers(),
+        queryKey: taskKeys.assignableUsers(),
+        queryFn: () => taskApi.listAssignableUsers(),
     });
 
     const createMutation = useMutation({

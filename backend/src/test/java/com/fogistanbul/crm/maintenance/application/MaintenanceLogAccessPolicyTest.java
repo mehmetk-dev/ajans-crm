@@ -1,5 +1,6 @@
 package com.fogistanbul.crm.maintenance.application;
 
+import com.fogistanbul.crm.company.application.CompanyAccessPolicy;
 import com.fogistanbul.crm.entity.Company;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
@@ -26,7 +27,7 @@ class MaintenanceLogAccessPolicyTest {
 
     @Test
     void adminCanManageWithoutMembership() {
-        MaintenanceLogAccessPolicy policy = new MaintenanceLogAccessPolicy(membershipRepository);
+        MaintenanceLogAccessPolicy policy = policy();
         UserProfile admin = user(GlobalRole.ADMIN);
 
         assertDoesNotThrow(() -> policy.requireManageAccess(admin, UUID.randomUUID()));
@@ -35,7 +36,7 @@ class MaintenanceLogAccessPolicyTest {
 
     @Test
     void staffNeedsCompanyMembership() {
-        MaintenanceLogAccessPolicy policy = new MaintenanceLogAccessPolicy(membershipRepository);
+        MaintenanceLogAccessPolicy policy = policy();
         UserProfile staff = user(GlobalRole.AGENCY_STAFF);
         UUID companyId = UUID.randomUUID();
         when(membershipRepository.existsByUserIdAndCompanyId(staff.getId(), companyId)).thenReturn(false);
@@ -45,7 +46,7 @@ class MaintenanceLogAccessPolicyTest {
 
     @Test
     void companyUserCannotManageLog() {
-        MaintenanceLogAccessPolicy policy = new MaintenanceLogAccessPolicy(membershipRepository);
+        MaintenanceLogAccessPolicy policy = policy();
 
         assertThrows(
                 AccessDeniedException.class,
@@ -56,7 +57,7 @@ class MaintenanceLogAccessPolicyTest {
 
     @Test
     void entryMustBelongToCompanyFromRoute() {
-        MaintenanceLogAccessPolicy policy = new MaintenanceLogAccessPolicy(membershipRepository);
+        MaintenanceLogAccessPolicy policy = policy();
         MaintenanceLogEntry entry = MaintenanceLogEntry.builder()
                 .company(Company.builder().id(UUID.randomUUID()).build())
                 .build();
@@ -75,5 +76,9 @@ class MaintenanceLogAccessPolicyTest {
                 .email("user@example.com")
                 .passwordHash("hash")
                 .build();
+    }
+
+    private MaintenanceLogAccessPolicy policy() {
+        return new MaintenanceLogAccessPolicy(new CompanyAccessPolicy(membershipRepository));
     }
 }

@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react';
-import { clientApi } from '../../api/clientPanel';
-import type { TeamMemberResponse } from '../../api/clientPanel';
 import { motion } from 'framer-motion';
 import { Users, Briefcase, Mail, Phone, Shield } from 'lucide-react';
+import { useMyTeam, type TeamMember } from '../../features/company';
 
 const ROLE_LABELS: Record<string, string> = {
     OWNER: 'Şirket Sahibi',
@@ -11,24 +9,11 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export default function ClientTeamPage() {
-    const [agencyStaff, setAgencyStaff] = useState<TeamMemberResponse[]>([]);
-    const [employees, setEmployees] = useState<TeamMemberResponse[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data, isLoading } = useMyTeam();
+    const agencyStaff = data?.agencyStaff ?? [];
+    const employees = data?.employees ?? [];
 
-    useEffect(() => {
-        loadTeam();
-    }, []);
-
-    const loadTeam = async () => {
-        try {
-            const data = await clientApi.getTeam();
-            setAgencyStaff(data.agencyStaff);
-            setEmployees(data.employees);
-        } catch { }
-        setLoading(false);
-    };
-
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="flex items-center justify-center h-60">
                 <div className="h-8 w-8 border-2 border-zinc-800 border-t-[#C8697A] rounded-full animate-spin" />
@@ -104,7 +89,7 @@ export default function ClientTeamPage() {
     );
 }
 
-function MemberCard({ member, index, accent }: { member: TeamMemberResponse; index: number; accent: 'pink' | 'blue' }) {
+function MemberCard({ member, index, accent }: { member: TeamMember; index: number; accent: 'pink' | 'blue' }) {
     const accentStyles = {
         pink: {
             badge: 'bg-pink-500/10 text-pink-400 border-pink-500/20',

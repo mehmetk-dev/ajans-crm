@@ -1,5 +1,6 @@
 package com.fogistanbul.crm.note.application;
 
+import com.fogistanbul.crm.company.application.CompanyAccessPolicy;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
 import com.fogistanbul.crm.note.domain.Note;
@@ -25,7 +26,7 @@ class NoteAccessPolicyTest {
 
     @Test
     void adminCanLinkNoteWithoutMembership() {
-        NoteAccessPolicy policy = new NoteAccessPolicy(membershipRepository);
+        NoteAccessPolicy policy = policy();
         UserProfile admin = user(GlobalRole.ADMIN);
 
         assertDoesNotThrow(() -> policy.requireCompanyAccess(admin, UUID.randomUUID()));
@@ -34,7 +35,7 @@ class NoteAccessPolicyTest {
 
     @Test
     void staffNeedsCompanyMembership() {
-        NoteAccessPolicy policy = new NoteAccessPolicy(membershipRepository);
+        NoteAccessPolicy policy = policy();
         UserProfile staff = user(GlobalRole.AGENCY_STAFF);
         UUID companyId = UUID.randomUUID();
         when(membershipRepository.existsByUserIdAndCompanyId(staff.getId(), companyId)).thenReturn(false);
@@ -44,7 +45,7 @@ class NoteAccessPolicyTest {
 
     @Test
     void onlyOwnerCanChangeNote() {
-        NoteAccessPolicy policy = new NoteAccessPolicy(membershipRepository);
+        NoteAccessPolicy policy = policy();
         Note note = Note.builder().user(user(GlobalRole.AGENCY_STAFF)).build();
 
         assertThrows(AccessDeniedException.class, () -> policy.requireOwner(note, UUID.randomUUID()));
@@ -58,5 +59,9 @@ class NoteAccessPolicyTest {
                 .email("user@example.com")
                 .passwordHash("hash")
                 .build();
+    }
+
+    private NoteAccessPolicy policy() {
+        return new NoteAccessPolicy(new CompanyAccessPolicy(membershipRepository));
     }
 }

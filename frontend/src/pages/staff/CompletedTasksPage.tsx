@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { staffApi } from '../../api/staff';
-import type { TaskResponse } from '../../api/staff';
+import { taskApi, type TaskResponse } from '../../features/tasks';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Star } from 'lucide-react';
 
@@ -9,7 +8,7 @@ export default function CompletedTasksPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        staffApi.getAllTasks(0, 50, 'DONE')
+        taskApi.listAll(0, 50, 'DONE')
             .then(data => setTasks(data.content))
             .catch(() => setTasks([]))
             .finally(() => setLoading(false));

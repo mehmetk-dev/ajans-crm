@@ -33,9 +33,9 @@ Onerilen strateji:
 |---|---|---|---|
 | Notes | **TAMAMLANDI** | 9 Haziran 2026 | Backend, frontend, ortak componentler ve testler birlikte duzenlendi |
 | Maintenance log | **TAMAMLANDI** | 9 Haziran 2026 | Yetki aciklari kapatildi, tekrar eden admin/staff/client akislar birlestirildi |
-| Company / membership / permissions | Bekliyor | - | Ortak authorization temeli |
-| Tasks | Bekliyor | - | Notes sonrasi temel is modulu |
-| Meetings / calendar | Bekliyor | - | - |
+| Company / membership / permissions | **TAMAMLANDI** | 9 Haziran 2026 | Ortak authorization temeli, staff atamalari ve client ekip akisi modullestirildi |
+| Tasks | **TAMAMLANDI** | 9 Haziran 2026 | CRUD, not, review, routine, client/staff akislar ve ortak query altyapisi modullestirildi |
+| Meetings / calendar | **TAMAMLANDI** | 9 Haziran 2026 | Meeting CRUD, katilimci/not yetkileri, ortak frontend feature'i ve task/meeting takvimi duzenlendi |
 | Shoots | Bekliyor | - | - |
 | Content plans / approvals | Bekliyor | - | - |
 | PR projects | Bekliyor | - | - |
@@ -870,9 +870,9 @@ Her PR:
 - [ ] Ortak authorization ve API error altyapisi.
 - [x] Notes pilot modulu, frontend ve backend birlikte.
 - [x] Maintenance log pilot modulu, frontend ve backend birlikte.
-- [ ] Company/membership/permissions modulu.
-- [ ] Tasks modulu ve ilgili tum componentler.
-- [ ] Meetings/calendar modulu.
+- [x] Company/membership/permissions modulu.
+- [x] Tasks modulu ve ilgili tum componentler.
+- [x] Meetings/calendar modulu.
 - [ ] Shoots modulu.
 - [ ] Content plans/approvals modulu.
 - [ ] PR projects modulu.
@@ -1159,8 +1159,173 @@ Notes modulu artik backend, frontend, ilgili componentler ve testleriyle birlikt
 
 - Genel `npm run build`, Maintenance Log disindaki analytics, admin, calendar, requests ve time tracking TypeScript hatalari nedeniyle basarisiz.
 - Genel frontend kalite kapisi yesil olmadigi icin Faz 0 lint/build borclari halen onceliklidir.
-- Ortak `CompanyAccessPolicy` henuz tum modullere uygulanmadi; Maintenance Log kendi policy'si ile guvenli hale getirildi.
+- Ortak `CompanyAccessPolicy`, Notes ve Maintenance Log tarafinda kullaniliyor; kalan eski moduller sirayla bu policy'ye tasinacak.
 
 ### Sonuc
 
 Maintenance Log modulu backend, frontend ve ilgili admin/staff/client componentleriyle birlikte tek dikey modul haline getirildi. Eski paralel CRUD implementasyonlari silindi ve tespit edilen sirketler arasi kayit degistirme acigi kapatildi.
+
+## 19. Company / Membership / Permissions Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 9 Haziran 2026
+
+### Backend
+
+- Sirket, staff atama, izin ve client ekip endpoint'leri `com.fogistanbul.crm.company` modulu altinda `web`, `application`, `dto` ve `infrastructure` sinirlarina tasindi.
+- Genel `controller`, `service` ve `dto` klasorlerindeki paralel Company, Permission ve Staff implementasyonlari kaldirildi.
+- Ortak `CompanyAccessPolicy` olusturuldu; admin gecisi, uyelik zorunlulugu ve erisilebilir musteri sirketleri tek noktada toplandi.
+- Notes ve Maintenance Log policy'leri tekrar eden sirket uyelik kontrolu yerine `CompanyAccessPolicy` kullanacak sekilde guncellendi.
+- Staff portal sirket listeleme ve detay akisinda string rol aktarimi kaldirildi; gercek kullanici ve uyelik bilgisi application katmaninda kontrol ediliyor.
+- Client ekip controller'inin repository erisimi kaldirildi. Ekip listesi rastgele ilk sirket yerine kullanicinin tum musteri sirketlerini kapsiyor.
+- Izin okuma ve guncellemede hedef kullanicinin sirket uyesi olmasi zorunlu hale getirildi.
+- Bilinmeyen izin anahtariyla kayit olusturma engellendi.
+- Varsayilan izin atanirken istek rolu ile gercek uyelik rolunun eslesmesi zorunlu hale getirildi.
+- Sirket calisani kaldirma endpoint'inin owner veya ajans yetkilisi uyeligini silebilmesi engellendi.
+- Staff atama kaldirma islemi yalniz musteri sirketindeki `AGENCY_STAFF` uyeligine sinirlandi; ajans ana uyeligi korunuyor.
+- Sirket ve staff silme servislerindeki tekrar eden native SQL temizligi `CompanyDataCleanup` infrastructure bilesenine cikarildi.
+- Ortak servis erisim guard'i company modulune tasindi ve uyelik kontrolu `CompanyAccessPolicy` uzerinden calisiyor.
+- Mevcut HTTP endpoint contract'lari korunuyor.
+
+### Frontend
+
+- `frontend/src/features/company` altinda company API client, tipler, query key factory, query/mutation hook'lari, permission modeli ve UI bilesenleri olusturuldu.
+- Sirket, staff, izin ve client ekip metotlari genel `admin.ts`, `staff.ts` ve `clientPanel.ts` dosyalarindan cikarildi.
+- Admin, staff ve client sayfalarindaki sirket sorgulari ayni feature API ve query key'lerini kullaniyor.
+- `CompanyDetailPage` icindeki calisan formu, uye rol gruplari ve izin paneli ayri bilesenlere tasindi.
+- Uye silme aksiyonu frontendde yalniz `EMPLOYEE` rolu icin gosteriliyor; backend de ayni kurali zorunlu tutuyor.
+- Client ekip sayfasindaki manuel `useEffect` veri akisi ortak query hook'una tasindi.
+- Company API tiplerinde rol ve izin seviyeleri serbest string yerine union tiplerle sinirlandi.
+
+### Test ve Dogrulama
+
+- `CompanyAccessPolicyTest`: 3 test.
+- `PermissionServiceTest`: 3 test.
+- `ClientTeamServiceTest`: 1 test.
+- Notes, Maintenance Log ve Spring context testleri dahil backend sonucu: **21 test basarili**.
+- Backend Java 17 ile `mvn test`: **basarili**.
+- Company refactor'undan kaynaklanan frontend TypeScript hatalari temizlendi.
+- Genel `npm run build`, bu modul disindaki analytics, calendar ve time tracking dosyalarinda bulunan mevcut hatalar nedeniyle halen basarisiz.
+
+### Bilinen Gecis Borclari
+
+- `Company`, `CompanyMembership`, `CompanyPermission` entity ve repository'leri cok sayida eski modul tarafindan dogrudan kullanildigi icin gecici ortak persistence modeli olarak yerinde birakildi. Ilgili moduller tasindikca company domain portlarina alinacak.
+- `CompanyService` halen sirket olusturma, guncelleme ve uyelik orkestrasyonunu birlikte yurutuyor. Native SQL temizligi ayrildi; sonraki inceltme mapper ve use-case bazli application service ayrimidir.
+- `UserManagementController` icindeki dogrudan membership repository erisimi identity/user modulu ele alinirken kaldirilacak.
+
+### Sonuc ve Siradaki Modul
+
+Company / Membership / Permissions dikey dilimi backend, frontend ve ilgili componentlerle tamamlandi. Ortak authorization temeli artik sonraki modullerde tekrar kullanilabilir.
+
+Bu siradaki adim tamamlandi; Tasks modulunun uygulama notlari asagidaki bolumde kaydedildi.
+
+## 20. Tasks Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 9 Haziran 2026
+
+### Backend
+
+- Task CRUD, task note, task review ve routine task kodlari `com.fogistanbul.crm.task` modulu altinda `web`, `application` ve `dto` sinirlarina tasindi.
+- Genel `controller`, `service` ve `dto` klasorlerindeki eski task implementasyonlari kaldirildi.
+- `TaskAccessPolicy` ile task goruntuleme, guncelleme, silme, sirket erisimi ve atama kurallari tek noktada toplandi.
+- Task notlarini listeleme ve ekleme islemlerinde eksik olan task erisim kontrolu eklendi.
+- Not silmede hem task erisimi hem yazar/admin kurali zorunlu hale getirildi.
+- Client task controller icindeki dogrudan `CompanyMembershipRepository` erisimi kaldirildi.
+- Client task listesi rastgele ilk sirket yerine kullanicinin tum erisilebilir musteri sirketlerini kapsiyor.
+- Client task detayinda sirket uyesi olan kullanicinin gorevi gorebilmesi saglandi; yalniz assignee/creator kontroluyle liste-detay uyumsuzlugu giderildi.
+- Task update sirasinda sirket veya atanan kisi degistirildiginde yeni hedef sirket ve atama yetkisi yeniden dogrulaniyor.
+- Company user yalniz kendisine veya ilgili sirkete bagli ajans personeline gorev atayabiliyor.
+- Create/update akislari `priority` alanini artik kaydediyor ve response mapper bu alani donduruyor.
+- DTO donusumleri `TaskMapper`, task notlari `TaskNoteService`, PR faz tamamlama `TaskPhaseCompletionService`, atanabilir kullanici sorgusu `TaskAssignableUserService` ve gecikme scheduler'i `TaskOverdueScheduler` icine ayrildi.
+- Ana `TaskService` 459 satirdan 271 satira indirildi.
+- Mevcut staff, client ve admin routine HTTP endpoint contract'lari korundu.
+
+### Frontend
+
+- `frontend/src/features/tasks` altinda task API client, union tipler, query key factory, query/mutation hook'lari, model yardimcilari ve UI bilesenleri olusturuldu.
+- Task ve review endpoint'leri genel `staff.ts` ve `clientPanel.ts` dosyalarindan cikarildi.
+- Dashboard, Tasks, Kanban, Calendar, Time Tracking, Completed Tasks, client task ekranlari ve prefetch akisi ayni task API/query key sozlesmesini kullaniyor.
+- `TaskDetailPanel` ve `KanbanBoard` genel components klasorunden task feature UI katmanina tasindi.
+- Task notlari `TaskDetailPanel` icinde manuel effect/state yerine query ve mutation invalidation ile yonetiliyor.
+- `TasksPage` manuel fetch state'inden task/company hook'larina gecirildi.
+- Task olusturma modali `TaskCreateDialog` olarak feature icine ayrildi.
+- Global hizli aksiyon icindeki task formu `QuickTaskForm` olarak ayrildi; `FloatingTaskFab` artik task form is kurali tasimiyor.
+- Task status, category ve priority degerleri serbest string yerine union tiplerle sinirlandi.
+- Gecikmis gorev hesaplamasi `effectiveTaskStatus` fonksiyonunda merkezilestirildi.
+- `TasksPage` 376 satirdan 244 satira indirildi.
+
+### Test ve Dogrulama
+
+- Backend `TaskAccessPolicyTest`: 4 test.
+- Backend `TaskNoteServiceTest`: 2 test.
+- Backend `TaskServiceTest`: 2 test.
+- Tum backend sonucu: **29 test basarili**.
+- Frontend `task.constants.test.ts`: **3 test basarili**.
+- Task feature ve ana task sayfalari icin scoped ESLint: **basarili**.
+- `git diff --check`: **basarili**.
+- Eski task API metotlari ve component importlari taramasi: **temiz**.
+- Genel `npm run build`, task modulu disindaki analytics, StaffCalendar ve TimeTracking TypeScript hatalari nedeniyle halen basarisiz.
+
+### Bilinen Gecis Borclari
+
+- `Task`, `TaskNote`, `TaskReview`, `RoutineTask` entity ve repository'leri analytics, PR, file, search ve time tracking modulleri tarafindan kullanildigi icin gecici ortak persistence modeli olarak yerinde birakildi.
+- `TaskService` 271 satirla hedef esigin biraz uzerinde. Notification orkestrasyonu ilgili notification modulu ele alinirken event tabanli yapida ayrilacak.
+- `FloatingTaskFab` task formundan arindirildi ancak meeting, shoot, project ve message formlarini tasimaya devam ediyor; ilgili moduller tasindikca bu dosya yalniz hizli aksiyon kompozisyonuna donusecek.
+
+### Sonuc ve Siradaki Modul
+
+Tasks dikey dilimi backend, frontend, notlar, review, routine ve task kullanan ana ekranlarla tamamlandi. Tespit edilen task note yetki acigi ve client coklu sirket listeleme hatasi kapatildi.
+
+**Siradaki modul: Meetings / Calendar.** Ilk hedef meeting CRUD, katilimci/not akislarini, staff calendar veri birlestirmesini ve mevcut TypeScript hatalarini ayni dikey modul icinde duzenlemek.
+
+## 21. Meetings / Calendar Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 9 Haziran 2026
+
+### Backend
+
+- Meeting controller, application service ve DTO'lar `com.fogistanbul.crm.meeting` modulu altinda `web`, `application` ve `dto` sinirlarina tasindi.
+- Genel `controller`, `service` ve `dto` klasorlerindeki eski meeting implementasyonlari kaldirildi.
+- `MeetingAccessPolicy` ile sirket erisimi, toplanti goruntuleme, yonetme ve not ekleme kurallari tek noktada toplandi.
+- Controller'dan rol string'i okuma ve application service'e aktarma kaldirildi.
+- Sirketli toplanti katilimcilarinin hedef sirkete erisimi zorunlu hale getirildi.
+- Var olmayan katilimci kimliklerinin sessizce atlanmasi engellendi; tekrar eden katilimci kimlikleri tek kayda indirildi.
+- DTO donusumleri `MeetingMapper`, kullanici bazli not ekleme/guncelleme akisi `MeetingNoteService` icine ayrildi.
+- Ana `MeetingService` 245 satirdan 154 satira indirildi.
+- Mevcut staff meeting HTTP endpoint contract'lari korundu.
+
+### Frontend
+
+- `frontend/src/features/meetings` altinda meeting API client, union tipler, query key factory, query/mutation hook'lari, model yardimcilari ve UI bilesenleri olusturuldu.
+- Meeting endpoint ve tipleri genel `staff.ts` dosyasindan cikarildi.
+- `MeetingsPage`, Kanban, Staff Calendar ve global hizli aksiyon ayni meeting API/query key sozlesmesini kullaniyor.
+- Toplanti formu, toplanti karti ve not/tamamlama dialog'u feature UI katmanina ayrildi.
+- Global hizli aksiyondaki tekrar eden meeting formu kaldirildi; ortak `MeetingForm` kullaniliyor ve sayfa yenileme ihtiyaci query invalidation ile giderildi.
+- `MeetingsPage` 462 satirdan 113 satira indirildi.
+- `StaffCalendarPage` 651 satirdan 353 satira indirildi.
+- Staff Calendar artik gorevlerle toplantilari ayni tarih indeksinde birlestiriyor; gun, hafta ve ay filtrelerinde iki kayit turunu birlikte gosteriyor.
+- Calendar icindeki ikinci task note/detail implementasyonu kaldirildi ve ortak `TaskDetailPanel` kullanildi.
+- Staff Calendar'a ait `Set<number>`/string ID ve kullanilmayan fonksiyon TypeScript hatalari giderildi.
+
+### Test ve Dogrulama
+
+- Backend `MeetingAccessPolicyTest`: 4 test.
+- Backend `MeetingServiceTest`: 2 test.
+- Backend `MeetingNoteServiceTest`: 2 test.
+- Tum backend sonucu: **37 test basarili**.
+- Tum frontend sonucu: **14 test basarili**; meeting modelinde 3 yeni test.
+- Meeting feature, MeetingsPage, StaffCalendar, Kanban, FloatingTaskFab ve `staff.ts` icin scoped ESLint: **basarili**.
+- `git diff --check`: **basarili**.
+- Eski meeting API metotlari ve DTO/controller/service importlari taramasi: **temiz**.
+- Genel `npm run build` icinde StaffCalendar hatalari tamamen giderildi. Build; meeting modulu disindaki analytics kullanilmayan importlari ve TimeTracking `PageResponse` tip uyumsuzlugu nedeniyle halen basarisiz.
+
+### Bilinen Gecis Borclari
+
+- `Meeting`, `MeetingParticipant`, `MeetingNote` entity ve repository'leri `CalendarExportController` tarafindan dogrudan kullanildigi icin gecici ortak persistence modeli olarak yerinde birakildi.
+- `CalendarExportController` meeting, shoot ve task repository'lerini dogrudan birlestiriyor. Shoots modulu tamamlandiktan sonra calendar query/application servisine alinmali.
+- Genel build'i engelleyen analytics ve TimeTracking hatalari bu modulle ilgili degildir; ilgili moduller ele alinirken temizlenecek.
+
+### Sonuc ve Siradaki Modul
+
+Meetings / Calendar dikey dilimi backend, frontend, katilimci/not akislar, Kanban, hizli aksiyon ve ortak takvim gorunumu ile tamamlandi.
+
+**Siradaki modul: Shoots.** Ilk hedef shoot CRUD, katilimci/ekipman akislarini, content plan baglantilarini ve calendar/export kullanimlarini ayni dikey modul icinde duzenlemek.

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LayoutTemplate, Loader2, Save } from 'lucide-react';
-import { adminApi, type CompanyResponse } from '../../api/admin';
+import { companyApi, type CompanyResponse } from '../../features/company';
 import { MaintenanceLogPanel } from '../../features/maintenance-log';
 
 interface Props {
@@ -44,7 +44,7 @@ export default function WebDesignAdminSection({ company }: Props) {
     }
 
     const saveInfrastructure = useMutation({
-        mutationFn: () => adminApi.updateCompanyInfrastructure(company.id, {
+        mutationFn: () => companyApi.updateInfrastructure(company.id, {
             hostingProvider: infraForm.hostingProvider || null,
             domainExpiry: infraForm.domainExpiry || null,
             sslExpiry: infraForm.sslExpiry || null,

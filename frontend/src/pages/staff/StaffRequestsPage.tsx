@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { staffApi } from '../../api/staff';
-import { adminApi } from '../../api/admin';
 import type { ApprovalRequestResponse } from '../../api/staff';
-import type { StaffResponse } from '../../api/admin';
+import { taskApi, taskKeys, type AssignableUser } from '../../features/tasks';
 import {
     Inbox, Clock, CheckCircle2, XCircle, Building2, User,
     Calendar, FileText, Camera, MessageSquare, AlertTriangle, Loader2,
@@ -52,7 +51,7 @@ interface EquipmentRow { name: string; quantity: number; notes: string }
 
 function ApproveModal({ req, staffMembers, onClose, onApprove, isLoading }: {
     req: ApprovalRequestResponse;
-    staffMembers: StaffResponse[];
+    staffMembers: AssignableUser[];
     onClose: () => void;
     onApprove: (data: Record<string, unknown>) => void;
     isLoading: boolean;
@@ -232,8 +231,8 @@ export default function StaffRequestsPage() {
     });
 
     const { data: staffMembers } = useQuery({
-        queryKey: ['assignable-staff-list'],
-        queryFn: () => staffApi.getAssignableUsers(),
+        queryKey: taskKeys.assignableUsers(),
+        queryFn: () => taskApi.listAssignableUsers(),
         retry: false,
     });
 

@@ -1,10 +1,17 @@
-﻿import { useEffect, useState, useCallback } from 'react';
-import { staffApi } from '../../api/staff';
-import type { TaskResponse, CreateTaskRequest, AssignableUser } from '../../api/staff';
-import type { CompanyResponse } from '../../api/admin';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, ListTodo, Filter, Clock, Trash2, ArrowUpDown, Building2, User, Calendar } from 'lucide-react';
-import TaskDetailPanel from '../../components/TaskDetailPanel';
+﻿import { useState } from 'react';
+import {
+    effectiveTaskStatus,
+    TaskCreateDialog,
+    TaskDetailPanel,
+    useDeleteTask,
+    useStaffTasks,
+    useUpdateTask,
+    type TaskResponse,
+    type TaskStatus,
+} from '../../features/tasks';
+import { useStaffCompanies } from '../../features/company';
+import { motion } from 'framer-motion';
+import { Plus, ListTodo, Filter, Clock, Trash2, ArrowUpDown, Building2, User, Calendar } from 'lucide-react';
 
 const statusBadge: Record<string, { bg: string; text: string; label: string }> = {
     TODO: { bg: 'bg-zinc-800', text: 'text-zinc-400', label: 'Bekliyor' },
@@ -44,89 +51,33 @@ function getRemainingTime(task: TaskResponse): { text: string; color: string } |
 }
 
 export default function TasksPage() {
-    const [tasks, setTasks] = useState<TaskResponse[]>([]);
-    const [companies, setCompanies] = useState<CompanyResponse[]>([]);
-    const [assignableUsers, setAssignableUsers] = useState<AssignableUser[]>([]);
-    const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
     const [sortBy, setSortBy] = useState<'time' | 'company'>('time');
     const [showSortMenu, setShowSortMenu] = useState(false);
     const [companyFilter, setCompanyFilter] = useState<string>('ALL');
-    const [form, setForm] = useState<CreateTaskRequest>({
-        assignedToId: '', title: '', description: '', category: 'OTHER',
-    });
-    const [formLoading, setFormLoading] = useState(false);
     const [selectedTask, setSelectedTask] = useState<TaskResponse | null>(null);
+    const { data: taskPage, isLoading: tasksLoading } = useStaffTasks('all');
+    const { data: companies = [], isLoading: companiesLoading } = useStaffCompanies();
+    const updateTask = useUpdateTask();
+    const deleteTask = useDeleteTask();
+    const tasks = taskPage?.content ?? [];
+    const loading = tasksLoading || companiesLoading;
 
-    const loadTasks = useCallback(async () => {
-        try {
-            const data = await staffApi.getAllTasks(0, 100);
-            setTasks(data.content);
-        } catch { }
-    }, []);
-
-    useEffect(() => {
-        setLoading(true);
-        Promise.all([
-            loadTasks(),
-            staffApi.getCompanies().then(setCompanies).catch(() => { }),
-        ]).finally(() => setLoading(false));
-    }, [loadTasks]);
-
-    useEffect(() => {
-        if (showForm) {
-            staffApi.getAssignableUsers(form.companyId || undefined)
-                .then(setAssignableUsers).catch(() => { });
-        }
-    }, [showForm, form.companyId]);
-
-    const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!form.assignedToId || !form.title) return;
-        setFormLoading(true);
-        try {
-            const payload: CreateTaskRequest = { ...form, companyId: form.companyId || undefined };
-            const created = await staffApi.createTask(payload);
-            setTasks(prev => [created, ...prev]);
-            setShowForm(false);
-            setForm({ assignedToId: '', title: '', description: '', category: 'OTHER' });
-        } catch { }
-        setFormLoading(false);
-    };
-
-    const handleStatusChange = async (taskId: string, status: string) => {
-        try {
-            const updated = await staffApi.updateTask(taskId, { status });
-            setTasks(prev => prev.map(t => t.id === taskId ? updated : t));
-            if (selectedTask?.id === taskId) setSelectedTask(updated);
-        } catch { }
+    const handleStatusChange = async (taskId: string, status: TaskStatus) => {
+        const updated = await updateTask.mutateAsync({ id: taskId, input: { status } });
+        if (selectedTask?.id === taskId) setSelectedTask(updated);
     };
 
     const handleDelete = async (taskId: string) => {
         if (!confirm('Bu görevi silmek istediğinize emin misiniz?')) return;
-        try {
-            await staffApi.deleteTask(taskId);
-            setTasks(prev => prev.filter(t => t.id !== taskId));
-            if (selectedTask?.id === taskId) setSelectedTask(null);
-        } catch { }
-    };
-
-    // Determine effective status (mark expired tasks as overdue)
-    const getEffectiveStatus = (task: TaskResponse): string => {
-        if (task.status === 'DONE') return 'DONE';
-        if (task.status === 'OVERDUE') return 'OVERDUE';
-        if (task.endDate) {
-            const endStr = task.endDate.slice(0, 10) + 'T' + (task.endTime && task.endTime.length > 5 ? task.endTime : (task.endTime || '23:59') + ':00');
-            const end = new Date(endStr);
-            if (!isNaN(end.getTime()) && end.getTime() < Date.now()) return 'OVERDUE';
-        }
-        return task.status;
+        await deleteTask.mutateAsync(taskId);
+        if (selectedTask?.id === taskId) setSelectedTask(null);
     };
 
     const filteredTasks = tasks
         .filter(t => {
-            const eff = getEffectiveStatus(t);
+            const eff = effectiveTaskStatus(t);
             if (statusFilter === 'ACTIVE' && eff === 'DONE') return false;
             if (statusFilter !== 'ALL' && statusFilter !== 'ACTIVE' && eff !== statusFilter) return false;
             if (companyFilter !== 'ALL' && (t.companyId || '') !== companyFilter) return false;
@@ -259,7 +210,7 @@ export default function TasksPage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                        <select value={task.status} onChange={e => handleStatusChange(task.id, e.target.value)}
+                                        <select value={task.status} onChange={e => handleStatusChange(task.id, e.target.value as TaskStatus)}
                                             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border-0 cursor-pointer ${sBadge.bg} ${sBadge.text}`}>
                                             <option value="TODO">Bekliyor</option>
                                             <option value="IN_PROGRESS">Devam Ediyor</option>
@@ -283,94 +234,11 @@ export default function TasksPage() {
                 onStatusChange={handleStatusChange}
             />
 
-            {/* Create Task Modal */}
-            <AnimatePresence>
-                {showForm && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                        onClick={() => setShowForm(false)}>
-                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
-                            className="bg-[#0C0C0E] border border-white/[0.08] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-                            onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center justify-between p-6 border-b border-white/[0.06]">
-                                <h3 className="text-lg font-bold text-white">Yeni Görev</h3>
-                                <button onClick={() => setShowForm(false)} className="text-zinc-500 hover:text-white"><X className="w-5 h-5" /></button>
-                            </div>
-                            <form onSubmit={handleCreate} className="p-6 space-y-4">
-                                <div>
-                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Görev Başlığı *</label>
-                                    <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                                        className="w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors"
-                                        placeholder="Görev başlığı..." required />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Atanan Kişi *</label>
-                                    <select value={form.assignedToId} onChange={e => setForm(f => ({ ...f, assignedToId: e.target.value }))}
-                                        className="w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors" required>
-                                        <option value="">Kişi seçiniz</option>
-                                        {assignableUsers.map(u => (
-                                            <option key={u.id} value={u.id}>{u.fullName} ({u.globalRole === 'ADMIN' ? 'Admin' : u.globalRole === 'AGENCY_STAFF' ? 'Ajans' : 'Müşteri'})</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Şirket <span className="text-zinc-700">(opsiyonel)</span></label>
-                                    <select value={form.companyId || ''} onChange={e => setForm(f => ({ ...f, companyId: e.target.value || undefined, assignedToId: '' }))}
-                                        className="w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors">
-                                        <option value="">Ajans İçi (Şirketsiz)</option>
-                                        {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Açıklama</label>
-                                    <textarea value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                                        className="w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors resize-none"
-                                        rows={3} placeholder="Görev detayları..." />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Kategori</label>
-                                    <select value={form.category || 'OTHER'} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                                        className="w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors">
-                                        {Object.entries(categoryLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                                    </select>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Başlangıç Tarihi</label>
-                                        <input type="date" value={form.startDate ? form.startDate.slice(0, 10) : ''}
-                                            onChange={e => { const val = e.target.value; setForm(f => ({ ...f, startDate: val ? new Date(val).toISOString() : undefined })); }}
-                                            className="w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Başlangıç Saati</label>
-                                        <input type="time" value={form.startTime || ''}
-                                            onChange={e => setForm(f => ({ ...f, startTime: e.target.value || undefined }))}
-                                            className="w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors" />
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Bitiş Tarihi</label>
-                                        <input type="date" value={form.endDate ? form.endDate.slice(0, 10) : ''}
-                                            onChange={e => { const val = e.target.value; setForm(f => ({ ...f, endDate: val ? new Date(val).toISOString() : undefined })); }}
-                                            className="w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Bitiş Saati</label>
-                                        <input type="time" value={form.endTime || ''}
-                                            onChange={e => setForm(f => ({ ...f, endTime: e.target.value || undefined }))}
-                                            className="w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors" />
-                                    </div>
-                                </div>
-                                <button type="submit" disabled={formLoading}
-                                    className="w-full py-3 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50">
-                                    {formLoading ? 'Oluşturuluyor...' : 'Görevi Oluştur'}
-                                </button>
-                            </form>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <TaskCreateDialog
+                open={showForm}
+                companies={companies}
+                onClose={() => setShowForm(false)}
+            />
         </div>
     );
 }

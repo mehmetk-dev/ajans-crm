@@ -3,7 +3,7 @@ package com.fogistanbul.crm.controller;
 import com.fogistanbul.crm.dto.ContentPlanResponse;
 import com.fogistanbul.crm.dto.ApproveContentPlanRequest;
 import com.fogistanbul.crm.entity.enums.ServiceCategory;
-import com.fogistanbul.crm.service.CompanyServiceAccessGuard;
+import com.fogistanbul.crm.company.application.CompanyServiceAccessGuard;
 import com.fogistanbul.crm.service.ContentPlanService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

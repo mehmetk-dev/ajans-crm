@@ -1,60 +1,4 @@
 import api from './client';
-import type { CompanyResponse } from './admin';
-
-// --- Types ---
-export interface TaskResponse {
-    id: string;
-    companyId: string | null;
-    companyName: string | null;
-    assignedToId: string;
-    assignedToName: string;
-    createdById: string;
-    createdByName: string;
-    title: string;
-    description: string | null;
-    category: string;
-    status: string;
-    startDate: string | null;
-    startTime: string | null;
-    endDate: string | null;
-    endTime: string | null;
-    completedAt: string | null;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export interface CreateTaskRequest {
-    companyId?: string;
-    assignedToId: string;
-    title: string;
-    description?: string;
-    category?: string;
-    startDate?: string;
-    startTime?: string;
-    endDate?: string;
-    endTime?: string;
-}
-
-export interface UpdateTaskRequest {
-    title?: string;
-    description?: string;
-    status?: string;
-    category?: string;
-    assignedToId?: string;
-    companyId?: string;
-    startDate?: string;
-    startTime?: string;
-    endDate?: string;
-    endTime?: string;
-}
-
-export interface AssignableUser {
-    id: string;
-    fullName: string;
-    email: string;
-    globalRole: string;
-    avatarUrl: string | null;
-}
 
 export interface PageResponse<T> {
     content: T[];
@@ -62,43 +6,6 @@ export interface PageResponse<T> {
     totalPages: number;
     number: number;
     size: number;
-}
-
-export interface TaskReviewResponse {
-    id: string;
-    taskId: string;
-    taskTitle: string;
-    reviewerId: string;
-    reviewerName: string;
-    score: number;
-    comment: string | null;
-    createdAt: string;
-}
-
-export interface TaskNoteResponse {
-    id: string;
-    taskId: string;
-    authorId: string;
-    authorName: string;
-    content: string;
-    createdAt: string;
-}
-
-export interface MeetingResponse {
-    id: string;
-    companyId: string | null;
-    companyName: string | null;
-    title: string;
-    description: string | null;
-    meetingDate: string;
-    durationMinutes: number | null;
-    location: string | null;
-    status: string;
-    createdById: string;
-    createdByName: string;
-    participants: { userId: string; fullName: string; email: string; noteSubmitted: boolean }[];
-    notes: { userId: string; fullName: string; content: string; createdAt: string }[];
-    createdAt: string;
 }
 
 export interface ShootResponse {
@@ -194,72 +101,6 @@ export interface UpdatePrProjectRequest {
 
 // --- API ---
 export const staffApi = {
-    // Tasks
-    getMyTasks: (page = 0, size = 20) =>
-        api.get<PageResponse<TaskResponse>>(`/staff/tasks/my?page=${page}&size=${size}`).then(r => r.data),
-
-    getAllTasks: (page = 0, size = 20, status?: string) =>
-        api.get<PageResponse<TaskResponse>>(`/staff/tasks?page=${page}&size=${size}${status ? `&status=${status}` : ''}`).then(r => r.data),
-
-    getTasksByCompany: (companyId: string, page = 0, size = 20) =>
-        api.get<PageResponse<TaskResponse>>(`/staff/tasks/company/${companyId}?page=${page}&size=${size}`).then(r => r.data),
-
-    getTask: (id: string) =>
-        api.get<TaskResponse>(`/staff/tasks/${id}`).then(r => r.data),
-
-    createTask: (data: CreateTaskRequest) =>
-        api.post<TaskResponse>('/staff/tasks', data).then(r => r.data),
-
-    updateTask: (id: string, data: UpdateTaskRequest) =>
-        api.put<TaskResponse>(`/staff/tasks/${id}`, data).then(r => r.data),
-
-    deleteTask: (id: string) =>
-        api.delete(`/staff/tasks/${id}`).then(r => r.data),
-
-    getAssignableUsers: (companyId?: string) =>
-        api.get<AssignableUser[]>(`/staff/tasks/assignable-users${companyId ? `?companyId=${companyId}` : ''}`).then(r => r.data),
-
-    getTaskNotes: (taskId: string) =>
-        api.get<TaskNoteResponse[]>(`/staff/tasks/${taskId}/notes`).then(r => r.data),
-
-    addTaskNote: (taskId: string, content: string) =>
-        api.post<TaskNoteResponse>(`/staff/tasks/${taskId}/notes`, { content }).then(r => r.data),
-
-    deleteTaskNote: (noteId: string) =>
-        api.delete(`/staff/tasks/notes/${noteId}`).then(r => r.data),
-
-    // Companies (staff-accessible)
-    getCompanies: () =>
-        api.get<CompanyResponse[]>('/staff/companies').then(r => r.data),
-
-    getCompany: (id: string) =>
-        api.get<CompanyResponse>(`/staff/companies/${id}`).then(r => r.data),
-
-    // Meetings
-    getMeetings: (page = 0, size = 20) =>
-        api.get<PageResponse<MeetingResponse>>(`/staff/meetings?page=${page}&size=${size}`).then(r => r.data),
-
-    getMeetingsByCompany: (companyId: string, page = 0, size = 20) =>
-        api.get<PageResponse<MeetingResponse>>(`/staff/meetings/company/${companyId}?page=${page}&size=${size}`).then(r => r.data),
-
-    createMeeting: (data: { companyId?: string; title: string; description?: string; meetingDate: string; durationMinutes?: number; location?: string; participantIds?: string[] }) =>
-        api.post<MeetingResponse>('/staff/meetings', data).then(r => r.data),
-
-    updateMeetingStatus: (id: string, status: string) =>
-        api.put<MeetingResponse>(`/staff/meetings/${id}/status?status=${status}`).then(r => r.data),
-
-    deleteMeeting: (id: string) =>
-        api.delete(`/staff/meetings/${id}`).then(r => r.data),
-
-    completeMeeting: (id: string, content: string) =>
-        api.put<MeetingResponse>(`/staff/meetings/${id}/complete`, { content }).then(r => r.data),
-
-    addMeetingNote: (id: string, content: string) =>
-        api.post<MeetingResponse>(`/staff/meetings/${id}/notes`, { content }).then(r => r.data),
-
-    getMeeting: (id: string) =>
-        api.get<MeetingResponse>(`/staff/meetings/${id}`).then(r => r.data),
-
     // Shoots
     getShoots: (page = 0, size = 20) =>
         api.get<PageResponse<ShootResponse>>(`/staff/shoots?page=${page}&size=${size}`).then(r => r.data),

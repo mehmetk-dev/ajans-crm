@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
-import { adminApi } from '../../api/admin';
-import type { CompanyResponse, CreateCompanyRequest, UpdateCompanyRequest } from '../../api/admin';
+import {
+    companyApi,
+    type CompanyResponse,
+    type CreateCompanyInput,
+    type UpdateCompanyInput,
+} from '../../features/company';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Plus, Users, ListTodo, X, Pencil, Trash2, Briefcase, Shield, BarChart3, LayoutTemplate, Megaphone, Instagram, Camera, FileText, Check } from 'lucide-react';
+import { Building2, Plus, Users, ListTodo, X, Pencil, Trash2, Shield, BarChart3, LayoutTemplate, Megaphone, Instagram, Camera, FileText, Check } from 'lucide-react';
 
 export default function CompaniesPage() {
     const [companies, setCompanies] = useState<CompanyResponse[]>([]);
@@ -13,11 +17,11 @@ export default function CompaniesPage() {
 
     const [editingCompany, setEditingCompany] = useState<CompanyResponse | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<CompanyResponse | null>(null);
-    const [editForm, setEditForm] = useState<UpdateCompanyRequest>({ name: '' });
+    const [editForm, setEditForm] = useState<UpdateCompanyInput>({ name: '' });
     const [editSaving, setEditSaving] = useState(false);
     const [editError, setEditError] = useState('');
 
-    const [form, setForm] = useState<CreateCompanyRequest>({
+    const [form, setForm] = useState<CreateCompanyInput>({
         name: '', industry: '', email: '', phone: '', address: '', website: '', notes: '',
         taxId: '', foundedYear: undefined,
         socialInstagram: '', socialFacebook: '', socialTwitter: '', socialLinkedin: '', socialYoutube: '', socialTiktok: '',
@@ -40,7 +44,7 @@ export default function CompaniesPage() {
 
     const loadCompanies = () => {
         setLoading(true);
-        adminApi.getCompanies()
+        companyApi.listAdmin()
             .then(setCompanies)
             .catch(() => { })
             .finally(() => setLoading(false));
@@ -56,7 +60,7 @@ export default function CompaniesPage() {
             for (const [key, value] of Object.entries(form)) {
                 payload[key] = typeof value === 'string' && value.trim() === '' ? undefined : value;
             }
-            await adminApi.createCompany(payload as CreateCompanyRequest);
+            await companyApi.create(payload as CreateCompanyInput);
             setShowForm(false);
             setForm({
                 name: '', industry: '', email: '', phone: '', address: '', website: '', notes: '',
@@ -100,7 +104,7 @@ export default function CompaniesPage() {
             website: company.website || '',
             notes: company.notes || '',
             taxId: company.taxId || '',
-            foundedYear: company.foundedYear,
+            foundedYear: company.foundedYear ?? undefined,
             socialInstagram: company.socialInstagram || '',
             socialFacebook: company.socialFacebook || '',
             socialTwitter: company.socialTwitter || '',
@@ -122,7 +126,7 @@ export default function CompaniesPage() {
             for (const [key, value] of Object.entries(editForm)) {
                 payload[key] = typeof value === 'string' && value.trim() === '' ? undefined : value;
             }
-            await adminApi.updateCompany(editingCompany.id, payload as UpdateCompanyRequest);
+            await companyApi.update(editingCompany.id, payload as UpdateCompanyInput);
             setEditingCompany(null);
             loadCompanies();
         } catch (err: any) {
@@ -145,7 +149,7 @@ export default function CompaniesPage() {
     const handleDelete = async () => {
         if (!deleteConfirm) return;
         try {
-            await adminApi.deleteCompany(deleteConfirm.id);
+            await companyApi.delete(deleteConfirm.id);
             setDeleteConfirm(null);
             loadCompanies();
         } catch (err: any) {

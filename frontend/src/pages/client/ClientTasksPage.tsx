@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { clientApi } from '../../api/clientPanel';
-import type { TaskResponse, PageResponse, TaskReviewResponse } from '../../api/staff';
+import {
+    taskApi,
+    taskKeys,
+    type PageResponse,
+    type TaskResponse,
+    type TaskReviewResponse,
+} from '../../features/tasks';
 import {
     ListTodo, CheckCircle2, Clock, AlertCircle, Calendar,
     Star, X, ChevronRight, User, Loader2,
@@ -170,8 +175,8 @@ export default function ClientTasksPage() {
 
     // Tüm görevleri tek sorguda çek, filtreleme client-side
     const { data, isLoading } = useQuery<PageResponse<TaskResponse>>({
-        queryKey: ['client-tasks-all'],
-        queryFn: () => clientApi.getMyTasks(0, 100),
+        queryKey: taskKeys.clientList(),
+        queryFn: () => taskApi.listClient(0, 100),
     });
 
     const allTasks = data?.content ?? [];
@@ -184,11 +189,11 @@ export default function ClientTasksPage() {
 
     // Reviews sadece tamamlananlar için
     const { data: reviewsMap } = useQuery<Record<string, TaskReviewResponse[]>>({
-        queryKey: ['client-task-reviews', doneTasks.map(t => t.id).join(',')],
+        queryKey: [...taskKeys.all, 'client-reviews', doneTasks.map(t => t.id).join(',')],
         queryFn: async () => {
             const map: Record<string, TaskReviewResponse[]> = {};
             await Promise.all(doneTasks.map(async t => {
-                try { map[t.id] = await clientApi.getTaskReviews(t.id); } catch { map[t.id] = []; }
+                try { map[t.id] = await taskApi.listReviews(t.id); } catch { map[t.id] = []; }
             }));
             return map;
         },
@@ -196,9 +201,9 @@ export default function ClientTasksPage() {
     });
 
     const reviewMutation = useMutation({
-        mutationFn: () => clientApi.reviewTask(reviewTarget!.id, { score, comment: comment || undefined }),
+        mutationFn: () => taskApi.review(reviewTarget!.id, { score, comment: comment || undefined }),
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['client-task-reviews'] });
+            qc.invalidateQueries({ queryKey: taskKeys.all });
             closeReview();
         },
     });

@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { adminApi } from '../../api/admin';
-import type { StaffResponse, CreateStaffRequest, CompanyResponse } from '../../api/admin';
+import {
+    companyApi,
+    type CompanyResponse,
+    type CreateStaffInput,
+    type StaffResponse,
+} from '../../features/company';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Plus, X, Building2, Trash2 } from 'lucide-react';
 
@@ -12,7 +16,7 @@ export default function StaffPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
-    const [form, setForm] = useState<CreateStaffRequest>({
+    const [form, setForm] = useState<CreateStaffInput>({
         fullName: '', email: '', password: '', phone: '', position: '', department: '', initialCompanyId: ''
     });
     const [openAssignId, setOpenAssignId] = useState<string | null>(null);
@@ -36,7 +40,7 @@ export default function StaffPage() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [s, c] = await Promise.all([adminApi.getStaff(), adminApi.getCompanies()]);
+            const [s, c] = await Promise.all([companyApi.listStaff(), companyApi.listAdmin()]);
             setStaff(s);
             setCompanies(c);
         } catch { }
@@ -53,7 +57,7 @@ export default function StaffPage() {
             for (const [key, value] of Object.entries(form)) {
                 payload[key] = typeof value === 'string' && value.trim() === '' ? undefined : value;
             }
-            await adminApi.createStaff(payload as CreateStaffRequest);
+            await companyApi.createStaff(payload as CreateStaffInput);
             setShowForm(false);
             setForm({ fullName: '', email: '', password: '', phone: '', position: '', department: '', initialCompanyId: '' });
             loadData();
@@ -78,7 +82,7 @@ export default function StaffPage() {
 
     const handleAssign = async (staffId: string, companyId: string) => {
         try {
-            await adminApi.assignStaff(staffId, companyId);
+            await companyApi.assignStaff(staffId, companyId);
             setOpenAssignId(null);
             loadData();
         } catch (err: any) {
@@ -88,7 +92,7 @@ export default function StaffPage() {
 
     const handleUnassign = async (membershipId: string) => {
         try {
-            await adminApi.unassignStaff(membershipId);
+            await companyApi.unassignStaff(membershipId);
             loadData();
         } catch (err: any) {
             alert(err.response?.data?.message || 'Çıkarma başarısız');
@@ -98,7 +102,7 @@ export default function StaffPage() {
     const handleDelete = async () => {
         if (!deleteConfirm) return;
         try {
-            await adminApi.deleteStaff(deleteConfirm.id);
+            await companyApi.deleteStaff(deleteConfirm.id);
             setDeleteConfirm(null);
             loadData();
         } catch (err: any) {

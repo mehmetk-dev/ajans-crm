@@ -4,6 +4,7 @@ import { gaApi } from '../api/googleAnalytics';
 import { scApi } from '../api/searchConsole';
 import { igApi } from '../api/instagram';
 import { clientApi } from '../api/clientPanel';
+import { taskApi, taskKeys } from '../features/tasks';
 import { useActiveServices } from './useActiveServices';
 
 const STALE = Infinity;       // never auto-refetch
@@ -49,7 +50,7 @@ export function useClientDataPrefetch() {
         enabled: enabled && !servicesLoading && hasProduction, staleTime: STALE, gcTime: CACHE,
     });
     const tasks = useQuery({
-        queryKey: ['client-tasks', cid], queryFn: () => clientApi.getMyTasks(0, 20),
+        queryKey: taskKeys.clientList(), queryFn: () => taskApi.listClient(0, 20),
         enabled, staleTime: STALE, gcTime: CACHE,
     });
 

@@ -2,7 +2,15 @@ import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { staffApi } from '../../api/staff';
 import { settingsApi } from '../../api/settings';
-import type { TaskResponse, ShootResponse, MeetingResponse, PrProjectResponse, PageResponse } from '../../api/staff';
+import type { ShootResponse, PrProjectResponse, PageResponse } from '../../api/staff';
+import {
+    taskApi,
+    taskKeys,
+    TaskDetailPanel,
+    type TaskResponse,
+    type TaskStatus,
+} from '../../features/tasks';
+import { meetingApi, meetingKeys, type MeetingResponse } from '../../features/meetings';
 import { useAuth } from '../../store/AuthContext';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -12,7 +20,6 @@ import {
     ArrowRight, Target, TrendingUp,
     MapPin, Pencil
 } from 'lucide-react';
-import TaskDetailPanel from '../../components/TaskDetailPanel';
 import { QuickNotes } from '../../features/notes';
 
 /* ─── Helpers ─── */
@@ -268,8 +275,8 @@ export default function KanbanPage() {
 
     // --- Data ---
     const { data: myTasksData, isLoading: loadingTasks } = useQuery<PageResponse<TaskResponse>>({
-        queryKey: ['my-panel-tasks'],
-        queryFn: () => staffApi.getMyTasks(0, 50),
+        queryKey: taskKeys.staffList('mine'),
+        queryFn: () => taskApi.listMine(0, 50),
     });
 
     const { data: shootsData, isLoading: loadingShoots } = useQuery<PageResponse<ShootResponse>>({
@@ -278,8 +285,8 @@ export default function KanbanPage() {
     });
 
     const { data: meetingsData } = useQuery<PageResponse<MeetingResponse>>({
-        queryKey: ['my-panel-meetings'],
-        queryFn: () => staffApi.getMeetings(0, 50),
+        queryKey: meetingKeys.staffList(undefined, 50),
+        queryFn: () => meetingApi.list(0, 50),
     });
 
     const { data: prData } = useQuery<PageResponse<PrProjectResponse>>({
@@ -303,10 +310,10 @@ export default function KanbanPage() {
 
     const completionRate = allTasks.length > 0 ? Math.round((completedTasks.length / allTasks.length) * 100) : 0;
 
-    const handleTaskStatusChange = async (taskId: string, status: string) => {
+    const handleTaskStatusChange = async (taskId: string, status: TaskStatus) => {
         try {
-            await staffApi.updateTask(taskId, { status });
-            queryClient.invalidateQueries({ queryKey: ['my-panel-tasks'] });
+            await taskApi.update(taskId, { status });
+            queryClient.invalidateQueries({ queryKey: taskKeys.staffLists() });
             setSelectedTask(null);
         } catch {
             // Keep the selected task open when the status update fails.

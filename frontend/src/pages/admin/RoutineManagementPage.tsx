@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../api/admin';
 import type { AdminRoutineResponse, CreateRoutineRequest, PageResponse } from '../../api/admin';
-import { staffApi } from '../../api/staff';
-import type { AssignableUser } from '../../api/staff';
+import { taskApi, taskKeys, type AssignableUser } from '../../features/tasks';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     RefreshCw, Plus, Trash2, Edit3, X, Check, Pause, Play,
@@ -52,8 +51,8 @@ export default function RoutineManagementPage() {
     });
 
     const { data: staffList } = useQuery<AssignableUser[]>({
-        queryKey: ['assignable-users'],
-        queryFn: () => staffApi.getAssignableUsers(),
+        queryKey: taskKeys.assignableUsers(),
+        queryFn: () => taskApi.listAssignableUsers(),
     });
 
     const createMutation = useMutation({

@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { staffApi } from '../../api/staff';
 import { fileApi } from '../../api/features';
 import type { FileAttachmentResponse } from '../../api/features';
-import type { CompanyResponse } from '../../api/admin';
+import { companyApi, companyKeys, type CompanyResponse } from '../../features/company';
 import FileUploader from '../../components/FileUploader';
 import { FolderOpen, Image, Video, FileText, File, Trash2, Download, Eye, X, Upload, Filter, Building2, ArrowLeft, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -45,8 +44,8 @@ export default function StaffMediaLibraryPage() {
     const [preview, setPreview] = useState<FileAttachmentResponse | null>(null);
 
     const { data: companies } = useQuery({
-        queryKey: ['staff-companies'],
-        queryFn: () => staffApi.getCompanies(),
+        queryKey: companyKeys.staffList(),
+        queryFn: companyApi.listStaffAccessible,
     });
 
     const { data: mediaCounts } = useQuery({

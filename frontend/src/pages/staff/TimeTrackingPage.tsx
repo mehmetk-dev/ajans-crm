@@ -1,7 +1,8 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { timeTrackingApi, type TimeEntryResponse } from '../../api/features';
-import { staffApi, type TaskResponse, type PageResponse } from '../../api/staff';
+import type { PageResponse } from '../../api/staff';
+import { taskApi, taskKeys, type TaskResponse } from '../../features/tasks';
 import { motion } from 'framer-motion';
 import { Clock, Play, Square, Trash2, Calendar, Timer, Briefcase } from 'lucide-react';
 
@@ -84,8 +85,8 @@ export default function TimeTrackingPage() {
     });
 
     const { data: taskData } = useQuery<PageResponse<TaskResponse>>({
-        queryKey: ['time-tasks'],
-        queryFn: () => staffApi.getMyTasks(0, 200),
+        queryKey: taskKeys.staffList('mine'),
+        queryFn: () => taskApi.listMine(0, 200),
     });
 
     // â”€â”€â”€ Mutations â”€â”€â”€

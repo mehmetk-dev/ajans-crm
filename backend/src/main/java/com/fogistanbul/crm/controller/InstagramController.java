@@ -4,7 +4,7 @@ import com.fogistanbul.crm.dto.IgOverviewResponse;
 import com.fogistanbul.crm.dto.IgOverviewResponse.IgPostRow;
 import com.fogistanbul.crm.dto.IgOverviewResponse.IgReelRow;
 import com.fogistanbul.crm.entity.enums.ServiceCategory;
-import com.fogistanbul.crm.service.CompanyServiceAccessGuard;
+import com.fogistanbul.crm.company.application.CompanyServiceAccessGuard;
 import com.fogistanbul.crm.service.InstagramOAuthService;
 import com.fogistanbul.crm.service.InstagramService;
 import lombok.RequiredArgsConstructor;

@@ -3,8 +3,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, X, ListTodo, Users, Camera, Rocket, MessageSquare, Trash2 } from 'lucide-react';
 import { staffApi } from '../api/staff';
 import { messagingApi } from '../api/messaging';
-import type { AssignableUser } from '../api/staff';
-import type { CompanyResponse } from '../api/admin';
+import { QuickTaskForm, taskApi, type AssignableUser } from '../features/tasks';
+import { MeetingForm } from '../features/meetings';
+import { companyApi, type CompanyResponse } from '../features/company';
 import { useNavigate } from 'react-router-dom';
 
 type ActionType = 'task' | 'meeting' | 'shoot' | 'project' | 'message';
@@ -16,11 +17,6 @@ const ACTIONS: { type: ActionType; icon: React.ReactNode; label: string; color: 
     { type: 'project', icon: <Rocket className="w-5 h-5" />, label: 'Proje', color: 'text-pink-400', bg: 'bg-pink-500/10 hover:bg-pink-500/20 border-pink-500/20' },
     { type: 'message', icon: <MessageSquare className="w-5 h-5" />, label: 'Mesaj', color: 'text-amber-400', bg: 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20' },
 ];
-
-const categoryLabels: Record<string, string> = {
-    REELS: 'Reels', BLOG: 'Blog', PAYLASIM: 'Paylaşım', SEO: 'SEO',
-    TASARIM: 'Tasarım', TOPLANTI: 'Toplantı', OTHER: 'Diğer',
-};
 
 const inputCls = "w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors";
 const labelCls = "text-[10px] font-bold text-zinc-500 uppercase tracking-widest";
@@ -36,8 +32,8 @@ export default function FloatingTaskFab() {
 
     useEffect(() => {
         if (menuOpen || action) {
-            staffApi.getCompanies().then(setCompanies).catch(() => {});
-            staffApi.getAssignableUsers(companyId || undefined).then(setUsers).catch(() => {});
+            companyApi.listStaffAccessible().then(setCompanies).catch(() => {});
+            taskApi.listAssignableUsers(companyId || undefined).then(setUsers).catch(() => {});
         }
     }, [menuOpen, action, companyId]);
 
@@ -106,8 +102,8 @@ export default function FloatingTaskFab() {
                                 </button>
                             </div>
                             <div className="p-5">
-                                {action === 'task' && <TaskForm companies={companies} users={users} companyId={companyId} setCompanyId={setCompanyId} loading={loading} setLoading={setLoading} onDone={closeAll} />}
-                                {action === 'meeting' && <MeetingForm companies={companies} users={users} companyId={companyId} setCompanyId={setCompanyId} loading={loading} setLoading={setLoading} onDone={closeAll} />}
+                                {action === 'task' && <QuickTaskForm companies={companies} users={users} companyId={companyId} setCompanyId={setCompanyId} loading={loading} setLoading={setLoading} onDone={closeAll} />}
+                                {action === 'meeting' && <MeetingForm onSuccess={closeAll} />}
                                 {action === 'shoot' && <ShootForm companies={companies} users={users} companyId={companyId} setCompanyId={setCompanyId} loading={loading} setLoading={setLoading} onDone={closeAll} />}
                                 {action === 'project' && <ProjectForm companies={companies} users={users} companyId={companyId} setCompanyId={setCompanyId} loading={loading} setLoading={setLoading} onDone={closeAll} />}
                                 {action === 'message' && <MessageForm users={users} loading={loading} setLoading={setLoading} onDone={closeAll} navigate={navigate} />}
@@ -163,137 +159,6 @@ function SubmitBtn({ loading, label, color = 'bg-pink-600 hover:bg-pink-500' }: 
             className={`w-full py-3 ${color} text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50`}>
             {loading ? 'Oluşturuluyor...' : label}
         </button>
-    );
-}
-
-/* ─── Task Form (full) ─── */
-function TaskForm({ companies, users, companyId, setCompanyId, loading, setLoading, onDone }: FormProps) {
-    const [f, setF] = useState({
-        assignedToId: '', title: '', description: '', category: 'OTHER',
-        startDate: '', startTime: '', endDate: '', endTime: ''
-    });
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!f.assignedToId || !f.title) return;
-        setLoading(true);
-        try {
-            await staffApi.createTask({
-                ...f,
-                companyId: companyId || undefined,
-                startDate: f.startDate ? new Date(f.startDate).toISOString() : undefined,
-                startTime: f.startTime || undefined,
-                endDate: f.endDate ? new Date(f.endDate).toISOString() : undefined,
-                endTime: f.endTime || undefined,
-            });
-            onDone();
-            window.location.reload();
-        } catch { /* */ }
-        setLoading(false);
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label className={labelCls}>Görev Başlığı *</label>
-                <input value={f.title} onChange={e => setF(p => ({ ...p, title: e.target.value }))} className={inputCls} placeholder="Görev başlığı..." required />
-            </div>
-            <UserSelect users={users} value={f.assignedToId} onChange={v => setF(p => ({ ...p, assignedToId: v }))} />
-            <CompanySelect companies={companies} companyId={companyId} setCompanyId={setCompanyId} />
-            <div>
-                <label className={labelCls}>Açıklama</label>
-                <textarea value={f.description} onChange={e => setF(p => ({ ...p, description: e.target.value }))} className={`${inputCls} resize-none`} rows={3} placeholder="Görev detayları..." />
-            </div>
-            <div>
-                <label className={labelCls}>Kategori</label>
-                <select value={f.category} onChange={e => setF(p => ({ ...p, category: e.target.value }))} className={inputCls}>
-                    {Object.entries(categoryLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelCls}>Başlangıç Tarihi</label>
-                    <input type="date" value={f.startDate} onChange={e => setF(p => ({ ...p, startDate: e.target.value }))} className={inputCls} />
-                </div>
-                <div>
-                    <label className={labelCls}>Başlangıç Saati</label>
-                    <input type="time" value={f.startTime} onChange={e => setF(p => ({ ...p, startTime: e.target.value }))} className={inputCls} />
-                </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelCls}>Bitiş Tarihi</label>
-                    <input type="date" value={f.endDate} onChange={e => setF(p => ({ ...p, endDate: e.target.value }))} className={inputCls} />
-                </div>
-                <div>
-                    <label className={labelCls}>Bitiş Saati</label>
-                    <input type="time" value={f.endTime} onChange={e => setF(p => ({ ...p, endTime: e.target.value }))} className={inputCls} />
-                </div>
-            </div>
-            <SubmitBtn loading={loading} label="Görev Oluştur" />
-        </form>
-    );
-}
-
-/* ─── Meeting Form ─── */
-function MeetingForm({ companies, users, companyId, setCompanyId, loading, setLoading, onDone }: FormProps) {
-    const [f, setF] = useState({ title: '', description: '', meetingDate: '', location: '', durationMinutes: 60, participantIds: [] as string[] });
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!f.title || !f.meetingDate) return;
-        setLoading(true);
-        try {
-            await staffApi.createMeeting({
-                companyId: companyId || undefined,
-                title: f.title,
-                description: f.description || undefined,
-                meetingDate: f.meetingDate ? new Date(f.meetingDate).toISOString() : '',
-                location: f.location || undefined,
-                durationMinutes: f.durationMinutes || undefined,
-                participantIds: f.participantIds.length ? f.participantIds : undefined,
-            });
-            onDone();
-            window.location.reload();
-        } catch { /* */ }
-        setLoading(false);
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <CompanySelect companies={companies} companyId={companyId} setCompanyId={setCompanyId} />
-            <div>
-                <label className={labelCls}>Başlık *</label>
-                <input value={f.title} onChange={e => setF(p => ({ ...p, title: e.target.value }))} className={inputCls} placeholder="Toplantı konusu..." required />
-            </div>
-            <div>
-                <label className={labelCls}>Açıklama</label>
-                <textarea value={f.description} onChange={e => setF(p => ({ ...p, description: e.target.value }))} className={`${inputCls} resize-none`} rows={2} placeholder="Toplantı detayları..." />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelCls}>Tarih & Saat *</label>
-                    <input type="datetime-local" value={f.meetingDate} onChange={e => setF(p => ({ ...p, meetingDate: e.target.value }))} className={inputCls} required />
-                </div>
-                <div>
-                    <label className={labelCls}>Süre (dk)</label>
-                    <input type="number" value={f.durationMinutes} onChange={e => setF(p => ({ ...p, durationMinutes: Number(e.target.value) }))} className={inputCls} min={15} step={15} />
-                </div>
-            </div>
-            <div>
-                <label className={labelCls}>Konum</label>
-                <input value={f.location} onChange={e => setF(p => ({ ...p, location: e.target.value }))} className={inputCls} placeholder="Ofis, Zoom, vb..." />
-            </div>
-            <div>
-                <label className={labelCls}>Katılımcılar</label>
-                <select multiple value={f.participantIds} onChange={e => setF(p => ({ ...p, participantIds: Array.from(e.target.selectedOptions, o => o.value) }))}
-                    className={`${inputCls} min-h-[80px]`}>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.fullName}</option>)}
-                </select>
-                <p className="text-[10px] text-zinc-600 mt-1">Ctrl/Cmd ile çoklu seçim yapabilirsiniz</p>
-            </div>
-            <SubmitBtn loading={loading} label="Toplantı Oluştur" color="bg-cyan-600 hover:bg-cyan-500" />
-        </form>
     );
 }
 

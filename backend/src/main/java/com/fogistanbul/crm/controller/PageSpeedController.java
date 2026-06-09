@@ -3,7 +3,7 @@ package com.fogistanbul.crm.controller;
 import com.fogistanbul.crm.dto.PageSpeedReportResponse;
 import com.fogistanbul.crm.entity.enums.ServiceCategory;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
-import com.fogistanbul.crm.service.CompanyServiceAccessGuard;
+import com.fogistanbul.crm.company.application.CompanyServiceAccessGuard;
 import com.fogistanbul.crm.service.PageSpeedService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
