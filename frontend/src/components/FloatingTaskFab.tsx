@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, X, ListTodo, Users, Camera, Rocket, MessageSquare, Trash2 } from 'lucide-react';
-import { staffApi } from '../api/staff';
+import { Plus, X, ListTodo, Users, Camera, Rocket, MessageSquare } from 'lucide-react';
 import { messagingApi } from '../api/messaging';
 import { QuickTaskForm, taskApi, type AssignableUser } from '../features/tasks';
 import { MeetingForm } from '../features/meetings';
+import { ShootForm } from '../features/shoots';
+import { PrProjectForm } from '../features/pr-projects';
 import { companyApi, type CompanyResponse } from '../features/company';
 import { useNavigate } from 'react-router-dom';
 
@@ -104,8 +105,8 @@ export default function FloatingTaskFab() {
                             <div className="p-5">
                                 {action === 'task' && <QuickTaskForm companies={companies} users={users} companyId={companyId} setCompanyId={setCompanyId} loading={loading} setLoading={setLoading} onDone={closeAll} />}
                                 {action === 'meeting' && <MeetingForm onSuccess={closeAll} />}
-                                {action === 'shoot' && <ShootForm companies={companies} users={users} companyId={companyId} setCompanyId={setCompanyId} loading={loading} setLoading={setLoading} onDone={closeAll} />}
-                                {action === 'project' && <ProjectForm companies={companies} users={users} companyId={companyId} setCompanyId={setCompanyId} loading={loading} setLoading={setLoading} onDone={closeAll} />}
+                                {action === 'shoot' && <ShootForm onSuccess={closeAll} />}
+                                {action === 'project' && <PrProjectForm onSuccess={closeAll} />}
                                 {action === 'message' && <MessageForm users={users} loading={loading} setLoading={setLoading} onDone={closeAll} navigate={navigate} />}
                             </div>
                         </motion.div>
@@ -113,29 +114,6 @@ export default function FloatingTaskFab() {
                 )}
             </AnimatePresence>
         </>
-    );
-}
-
-/* ─── Shared ─── */
-interface FormProps {
-    companies: CompanyResponse[];
-    users: AssignableUser[];
-    companyId: string;
-    setCompanyId: (v: string) => void;
-    loading: boolean;
-    setLoading: (v: boolean) => void;
-    onDone: () => void;
-}
-
-function CompanySelect({ companies, companyId, setCompanyId, required = false }: { companies: CompanyResponse[]; companyId: string; setCompanyId: (v: string) => void; required?: boolean }) {
-    return (
-        <div>
-            <label className={labelCls}>Şirket {required && '*'}</label>
-            <select value={companyId} onChange={e => setCompanyId(e.target.value)} className={inputCls} required={required}>
-                <option value="">Ajans İçi (Şirketsiz)</option>
-                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-        </div>
     );
 }
 
@@ -159,222 +137,6 @@ function SubmitBtn({ loading, label, color = 'bg-pink-600 hover:bg-pink-500' }: 
             className={`w-full py-3 ${color} text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50`}>
             {loading ? 'Oluşturuluyor...' : label}
         </button>
-    );
-}
-
-/* ─── Shoot Form ─── */
-interface EquipmentForm { name: string; quantity: number; notes: string }
-
-function ShootForm({ companies, users, companyId, setCompanyId, loading, setLoading, onDone }: FormProps) {
-    const [f, setF] = useState({
-        title: '', description: '', shootDate: '', shootTime: '', location: '', photographerId: '', notes: '',
-        equipment: [{ name: '', quantity: 1, notes: '' }] as EquipmentForm[],
-    });
-
-    const addEquipment = () => setF(p => ({ ...p, equipment: [...p.equipment, { name: '', quantity: 1, notes: '' }] }));
-    const removeEquipment = (i: number) => setF(p => ({ ...p, equipment: p.equipment.filter((_, idx) => idx !== i) }));
-    const updateEquipment = (i: number, field: keyof EquipmentForm, value: string | number) => {
-        setF(p => ({ ...p, equipment: p.equipment.map((eq, idx) => idx === i ? { ...eq, [field]: value } : eq) }));
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!companyId || !f.title) return;
-        setLoading(true);
-        try {
-            const validEquip = f.equipment.filter(eq => eq.name.trim());
-            await staffApi.createShoot({
-                companyId,
-                title: f.title,
-                description: f.description || undefined,
-                shootDate: f.shootDate || undefined,
-                shootTime: f.shootTime || undefined,
-                location: f.location || undefined,
-                photographerId: f.photographerId || undefined,
-                notes: f.notes || undefined,
-                equipment: validEquip.length ? validEquip : undefined,
-            });
-            onDone();
-            window.location.reload();
-        } catch { /* */ }
-        setLoading(false);
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <CompanySelect companies={companies} companyId={companyId} setCompanyId={setCompanyId} required />
-            {!companyId && <p className="text-xs text-amber-400">Çekim için şirket seçimi zorunludur.</p>}
-            <div>
-                <label className={labelCls}>Başlık *</label>
-                <input value={f.title} onChange={e => setF(p => ({ ...p, title: e.target.value }))} className={inputCls} placeholder="Çekim başlığı..." required />
-            </div>
-            <UserSelect users={users} value={f.photographerId} onChange={v => setF(p => ({ ...p, photographerId: v }))} label="Çekimci" required={false} />
-            <div>
-                <label className={labelCls}>Açıklama</label>
-                <textarea value={f.description} onChange={e => setF(p => ({ ...p, description: e.target.value }))} className={`${inputCls} resize-none`} rows={2} placeholder="Çekim detayları..." />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelCls}>Çekim Tarihi</label>
-                    <input type="date" value={f.shootDate} onChange={e => setF(p => ({ ...p, shootDate: e.target.value }))} className={inputCls} />
-                </div>
-                <div>
-                    <label className={labelCls}>Saat</label>
-                    <input type="time" value={f.shootTime} onChange={e => setF(p => ({ ...p, shootTime: e.target.value }))} className={inputCls} />
-                </div>
-            </div>
-            <div>
-                <label className={labelCls}>Konum</label>
-                <input value={f.location} onChange={e => setF(p => ({ ...p, location: e.target.value }))} className={inputCls} placeholder="Çekim yeri..." />
-            </div>
-            <div>
-                <label className={labelCls}>Notlar</label>
-                <textarea value={f.notes} onChange={e => setF(p => ({ ...p, notes: e.target.value }))} className={`${inputCls} resize-none`} rows={2} placeholder="Çekim notları..." />
-            </div>
-
-            {/* Equipment */}
-            <div className="border-t border-white/[0.06] pt-4">
-                <div className="flex items-center justify-between mb-3">
-                    <label className={labelCls}>Ekipman Listesi</label>
-                    <button type="button" onClick={addEquipment} className="text-[10px] text-pink-400 hover:text-pink-300 font-bold">+ Ekle</button>
-                </div>
-                <div className="space-y-2">
-                    {f.equipment.map((eq, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                            <input value={eq.name} onChange={e => updateEquipment(i, 'name', e.target.value)}
-                                className="flex-1 px-3 py-2 bg-[#18181b]/60 border border-white/[0.06] rounded-lg text-sm text-white outline-none focus:border-pink-500/50"
-                                placeholder="Ekipman adı" />
-                            <input type="number" value={eq.quantity} onChange={e => updateEquipment(i, 'quantity', Number(e.target.value))}
-                                className="w-16 px-2 py-2 bg-[#18181b]/60 border border-white/[0.06] rounded-lg text-sm text-white outline-none text-center" min={1} />
-                            <input value={eq.notes} onChange={e => updateEquipment(i, 'notes', e.target.value)}
-                                className="flex-1 px-3 py-2 bg-[#18181b]/60 border border-white/[0.06] rounded-lg text-sm text-white outline-none focus:border-pink-500/50"
-                                placeholder="Not" />
-                            {f.equipment.length > 1 && (
-                                <button type="button" onClick={() => removeEquipment(i)} className="text-zinc-600 hover:text-red-400 transition-colors">
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </div>
-            <SubmitBtn loading={loading} label="Çekim Oluştur" color="bg-blue-600 hover:bg-blue-500" />
-        </form>
-    );
-}
-
-/* ─── Project Form ─── */
-interface PhaseForm { name: string; assignedToId: string; startDate: string; endDate: string; notes: string }
-const emptyPhase = (n: number): PhaseForm => ({ name: `Faz ${n}`, assignedToId: '', startDate: '', endDate: '', notes: '' });
-
-function ProjectForm({ companies, users, companyId, setCompanyId, loading, setLoading, onDone }: FormProps) {
-    const [f, setF] = useState({
-        name: '', responsibleId: '', purpose: '', startDate: '', endDate: '', notes: '',
-        phases: [emptyPhase(1), emptyPhase(2), emptyPhase(3)] as PhaseForm[],
-    });
-
-    const addPhase = () => setF(p => ({ ...p, phases: [...p.phases, emptyPhase(p.phases.length + 1)] }));
-    const removePhase = (i: number) => setF(p => ({ ...p, phases: p.phases.filter((_, idx) => idx !== i) }));
-    const updatePhase = (i: number, field: keyof PhaseForm, value: string) => {
-        setF(p => ({ ...p, phases: p.phases.map((ph, idx) => idx === i ? { ...ph, [field]: value } : ph) }));
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!f.name) return;
-        setLoading(true);
-        try {
-            const validPhases = f.phases.filter(ph => ph.name.trim()).map(ph => ({
-                name: ph.name,
-                assignedToId: ph.assignedToId || undefined,
-                startDate: ph.startDate || undefined,
-                endDate: ph.endDate || undefined,
-                notes: ph.notes || undefined,
-            }));
-            await staffApi.createPrProject({
-                name: f.name,
-                companyId: companyId || undefined,
-                responsibleId: f.responsibleId || undefined,
-                purpose: f.purpose || undefined,
-                startDate: f.startDate ? new Date(f.startDate).toISOString() : undefined,
-                endDate: f.endDate ? new Date(f.endDate).toISOString() : undefined,
-                notes: f.notes || undefined,
-                totalPhases: f.phases.length,
-                phases: validPhases.length ? validPhases : undefined,
-            });
-            onDone();
-            window.location.reload();
-        } catch { /* */ }
-        setLoading(false);
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <CompanySelect companies={companies} companyId={companyId} setCompanyId={setCompanyId} />
-            <div>
-                <label className={labelCls}>Proje Adı *</label>
-                <input value={f.name} onChange={e => setF(p => ({ ...p, name: e.target.value }))} className={inputCls} placeholder="Proje adı..." required />
-            </div>
-            <UserSelect users={users} value={f.responsibleId} onChange={v => setF(p => ({ ...p, responsibleId: v }))} label="Sorumlu Kişi" required={false} />
-            <div>
-                <label className={labelCls}>Amaç / Açıklama</label>
-                <textarea value={f.purpose} onChange={e => setF(p => ({ ...p, purpose: e.target.value }))} className={`${inputCls} resize-none`} rows={2} placeholder="Projenin amacı..." />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelCls}>Başlangıç Tarihi</label>
-                    <input type="date" value={f.startDate} onChange={e => setF(p => ({ ...p, startDate: e.target.value }))} className={inputCls} />
-                </div>
-                <div>
-                    <label className={labelCls}>Bitiş Tarihi</label>
-                    <input type="date" value={f.endDate} onChange={e => setF(p => ({ ...p, endDate: e.target.value }))} className={inputCls} />
-                </div>
-            </div>
-            <div>
-                <label className={labelCls}>Notlar</label>
-                <textarea value={f.notes} onChange={e => setF(p => ({ ...p, notes: e.target.value }))} className={`${inputCls} resize-none`} rows={2} placeholder="Proje notları..." />
-            </div>
-
-            {/* Phases */}
-            <div className="border-t border-white/[0.06] pt-4">
-                <div className="flex items-center justify-between mb-3">
-                    <label className={labelCls}>Proje Fazları ({f.phases.length})</label>
-                    <button type="button" onClick={addPhase} className="text-[10px] text-pink-400 hover:text-pink-300 font-bold">+ Faz Ekle</button>
-                </div>
-                <div className="space-y-3">
-                    {f.phases.map((ph, i) => (
-                        <div key={i} className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-zinc-400">Faz {i + 1}</span>
-                                {f.phases.length > 1 && (
-                                    <button type="button" onClick={() => removePhase(i)} className="text-zinc-600 hover:text-red-400 transition-colors">
-                                        <Trash2 className="w-3 h-3" />
-                                    </button>
-                                )}
-                            </div>
-                            <input value={ph.name} onChange={e => updatePhase(i, 'name', e.target.value)}
-                                className="w-full px-3 py-2 bg-[#18181b]/60 border border-white/[0.06] rounded-lg text-sm text-white outline-none focus:border-pink-500/50"
-                                placeholder="Faz adı" />
-                            <select value={ph.assignedToId} onChange={e => updatePhase(i, 'assignedToId', e.target.value)}
-                                className="w-full px-3 py-2 bg-[#18181b]/60 border border-white/[0.06] rounded-lg text-sm text-white outline-none">
-                                <option value="">Sorumlu seçiniz</option>
-                                {users.map(u => <option key={u.id} value={u.id}>{u.fullName}</option>)}
-                            </select>
-                            <div className="grid grid-cols-2 gap-2">
-                                <input type="date" value={ph.startDate} onChange={e => updatePhase(i, 'startDate', e.target.value)}
-                                    className="px-3 py-2 bg-[#18181b]/60 border border-white/[0.06] rounded-lg text-sm text-white outline-none" />
-                                <input type="date" value={ph.endDate} onChange={e => updatePhase(i, 'endDate', e.target.value)}
-                                    className="px-3 py-2 bg-[#18181b]/60 border border-white/[0.06] rounded-lg text-sm text-white outline-none" />
-                            </div>
-                            <textarea value={ph.notes} onChange={e => updatePhase(i, 'notes', e.target.value)}
-                                className="w-full px-3 py-2 bg-[#18181b]/60 border border-white/[0.06] rounded-lg text-sm text-white outline-none resize-none"
-                                rows={1} placeholder="Faz notu..." />
-                        </div>
-                    ))}
-                </div>
-            </div>
-            <SubmitBtn loading={loading} label="Proje Oluştur" color="bg-pink-600 hover:bg-pink-500" />
-        </form>
     );
 }
 

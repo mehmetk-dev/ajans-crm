@@ -12,8 +12,7 @@ import {
     LogOut, Briefcase, Camera, Rocket, MessageSquare, Menu, X, BarChart3,
     User, Clock, FileText, Search, Settings, Image, Users, PenLine, Inbox
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { staffApi } from '../api/staff';
+import { usePendingApprovalCount } from '../features/content-plans';
 import FloatingTaskFab from '../components/FloatingTaskFab';
 
 const navItems = [
@@ -39,7 +38,7 @@ export default function StaffLayout() {
     const { user, logout } = useAuth();
     const msgCount = useUnreadCount();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const { data: pendingData } = useQuery({ queryKey: ['pending-approval-count'], queryFn: () => staffApi.getPendingCount(), refetchInterval: 30000 });
+    const { data: pendingData } = usePendingApprovalCount();
     const pendingCount = pendingData?.count ?? 0;
 
     return (

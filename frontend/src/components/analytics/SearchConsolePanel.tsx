@@ -9,7 +9,7 @@ import {
     Search, MousePointerClick, Eye, TrendingUp,
     Target, AlertCircle, Loader2, WifiOff, ExternalLink,
     CheckCircle2, Link2, Settings, ArrowUpRight, ChevronDown, Calendar,
-    RefreshCw, Globe
+    RefreshCw
 } from 'lucide-react';
 import { scApi, type ScOverviewResponse, type ScStatusResponse, type ScSite } from '../../api/searchConsole';
 

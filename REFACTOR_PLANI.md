@@ -36,9 +36,10 @@ Onerilen strateji:
 | Company / membership / permissions | **TAMAMLANDI** | 9 Haziran 2026 | Ortak authorization temeli, staff atamalari ve client ekip akisi modullestirildi |
 | Tasks | **TAMAMLANDI** | 9 Haziran 2026 | CRUD, not, review, routine, client/staff akislar ve ortak query altyapisi modullestirildi |
 | Meetings / calendar | **TAMAMLANDI** | 9 Haziran 2026 | Meeting CRUD, katilimci/not yetkileri, ortak frontend feature'i ve task/meeting takvimi duzenlendi |
-| Shoots | Bekliyor | - | - |
-| Content plans / approvals | Bekliyor | - | - |
-| PR projects | Bekliyor | - | - |
+| Shoots | **TAMAMLANDI** | 9 Haziran 2026 | CRUD, katilimci/ekipman, content plan baglantilari, takvim ve export akislari modullestirildi |
+| Content plans / approvals | **TAMAMLANDI** | 9 Haziran 2026 | CRUD, durum gecisleri, client onaylari, staff inceleme akisi ve ortak frontend feature'i modullestirildi |
+| PR projects | **TAMAMLANDI** | 10 Haziran 2026 | Proje/faz/uye/not/task baglantilari, authorization ve ortak frontend feature'i modullestirildi |
+| Files / media library | Bekliyor | - | - |
 | Messaging | Bekliyor | - | - |
 | Integrations | Bekliyor | - | Her entegrasyon ayri modul olacak |
 
@@ -873,9 +874,10 @@ Her PR:
 - [x] Company/membership/permissions modulu.
 - [x] Tasks modulu ve ilgili tum componentler.
 - [x] Meetings/calendar modulu.
-- [ ] Shoots modulu.
-- [ ] Content plans/approvals modulu.
-- [ ] PR projects modulu.
+- [x] Shoots modulu.
+- [x] Content plans/approvals modulu.
+- [x] PR projects modulu.
+- [ ] Files ve media library modulu.
 
 ## 10. Test Stratejisi
 
@@ -1329,3 +1331,229 @@ Tasks dikey dilimi backend, frontend, notlar, review, routine ve task kullanan a
 Meetings / Calendar dikey dilimi backend, frontend, katilimci/not akislar, Kanban, hizli aksiyon ve ortak takvim gorunumu ile tamamlandi.
 
 **Siradaki modul: Shoots.** Ilk hedef shoot CRUD, katilimci/ekipman akislarini, content plan baglantilarini ve calendar/export kullanimlarini ayni dikey modul icinde duzenlemek.
+
+## 22. Shoots Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 9 Haziran 2026
+
+### Backend
+
+- Shoot controller, application service ve DTO'lar `com.fogistanbul.crm.shoot` modulu altinda `web`, `application` ve `dto` sinirlarina tasindi.
+- Genel `controller`, `service` ve `dto` klasorlerindeki eski shoot implementasyonlari kaldirildi.
+- `ShootAccessPolicy` ile sirket erisimi, goruntuleme, yonetme, silme ve staff/client liste kapsamları tek noktada toplandi.
+- Client shoot listesi rastgele ilk sirket yerine kullanicinin production hizmeti aktif olan tum erisilebilir musteri sirketlerini kapsiyor.
+- Fotografci ve katilimci kimliklerinin varligi ve hedef sirkete erisimi zorunlu hale getirildi; gecersiz kimliklerin sessizce atlanmasi engellendi.
+- Tekrar eden katilimcilar tek kayda indirildi; ekipman adlari ve miktarlari DTO validation ile dogrulandi.
+- DTO donusumleri `ShootMapper`, katilimci ve ekipman yazma islemleri `ShootResourceService` icine ayrildi.
+- Content plan onay akisinda yeni cekim olusturma standart shoot authorization akisina baglandi.
+- Mevcut cekime baglama isleminde cekimin content plan ile ayni sirkete ait olmasi zorunlu hale getirildi.
+- `CalendarExportController` repository bagimliliklarindan arindirildi ve `com.fogistanbul.crm.calendar` modulu altina tasindi.
+- Meeting, shoot ve task iCalendar birlestirmesi `CalendarExportService` icinde toplandi; sirket erisim kapsami korundu ve iCalendar metin kacislari duzeltildi.
+- Mevcut staff/client shoot ve calendar export HTTP endpoint contract'lari korundu.
+
+### Frontend
+
+- `frontend/src/features/shoots` altinda shoot API client, union tipler, query key factory, query/mutation hook'lari, model yardimcilari ve UI bilesenleri olusturuldu.
+- Shoot endpoint ve tipleri genel `staff.ts` ve `clientPanel.ts` dosyalarindan cikarildi.
+- Staff/client shoot sayfalari, Kanban, client dashboard/analytics, content plan ekranlari, prefetch ve global hizli aksiyon ayni shoot API/query key sozlesmesini kullaniyor.
+- Tekrarlanan staff, client ve global hizli aksiyon formlari ortak `ShootForm` ile degistirildi.
+- `ShootCard` ve `ShootDetailPanel` staff/client ekranlarinda ortak kullaniliyor; content plan baglantilari scope'a gore ayni feature API'sinden yukleniyor.
+- Staff shoot sayfasi 589 satirdan 135 satira, client shoot sayfasi 446 satirdan 100 satira indirildi.
+- `FloatingTaskFab` icindeki 100 satirdan uzun ikinci shoot formu kaldirildi; dosya 309 satira indirildi.
+- Staff Calendar gorev ve toplantilara ek olarak cekimleri de tarih indeksinde, gun/hafta/ay filtrelerinde ve ortak detay paneliyle gosteriyor.
+- Dashboard, analytics ve content plan ekranlarindaki farkli shoot cache anahtarlari merkezi `shootKeys` yapisinda birlestirildi.
+- Genel frontend build'ini daha once durduran analytics kullanilmayan importlari ve TimeTracking `PageResponse` tip uyumsuzlugu temizlendi.
+
+### Test ve Dogrulama
+
+- Backend `ShootAccessPolicyTest`: 4 test.
+- Backend `ShootResourceServiceTest`: 3 test.
+- Backend `ShootServiceTest`: 2 test.
+- Backend `CalendarExportServiceTest`: 2 test.
+- Tum backend sonucu: **48 test basarili**.
+- Frontend `shoot.utils.test.ts`: 3 yeni test.
+- Tum frontend sonucu: **17 test basarili**.
+- Shoot feature, staff/client shoot sayfalari, Staff Calendar, Kanban, FloatingTaskFab ve prefetch icin scoped ESLint: **basarili**.
+- Genel `npm run build`: **basarili**. Yalniz mevcut buyuk bundle boyutu uyarisi devam ediyor.
+- `git diff --check`: **basarili**.
+- Eski shoot API metotlari, DTO/controller/service importlari ve daginik query key taramasi: **temiz**.
+
+### Bilinen Gecis Borclari
+
+- `Shoot`, `ShootParticipant`, `ShootEquipment` entity ve repository'leri content plan, approval ve calendar modulleri tarafindan kullanildigi icin gecici ortak persistence modeli olarak yerinde.
+- Content plan ve approval servisleri shoot application servisini kullaniyor ancak halen genel `service` paketinde. Sonraki dikey dilimde bu orkestrasyon content-plan modulune tasinacak.
+- Staff Calendar 409 satirla hedef esigin uzerinde. Ortak calendar grid ve agenda bilesenleri content plan takvim ihtiyaci netlestiginde ayri feature olarak cikarilmali.
+- Production bundle yaklasik 1.9 MB; route-level lazy loading ve code splitting Faz 0/route duzenlemesinde ele alinmali.
+- Proje genelindeki eski `any` kullanımlari nedeniyle tam ESLint kalite kapisi halen ayri bir borctur; shoots kapsamindaki scoped kontrol temizdir.
+
+### Sonuc ve Siradaki Modul
+
+Shoots dikey dilimi backend, frontend, katilimci/ekipman, content plan baglantilari, takvim, export ve ortak hizli aksiyonla tamamlandi. Tespit edilen client coklu sirket listeleme, gecersiz kaynak kimligi ve sirketler arasi content plan baglama aciklari kapatildi.
+
+**Siradaki modul: Content plans / approvals.** Ilk hedef content plan CRUD, client/staff onay orkestrasyonu, shoot baglantilari ve tekrar eden iki buyuk frontend uygulamasini tek feature sinirinda birlestirmek.
+
+## 23. Content Plans / Approvals Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 9 Haziran 2026
+
+### Backend
+
+- Content plan ve approval controller, application service ve DTO'lari `com.fogistanbul.crm.contentplan` modulu altinda `web`, `application` ve `dto` sinirlarina tasindi.
+- Genel `controller`, `service` ve `dto` paketlerindeki eski content plan ve approval implementasyonlari kaldirildi.
+- `ContentPlanAccessPolicy` ile sirket erisimi, staff yonetim yetkisi ve client `CONTENT_MARKETING` hizmet kontrolu tek noktada toplandi.
+- Staff genel listesi admin disindaki kullanicilar icin yalnizca erisilebilir sirketlerle sinirlandi.
+- Create, update, detail, company listesi, shoot baglantisi ve delete islemlerinde kullanici kimligi application service'e tasindi.
+- Content status gecisleri `DRAFT -> WAITING_APPROVAL`, `WAITING_APPROVAL -> APPROVED/REVISION`, `REVISION -> WAITING_APPROVAL` ve `APPROVED -> PUBLISHED` kurallariyla sinirlandi.
+- Client revize talebi icin yetkili ve tipli endpoint eklendi; onceki read-only panelin staff update endpoint'ine gitme hatasi kaldirildi.
+- Content approval metadata cozumleme ve staff override birlestirmesi `ContentApprovalMetadata` icine ayrildi.
+- Ayni content plan icin ikinci bekleyen onay istegi engellendi.
+- Yalnizca `WAITING_APPROVAL` durumundaki planlar icin content approval istegi olusturulabiliyor.
+- Yalnizca `PENDING` approval istekleri sonuclandirilabiliyor; tekrar approve/reject engellendi.
+- Bekleyen approval istegi varken content plan durumunun genel update endpoint'iyle dogrudan approve/revision yapilmasi engellendi.
+- Approval reddi content planini `REVISION` durumuna tasiyor ve review notunu plana aktariyor.
+- Yeni veya mevcut cekime baglama orkestrasyonu `ContentPlanApprovalService` icinde shoot modulu uzerinden yurutuluyor.
+- Mevcut staff/client content plan ve approval HTTP endpoint contract'lari korundu.
+
+### Frontend
+
+- `frontend/src/features/content-plans` altinda tipler, API client, query key factory, query/mutation hook'lari, metadata codec'i ve ortak UI bilesenleri olusturuldu.
+- Content plan ve approval endpoint'leri genel `contentPlan.ts`, `staff.ts` ve `clientPanel.ts` dosyalarindan cikarildi.
+- Staff paneli, client tam sayfasi, dashboard/analytics panelleri, shoot baglantilari ve approval sayaci ayni query key ve API sozlesmesini kullaniyor.
+- 1.148 satirlik `ContentPlanPanel.tsx` tek satirlik uyumluluk export'una donusturuldu; asil feature bilesenleri 54-205 satirlik sorumluluklara ayrildi.
+- 634 satirlik `ClientContentPlanPage.tsx` 27 satirlik route kompozisyonuna indirildi.
+- 567 satirlik `StaffRequestsPage.tsx` 179 satira indirildi; cekim onay formu `ApprovalReviewDialog` icine tasindi.
+- Staff ve client cekim sorgulari approval dialog acilmadan calismiyor; karsi role ait endpoint'e gereksiz istek atilmasi engellendi.
+- Client onay metadata uretimi ve staff metadata okuma ayni testli codec'i kullaniyor.
+- Content form, kart, detay paneli, cekim secim dialog'u ve staff review dialog'u ortak feature public API'sinden sunuluyor.
+
+### Test ve Dogrulama
+
+- Backend `ContentPlanAccessPolicyTest`: 3 test.
+- Backend `ContentApprovalMetadataTest`: 3 test.
+- Backend `ContentPlanServiceTest`: 1 test.
+- Backend `ContentPlanWorkflowPolicyTest`: 3 test.
+- Backend `ApprovalRequestServiceTest`: 1 test.
+- Tum backend sonucu: **59 test basarili**.
+- Frontend `approvalMetadata.test.ts`: 3 yeni test.
+- Tum frontend sonucu: **20 test basarili**.
+- Content plans feature, staff/client sayfalari, layout approval sayaclari ve shoot API/hook entegrasyonu icin scoped ESLint: **basarili**.
+- Genel `npm run build`: **basarili**. Mevcut buyuk bundle boyutu uyarisi devam ediyor.
+- `git diff --check`: **basarili**.
+- Eski content plan/approval service, controller, DTO, API metotlari ve daginik query key taramasi: **temiz**.
+
+### Bilinen Gecis Borclari
+
+- `ContentPlan` ve `ApprovalRequest` entity/repository siniflari diger eski modullerle ayni persistence paketinde kalmaya devam ediyor.
+- Approval metadata veritabaninda eski `||` ayracli metin formatiyla saklaniyor. Codec merkezi hale getirildi; ileride JSON kolonuna migration yapilabilir.
+- Production bundle yaklasik 1.87 MB; route-level lazy loading ve code splitting Faz 0/route duzenlemesinde ele alinmali.
+- Genel frontend lint kapisi eski modullerdeki mevcut borclar nedeniyle halen scoped olarak uygulanabiliyor.
+
+### Sonuc ve Siradaki Modul
+
+Content plans / approvals dikey dilimi backend authorization, durum gecisleri, client onay istegi, staff review, shoot orkestrasyonu ve ortak frontend feature'i ile tamamlandi. Yetkisiz staff genel listeleme, client tarafinda yanlis staff mutation kullanimi, cift bekleyen istek ve sonuclanmis istegin tekrar islenmesi aciklari kapatildi.
+
+**Siradaki modul: PR projects.** Ilk hedef proje/faz/uye/not/gorev akislarini, authorization kurallarini ve staff/client proje ekranlarini ayni feature sinirinda birlestirmek.
+
+## 24. PR Projects Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 10 Haziran 2026
+
+### Backend
+
+- PR project controller, application service ve DTO'lari `com.fogistanbul.crm.prproject` modulu altinda `web`, `application` ve `dto` sinirlarina tasindi.
+- Genel `controller`, `service` ve `dto` paketlerindeki eski PR project implementasyonlari kaldirildi.
+- `PrProjectAccessPolicy` ile sirketli ve sirketsiz proje goruntuleme/yonetme kurallari tek noktada toplandi.
+- Sirketsiz projelerin tum ajans personeline acik olmasi engellendi; yalniz admin, olusturan, sorumlu veya proje uyesi erisebiliyor.
+- Staff genel proje sorgusu sirket uyeligi, olusturan, sorumlu ve proje uyesi kapsamiyla sinirlandi.
+- Sorumlu, proje uyesi ve faz atamalarinda hedef kullanicinin proje sirketine erisimi zorunlu hale getirildi.
+- DTO donusumleri `PrProjectMapper`, katilimci cozumleme `PrProjectParticipantService`, faz CRUD/not akisi `PrProjectPhaseService` ve ilerleme hesaplamasi `PrProjectProgressService` icine ayrildi.
+- Faz eklenirken olusturulan task ile faz adi, tarihleri, atanan kisi ve sirket bilgisi guncellemelerde senkron tutuluyor.
+- PR ekranindan faz tamamlandiginda bagli task da `DONE` oluyor; task tamamlandiginda faz ve proje ilerlemesi ayni servis uzerinden guncelleniyor.
+- Faz notu icin kontrolsuz `Map<String, String>` yerine validation uygulanan tipli request DTO'su eklendi.
+- Gecersiz kullanici kimliklerinin sessizce yok sayilmasi ve gecersiz tarihlerin `null` olarak kaydedilmesi engellendi.
+- Mevcut `/api/staff/pr-projects` HTTP endpoint contract'i korundu.
+
+### Frontend
+
+- `frontend/src/features/pr-projects` altinda tipler, API client, query key factory, mutation/query hook'lari, Zod form semasi, model yardimcilari ve UI bilesenleri olusturuldu.
+- PR project tipleri ve endpoint'leri genel `frontend/src/api/staff.ts` dosyasindan cikarildi.
+- PR Projects sayfasi, Kanban paneli ve global hizli aksiyon ayni feature API/query key sozlesmesini kullaniyor.
+- Daginik `pr-projects` ve `my-panel-pr` cache anahtarlari merkezi `prProjectKeys` altinda birlestirildi.
+- 519 satirlik `PRProjectsPage.tsx` 5 satirlik route kompozisyonuna indirildi.
+- Proje karti, detay paneli, faz karti, form ve ekip secici ayri sorumluluklara bolundu.
+- Sayfa ve global hizli aksiyondaki iki farkli proje formu tek `PrProjectForm` ile degistirildi.
+- Global hizli aksiyon proje olusturduktan sonra sayfa yenilemek yerine query invalidation kullaniyor.
+- Proje durumu serbest string yerine `PrProjectStatus` union tipiyle sinirlandi.
+
+### Test ve Dogrulama
+
+- Backend `PrProjectAccessPolicyTest`: 3 test.
+- Backend `PrProjectProgressServiceTest`: 1 test.
+- Tum backend sonucu: **63 test basarili**.
+- Frontend PR project schema ve model testleri: **4 yeni test**.
+- Tum frontend sonucu: **24 test basarili**.
+- PR Projects feature, sayfa, Kanban, FloatingTaskFab ve `staff.ts` icin scoped ESLint: **basarili**.
+- Genel `npm run build`: **basarili**. Mevcut buyuk bundle boyutu uyarisi devam ediyor.
+- `git diff --check`: **basarili**.
+- Eski PR project service/controller/DTO, `staffApi` metotlari ve daginik query key taramasi: **temiz**.
+
+### Bilinen Gecis Borclari
+
+- `PrProject`, `PrProjectPhase`, `PrProjectMember`, `PrPhaseNote` entity ve repository'leri Tasks moduluyle ortak kullanildigi icin gecici ortak persistence paketinde kalmaya devam ediyor.
+- Uygulamada ayri bir client PR Projects route'u bulunmuyor. Mevcut kapsam staff ekrani, ortak task baglantisi ve sirket erisim kurallariyla sinirli.
+- Production bundle yaklasik 1.86 MB; route-level lazy loading ve code splitting Faz 0/route duzenlemesinde ele alinmali.
+
+### Sonuc ve Siradaki Modul
+
+PR Projects dikey dilimi backend authorization, proje/faz/uye/not/task orkestrasyonu, ortak frontend feature'i, Kanban ve global hizli aksiyon entegrasyonuyla tamamlandi. Sirketsiz proje veri sizintisi, gecersiz sirket katilimcilari ve faz-task durum tutarsizligi kapatildi.
+
+**Siradaki modul: Files / media library.** Ilk hedef dosya yukleme, sirket erisimi, attachment baglantilari ve staff/client medya kutuphanesi tekrarlarini ayni feature sinirinda birlestirmek.
+
+## 25. Files / Media Library Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 10 Haziran 2026
+
+### Backend
+
+- File controller, service ve DTO eski `controller`, `service` ve `dto` paketlerinden `com.fogistanbul.crm.files` modulu altinda `web`, `application` ve `dto` sinirlarina tasindi.
+- `FileAccessPolicy` ile entity bazli erisim kontrolu (TASK, NOTE, MESSAGE, COMPANY), sirket erisimi ve silme yetkisi tek noktada toplandi.
+- `FileMapper` DTO donusumunu servis katmanindan ayirdi.
+- `FileService` tum yetkilendirme sorumluluklarini `FileAccessPolicy`'e delege ediyor; `FileMapper` araciligiyla haritaliyor.
+- `getCompanyMediaCounts` endpoint'i artik sadece kullanicinin erisebilecegi sirketlerin sayisini donduruyor; admin tamami goruyor.
+- Eski `controller/FileController.java`, `service/FileService.java`, `dto/FileAttachmentResponse.java` kaldirildi.
+- Mevcut `/api/files` HTTP endpoint contract'i korundu.
+- Lombok 1.18.46 + `annotationProcessorPaths` ile Java 26 uyumsuzlugu giderildi; pom.xml'e `lombok.version` override eklendi.
+
+### Frontend
+
+- `frontend/src/features/files` altinda API client, tipler, query key factory, query/mutation hook'lari, model yardimcilari ve UI bilesenleri olusturuldu.
+- File endpoint'leri ve `FileAttachmentResponse` tipi genel `api/features.ts` dosyasindan cikarildi.
+- `components/FileUploader.tsx` `features/files/ui/FileUploader.tsx`'e tasindi; import yolu guncellendi.
+- `getFileIcon`, `formatFileSize`, `formatFileDate`, `isPreviewable` fonksiyonlari `file.utils.ts` icinde birlestirildi.
+- `MediaGallery` bileseni upload butonu, filtreler, grid ve pagination'i kapsiyor; staff/client sayfalari ortak olarak kullaniyor.
+- `FileCard` ve `FilePreviewModal` bagimsiz sorumluluklara ayrildi.
+- `StaffMediaLibraryPage.tsx` 305 satirdan 143 satira, `MediaLibraryPage.tsx` 229 satirdan 54 satira indirildi.
+- Dagitik `company-media` ve `media-counts` cache anahtarlari merkezi `fileKeys` factory'sinde birlestirildi.
+
+### Test ve Dogrulama
+
+- Backend `FileAccessPolicyTest`: 6 test.
+- Backend `FileServiceTest`: 2 test.
+- Tum backend sonucu: **71 test basarili** (onceki 63'ten 8 yeni test).
+- Frontend `file.utils.test.ts`: 12 yeni test.
+- Tum frontend sonucu: **36 test basarili** (onceki 24'ten 12 yeni test).
+- Genel `npm run build`: **basarili**. Mevcut buyuk bundle boyutu uyarisi devam ediyor.
+- `mvn clean compile`: **basarili** (Lombok 1.18.46 ile Java 26 uyumu saglandiktan sonra).
+
+### Bilinen Gecis Borclari
+
+- `FileAttachment` entity ve `FileAttachmentRepository` ortak persistence paketinde kalmaya devam ediyor.
+- `FileAccessPolicy` halen diger modullerin repository'lerine (TaskRepository, NoteRepository, MessageRepository) dogrudan bagli; messaging modulu tamamlandiginda mesaj erisim kontrolu messaging policy'ye devredilebilir.
+- Production bundle yaklasik 1.85 MB; route-level lazy loading ve code splitting Faz 0/route duzenlemesinde ele alinmali.
+
+### Sonuc ve Siradaki Modul
+
+Files / media library dikey dilimi backend authorization, entity bazli erisim, sirket medya gorunumu ve ortak frontend feature'i ile tamamlandi. Yetkisiz sirket medya sayisi ifsa acigi kapatildi.
+
+**Siradaki modul: Messaging.** Ilk hedef direct mesajlasma, grup mesajlasma, WebSocket entegrasyonu ve okunmamis sayac akislarini ayni feature sinirinda birlestirmek.
+

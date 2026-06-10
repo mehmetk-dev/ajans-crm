@@ -12,7 +12,9 @@ import java.util.UUID;
 public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest, UUID> {
     List<ApprovalRequest> findByStatusOrderByCreatedAtDesc(RequestStatus status);
     List<ApprovalRequest> findByCompanyIdAndStatusOrderByCreatedAtDesc(UUID companyId, RequestStatus status);
+    List<ApprovalRequest> findByCompanyIdInOrderByCreatedAtDesc(List<UUID> companyIds);
     List<ApprovalRequest> findAllByOrderByCreatedAtDesc();
     Optional<ApprovalRequest> findByReferenceIdAndTypeAndStatus(UUID referenceId, RequestType type, RequestStatus status);
     long countByStatus(RequestStatus status);
+    long countByCompanyIdInAndStatus(List<UUID> companyIds, RequestStatus status);
 }

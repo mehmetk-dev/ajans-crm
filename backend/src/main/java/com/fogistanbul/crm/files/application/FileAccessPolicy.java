@@ -1,0 +1,93 @@
+package com.fogistanbul.crm.files.application;
+
+import com.fogistanbul.crm.entity.Message;
+import com.fogistanbul.crm.entity.Task;
+import com.fogistanbul.crm.entity.UserProfile;
+import com.fogistanbul.crm.entity.enums.GlobalRole;
+import com.fogistanbul.crm.note.domain.Note;
+import com.fogistanbul.crm.note.infrastructure.NoteRepository;
+import com.fogistanbul.crm.repository.CompanyMembershipRepository;
+import com.fogistanbul.crm.repository.CompanyRepository;
+import com.fogistanbul.crm.repository.MessageRepository;
+import com.fogistanbul.crm.repository.TaskRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.UUID;
+
+@Component
+@RequiredArgsConstructor
+public class FileAccessPolicy {
+
+    private final TaskRepository taskRepository;
+    private final NoteRepository noteRepository;
+    private final MessageRepository messageRepository;
+    private final CompanyRepository companyRepository;
+    private final CompanyMembershipRepository membershipRepository;
+
+    public void requireEntityAccess(String entityType, UUID entityId, UserProfile user) {
+        if (user.getGlobalRole() == GlobalRole.ADMIN) {
+            return;
+        }
+        switch (entityType) {
+            case "TASK" -> {
+                Task task = taskRepository.findById(entityId)
+                        .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
+                requireMembership(user.getId(), task.getCompany().getId());
+            }
+            case "NOTE" -> {
+                Note note = noteRepository.findById(entityId)
+                        .orElseThrow(() -> new RuntimeException("Not bulunamadi"));
+                boolean ownNote = note.getUser() != null && note.getUser().getId().equals(user.getId());
+                boolean companyScoped = note.getCompany() != null
+                        && membershipRepository.existsByUserIdAndCompanyId(user.getId(), note.getCompany().getId());
+                if (!ownNote && !companyScoped) {
+                    throw new AccessDeniedException("Bu nota erisim yetkiniz yok");
+                }
+            }
+            case "MESSAGE" -> {
+                Message message = messageRepository.findById(entityId)
+                        .orElseThrow(() -> new RuntimeException("Mesaj bulunamadi"));
+                boolean participant = message.getConversation().getUser1().getId().equals(user.getId())
+                        || message.getConversation().getUser2().getId().equals(user.getId());
+                if (!participant) {
+                    throw new AccessDeniedException("Bu mesaja erisim yetkiniz yok");
+                }
+            }
+            case "COMPANY" -> {
+                companyRepository.findById(entityId)
+                        .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                requireMembership(user.getId(), entityId);
+            }
+            default -> throw new RuntimeException("Gecersiz entity type");
+        }
+    }
+
+    public void requireCompanyAccess(UserProfile user, UUID companyId) {
+        if (user.getGlobalRole() == GlobalRole.ADMIN) {
+            return;
+        }
+        requireMembership(user.getId(), companyId);
+    }
+
+    public void requireDeleteAccess(UserProfile user, UUID uploadedById) {
+        if (user.getGlobalRole() == GlobalRole.ADMIN) {
+            return;
+        }
+        if (!user.getId().equals(uploadedById)) {
+            throw new AccessDeniedException("Bu dosyayi silme yetkiniz yok");
+        }
+    }
+
+    public List<UUID> accessibleCompanyIds(UUID userId) {
+        return membershipRepository.findCompanyIdsByUserId(userId);
+    }
+
+    private void requireMembership(UUID userId, UUID companyId) {
+        if (!membershipRepository.existsByUserIdAndCompanyId(userId, companyId)) {
+            throw new AccessDeniedException("Bu sirket verilerine erisim yetkiniz yok");
+        }
+    }
+}

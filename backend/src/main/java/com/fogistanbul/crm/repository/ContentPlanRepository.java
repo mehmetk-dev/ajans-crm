@@ -12,6 +12,7 @@ import java.util.UUID;
 public interface ContentPlanRepository extends JpaRepository<ContentPlan, UUID> {
     Page<ContentPlan> findByCompanyIdOrderByCreatedAtDesc(UUID companyId, Pageable pageable);
     Page<ContentPlan> findByCompanyIdAndStatusOrderByCreatedAtDesc(UUID companyId, ContentStatus status, Pageable pageable);
+    Page<ContentPlan> findByCompanyIdInOrderByCreatedAtDesc(List<UUID> companyIds, Pageable pageable);
     Page<ContentPlan> findAllByOrderByCreatedAtDesc(Pageable pageable);
     List<ContentPlan> findByShootId(UUID shootId);
     long countByShootId(UUID shootId);

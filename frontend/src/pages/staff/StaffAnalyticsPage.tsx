@@ -5,7 +5,7 @@ import {
     ListTodo, CheckCircle2, Clock, TrendingUp,
     Activity, Target, Flame, Timer, BarChart3, AlertTriangle
 } from 'lucide-react';
-import { StatCard, AreaChartCard, DonutChartCard, BarChartCard, ProgressListCard } from '../../components/analytics';
+import { StatCard, AreaChartCard, BarChartCard, ProgressListCard } from '../../components/analytics';
 
 export default function StaffAnalyticsPage() {
     const { data, isLoading } = useQuery<StaffAnalyticsResponse>({

@@ -5,9 +5,9 @@ import { useAuth } from '../../store/AuthContext';
 import { gaApi, type GaOverviewResponse } from '../../api/googleAnalytics';
 import { scApi, type ScOverviewResponse } from '../../api/searchConsole';
 import { igApi, type IgOverviewResponse } from '../../api/instagram';
-import { clientApi, type ShootResponse } from '../../api/clientPanel';
 import type { PageResponse } from '../../api/staff';
 import { taskApi, taskKeys, type TaskResponse } from '../../features/tasks';
+import { shootApi, shootKeys, type ShootResponse } from '../../features/shoots';
 import { useActiveServices } from '../../hooks/useActiveServices';
 import { ServiceBlurOverlay } from '../../components/ServiceUpsellOverlay';
 import {
@@ -66,8 +66,8 @@ export default function ClientDashboard() {
         enabled: !!companyId, staleTime: STALE, gcTime: CACHE,
     });
     const { data: shootsData } = useQuery<PageResponse<ShootResponse>>({
-        queryKey: ['client-shoots', companyId],
-        queryFn: () => clientApi.getMyShoots(0, 20),
+        queryKey: shootKeys.list('client', 0, 20),
+        queryFn: () => shootApi.listClient(0, 20),
         enabled: !!companyId, staleTime: STALE, gcTime: CACHE,
     });
     const { data: tasksData } = useQuery<PageResponse<TaskResponse>>({
@@ -89,7 +89,8 @@ export default function ClientDashboard() {
     const upcomingShoots = useMemo(() => {
         const now = new Date();
         return (shootsData?.content ?? [])
-            .filter(s => s.status === 'PLANNED' && new Date(s.shootDate) >= now)
+            .filter((s): s is ShootResponse & { shootDate: string } =>
+                s.status === 'PLANNED' && Boolean(s.shootDate) && new Date(s.shootDate!) >= now)
             .sort((a, b) => new Date(a.shootDate).getTime() - new Date(b.shootDate).getTime())
             .slice(0, 4);
     }, [shootsData]);
@@ -332,7 +333,7 @@ function OverviewTab({ ga, sc, ig, navigate, upcomingShoots, activeTasks, gaConn
                         <CalendarDays className="w-4 h-4 text-violet-400" />
                     </div>
                     <div className="space-y-2">
-                        {upcomingShoots.slice(0, 3).map((s: ShootResponse) => {
+                        {upcomingShoots.slice(0, 3).map((s: ShootResponse & { shootDate: string }) => {
                             const d = new Date(s.shootDate);
                             return (
                                 <div key={s.id} className="flex items-center gap-2.5 p-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
@@ -565,7 +566,7 @@ function ScheduleTab({ upcomingShoots, activeTasks, navigate }: any) {
                     </div>
                     {upcomingShoots.length > 0 ? (
                         <div className="space-y-3">
-                            {upcomingShoots.map((s: ShootResponse) => {
+                            {upcomingShoots.map((s: ShootResponse & { shootDate: string }) => {
                                 const d = new Date(s.shootDate);
                                 return (
                                     <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-violet-500/20 transition-all">

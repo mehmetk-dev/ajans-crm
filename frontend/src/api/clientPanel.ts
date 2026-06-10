@@ -1,6 +1,5 @@
 import api from './client';
 import type { PageResponse } from './staff';
-import type { ContentPlanResponse } from './contentPlan';
 import type { ConversationResponse, MessageResponse, SendMessageRequest, ContactResponse, GroupConversationResponse, GroupMessageResponse } from './messaging';
 
 // Client panel API — uses /api/client/* endpoints accessible to COMPANY_USER role
@@ -56,21 +55,6 @@ export const clientApi = {
     getMySurveys: () =>
         api.get<SurveyResponse[]>('/client/surveys/my').then(r => r.data),
 
-    // Team
-    // Shoots
-    getMyShoots: (page = 0, size = 20) =>
-        api.get<PageResponse<ShootResponse>>(`/client/shoots?page=${page}&size=${size}&sort=shootDate,desc`).then(r => r.data),
-
-    getShootById: (id: string) =>
-        api.get<ShootResponse>(`/client/shoots/${id}`).then(r => r.data),
-
-    getContentByShoot: (shootId: string) =>
-        api.get<ContentPlanResponse[]>(`/client/content-plans/shoot/${shootId}`).then(r => r.data),
-
-    // Approval Requests
-    createApprovalRequest: (data: { type: string; referenceId?: string; companyId: string; title: string; description?: string; metadata?: string }) =>
-        api.post('/client/approval-requests', data).then(r => r.data),
-
     // Active Services
     getActiveServices: () =>
         api.get<{ activeServices: string[] }>('/client/active-services').then(r => r.data),
@@ -84,39 +68,5 @@ export interface SurveyResponse {
     surveyMonth: string;
     submittedById: string;
     submittedByName: string;
-    createdAt: string;
-}
-
-export interface ShootParticipantInfo {
-    userId: string;
-    fullName: string;
-    roleInShoot: string | null;
-}
-
-export interface ShootEquipmentInfo {
-    id: string;
-    name: string;
-    quantity: number;
-    notes: string | null;
-}
-
-export interface ShootResponse {
-    id: string;
-    companyId: string;
-    companyName: string;
-    title: string;
-    description: string | null;
-    shootDate: string;
-    shootTime: string | null;
-    location: string | null;
-    status: 'PLANNED' | 'COMPLETED' | 'CANCELLED';
-    photographerId: string | null;
-    photographerName: string | null;
-    notes: string | null;
-    createdById: string;
-    createdByName: string;
-    participants: ShootParticipantInfo[];
-    equipment: ShootEquipmentInfo[];
-    linkedContentCount: number;
     createdAt: string;
 }

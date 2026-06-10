@@ -9,8 +9,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import {
     LayoutDashboard, Building2, Users, LogOut, Shield, MessageSquare, Zap, Menu, X, BarChart3, Activity, Search, Settings, UserCog, RefreshCw, Inbox
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { staffApi } from '../api/staff';
+import { usePendingApprovalCount } from '../features/content-plans';
 
 const navItems = [
     { to: '/admin', icon: LayoutDashboard, label: 'Kontrol Paneli', end: true },
@@ -29,7 +28,7 @@ export default function AdminLayout() {
     const { user, logout } = useAuth();
     const msgCount = useUnreadCount();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const { data: pendingData } = useQuery({ queryKey: ['pending-approval-count'], queryFn: () => staffApi.getPendingCount(), refetchInterval: 30000 });
+    const { data: pendingData } = usePendingApprovalCount();
     const pendingCount = pendingData?.count ?? 0;
 
     return (

@@ -12,8 +12,8 @@ import { GoogleAnalyticsPanel, SearchConsolePanel, ContentPlanPanel, WebDesignPa
 import { PostsColumn, ReelsColumn, StatsColumn } from '../../components/analytics/InstagramPanel';
 import GoogleAdsPanel from '../../components/analytics/GoogleAdsPanel';
 import MetaAdsPanel from '../../components/analytics/MetaAdsPanel';
-import { clientApi, type ShootResponse } from '../../api/clientPanel';
 import type { PageResponse } from '../../api/staff';
+import { shootApi, shootKeys, type ShootResponse } from '../../features/shoots';
 import { useAuth } from '../../store/AuthContext';
 import { useRefreshAllClientData } from '../../hooks/useClientDataPrefetch';
 import { useActiveServices } from '../../hooks/useActiveServices';
@@ -273,14 +273,16 @@ export default function ClientAnalyticsPage() {
 // Shooting Timeline Section
 // ============================================================================
 
-function isOverdue(shoot: ShootResponse): boolean {
+type DatedShoot = ShootResponse & { shootDate: string };
+
+function isOverdue(shoot: ShootResponse): shoot is DatedShoot {
     if (shoot.status !== 'PLANNED' || !shoot.shootDate) return false;
     const shootDay = new Date(shoot.shootDate);
     shootDay.setHours(23, 59, 59, 999);
     return shootDay < new Date();
 }
 
-function isUpcoming(shoot: ShootResponse): boolean {
+function isUpcoming(shoot: ShootResponse): shoot is DatedShoot {
     if (shoot.status !== 'PLANNED' || !shoot.shootDate) return false;
     const shootDay = new Date(shoot.shootDate);
     shootDay.setHours(23, 59, 59, 999);
@@ -291,8 +293,8 @@ function ShootingTimelineSection() {
     const navigate = useNavigate();
 
     const { data, isLoading } = useQuery<PageResponse<ShootResponse>>({
-        queryKey: ['client-shoots-analytics'],
-        queryFn: () => clientApi.getMyShoots(0, 50),
+        queryKey: shootKeys.list('client', 0, 50),
+        queryFn: () => shootApi.listClient(0, 50),
     });
 
     const allShoots = data?.content ?? [];
@@ -408,4 +410,3 @@ function ShootingTimelineSection() {
         </section>
     );
 }
-

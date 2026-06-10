@@ -16,6 +16,14 @@ public interface PrProjectRepository extends JpaRepository<PrProject, UUID> {
     Page<PrProject> findByCompanyIdIn(List<UUID> companyIds, Pageable pageable);
     Page<PrProject> findByStatus(PrProjectStatus status, Pageable pageable);
 
-    @Query("SELECT p FROM PrProject p WHERE p.company.id IN :companyIds OR p.company IS NULL OR p.responsible.id = :userId OR p.createdBy.id = :userId")
+    @Query("""
+            SELECT DISTINCT p
+            FROM PrProject p
+            LEFT JOIN PrProjectMember m ON m.project = p
+            WHERE p.company.id IN :companyIds
+               OR p.responsible.id = :userId
+               OR p.createdBy.id = :userId
+               OR m.user.id = :userId
+            """)
     Page<PrProject> findAccessibleProjects(@Param("companyIds") List<UUID> companyIds, @Param("userId") UUID userId, Pageable pageable);
 }

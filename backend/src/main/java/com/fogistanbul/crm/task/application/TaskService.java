@@ -14,6 +14,7 @@ import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.TaskRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
+import com.fogistanbul.crm.prproject.application.PrProjectProgressService;
 import com.fogistanbul.crm.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +39,7 @@ public class TaskService {
     private final NotificationService notificationService;
     private final TaskAccessPolicy accessPolicy;
     private final TaskMapper mapper;
-    private final TaskPhaseCompletionService phaseCompletionService;
+    private final PrProjectProgressService prProjectProgressService;
 
     @Transactional
     public TaskResponse createTask(CreateTaskRequest req, UUID createdById) {
@@ -179,7 +180,7 @@ public class TaskService {
             if (req.getStatus() == TaskStatus.DONE) {
                 task.setCompletedAt(Instant.now());
                 // Auto-complete linked PR project phase
-                phaseCompletionService.completeLinkedPhase(task);
+                prProjectProgressService.completeFromTask(task);
             } else {
                 task.setCompletedAt(null);
             }

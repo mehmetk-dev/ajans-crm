@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { timeTrackingApi, type TimeEntryResponse } from '../../api/features';
+import { timeTrackingApi, type PageResponse as TimePageResponse, type TimeEntryResponse } from '../../api/features';
 import type { PageResponse } from '../../api/staff';
 import { taskApi, taskKeys, type TaskResponse } from '../../features/tasks';
 import { motion } from 'framer-motion';
@@ -73,7 +73,7 @@ export default function TimeTrackingPage() {
     };
 
     // â”€â”€â”€ Queries â”€â”€â”€
-    const { data: entriesData, isLoading: loadingEntries } = useQuery<PageResponse<TimeEntryResponse>>({
+    const { data: entriesData, isLoading: loadingEntries } = useQuery<TimePageResponse<TimeEntryResponse>>({
         queryKey: ['time-entries', page],
         queryFn: () => timeTrackingApi.getMyEntries(page, 20),
     });

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
     Instagram, Users, Eye, Heart, MessageCircle,
     Loader2, CheckCircle2, ChevronRight, ChevronLeft,
-    Image as ImageIcon, Play, Activity, UserPlus, MousePointerClick, Calendar, Share2
+    Image as ImageIcon, Play, Activity, UserPlus, Calendar, Share2
 } from 'lucide-react';
 import { igApi, type IgOverviewResponse, type IgStatusResponse, type IgReelRow, type IgPostRow } from '../../api/instagram';
 

@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface PrProjectMemberRepository extends JpaRepository<PrProjectMember, UUID> {
     List<PrProjectMember> findByProjectId(UUID projectId);
+    boolean existsByProjectIdAndUserId(UUID projectId, UUID userId);
 }

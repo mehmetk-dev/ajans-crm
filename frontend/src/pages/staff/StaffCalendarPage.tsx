@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Building2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, MapPin, User } from 'lucide-react';
+import { Building2, Calendar as CalendarIcon, Camera, ChevronLeft, ChevronRight, Clock, MapPin, User } from 'lucide-react';
 import {
     TaskDetailPanel,
     useStaffTasks,
@@ -10,6 +10,11 @@ import {
     useMeetings,
     type MeetingResponse,
 } from '../../features/meetings';
+import {
+    ShootDetailPanel,
+    useStaffShoots,
+    type ShootResponse,
+} from '../../features/shoots';
 
 const DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 const MONTHS = [
@@ -27,6 +32,7 @@ interface CalendarDay {
 interface DateIndex {
     tasks: Record<string, TaskResponse[]>;
     meetings: Record<string, MeetingResponse[]>;
+    shoots: Record<string, ShootResponse[]>;
 }
 
 export default function StaffCalendarPage() {
@@ -36,13 +42,16 @@ export default function StaffCalendarPage() {
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [quickFilter, setQuickFilter] = useState<QuickFilter>('none');
     const [selectedTask, setSelectedTask] = useState<TaskResponse | null>(null);
+    const [selectedShoot, setSelectedShoot] = useState<ShootResponse | null>(null);
     const { data: taskData } = useStaffTasks('all', undefined, 200);
     const { data: meetingData } = useMeetings(200);
+    const { data: shootData } = useStaffShoots(0, 200);
 
     const dateIndex = useMemo<DateIndex>(() => ({
         tasks: indexTasks(taskData?.content ?? []),
         meetings: indexMeetings(meetingData?.content ?? []),
-    }), [meetingData, taskData]);
+        shoots: indexShoots(shootData?.content ?? []),
+    }), [meetingData, shootData, taskData]);
     const days = useMemo(() => getMonthDays(year, month), [year, month]);
     const selection = useMemo(
         () => getSelection(selectedDate, quickFilter, today),
@@ -74,7 +83,7 @@ export default function StaffCalendarPage() {
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <h1 className="text-2xl font-black text-white tracking-tight">Takvim</h1>
-                    <p className="text-zinc-600 text-sm mt-1">Görev ve toplantı takvimi</p>
+                    <p className="text-zinc-600 text-sm mt-1">Görev, toplantı ve çekim takvimi</p>
                 </div>
                 <div className="flex items-center gap-2">
                     {(['today', 'week', 'month'] as const).map(filter => (
@@ -114,6 +123,7 @@ export default function StaffCalendarPage() {
                             const key = formatDateKey(date);
                             const tasks = dateIndex.tasks[key] ?? [];
                             const meetings = dateIndex.meetings[key] ?? [];
+                            const shoots = dateIndex.shoots[key] ?? [];
                             const selected = selectedDate === key;
                             const highlighted = selection ? isDateInRange(key, selection[0], selection[1]) : false;
                             return (
@@ -136,6 +146,9 @@ export default function StaffCalendarPage() {
                                         {meetings.length > 0 && (
                                             <p className="text-[9px] text-cyan-400 truncate">{meetings.length} toplantı</p>
                                         )}
+                                        {shoots.length > 0 && (
+                                            <p className="text-[9px] text-violet-400 truncate">{shoots.length} çekim</p>
+                                        )}
                                     </div>
                                 </button>
                             );
@@ -149,9 +162,10 @@ export default function StaffCalendarPage() {
                     <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
                         <CalendarIcon className="w-4 h-4" /> {selectionLabel(selectedDate, quickFilter)}
                     </h3>
+                    <ShootAgenda shoots={agenda.shoots} onSelect={setSelectedShoot} />
                     <MeetingAgenda meetings={agenda.meetings} />
                     <TaskAgenda tasks={agenda.tasks} onSelect={setSelectedTask} />
-                    {agenda.tasks.length === 0 && agenda.meetings.length === 0 && (
+                    {agenda.tasks.length === 0 && agenda.meetings.length === 0 && agenda.shoots.length === 0 && (
                         <p className="text-zinc-600 text-sm text-center py-4">Bu aralıkta kayıt yok</p>
                     )}
                 </div>
@@ -160,10 +174,36 @@ export default function StaffCalendarPage() {
             <div className="flex items-center gap-4 text-xs text-zinc-600">
                 <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-pink-500" /> Görev</span>
                 <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-cyan-500" /> Toplantı</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-violet-500" /> Çekim</span>
             </div>
 
             <TaskDetailPanel task={selectedTask} onClose={() => setSelectedTask(null)} />
+            <ShootDetailPanel shoot={selectedShoot} scope="staff" onClose={() => setSelectedShoot(null)} />
         </div>
+    );
+}
+
+function ShootAgenda({ shoots, onSelect }: { shoots: ShootResponse[]; onSelect: (shoot: ShootResponse) => void }) {
+    if (shoots.length === 0) return null;
+    return (
+        <section>
+            <h4 className="text-xs font-bold text-violet-400 uppercase tracking-widest mb-2">
+                Çekimler ({shoots.length})
+            </h4>
+            <div className="space-y-2">
+                {shoots.map(shoot => (
+                    <button key={shoot.id} onClick={() => onSelect(shoot)}
+                        className="w-full p-3 rounded-xl bg-violet-500/[0.04] border border-violet-500/10 text-left">
+                        <p className="text-sm font-medium text-white">{shoot.title}</p>
+                        <div className="flex flex-wrap gap-3 mt-1 text-[10px] text-zinc-500">
+                            <span className="flex items-center gap-1"><Camera className="w-3 h-3" />{shoot.companyName}</span>
+                            {shoot.shootTime && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{shoot.shootTime.slice(0, 5)}</span>}
+                            {shoot.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{shoot.location}</span>}
+                        </div>
+                    </button>
+                ))}
+            </div>
+        </section>
     );
 }
 
@@ -240,6 +280,14 @@ function indexMeetings(meetings: MeetingResponse[]) {
     return index;
 }
 
+function indexShoots(shoots: ShootResponse[]) {
+    const index: Record<string, ShootResponse[]> = {};
+    shoots.forEach(shoot => {
+        if (shoot.shootDate) addToIndex(index, formatDateKey(new Date(shoot.shootDate)), shoot);
+    });
+    return index;
+}
+
 function addToIndex<T extends { id: string }>(index: Record<string, T[]>, key: string, item: T) {
     const items = index[key] ?? [];
     if (!items.some(existing => existing.id === item.id)) {
@@ -248,12 +296,14 @@ function addToIndex<T extends { id: string }>(index: Record<string, T[]>, key: s
 }
 
 function collectAgenda(index: DateIndex, range: [string, string] | null) {
-    if (!range) return { tasks: [], meetings: [] };
+    if (!range) return { tasks: [], meetings: [], shoots: [] };
     const taskIds = new Set<string>();
     const meetingIds = new Set<string>();
+    const shootIds = new Set<string>();
     const tasks: TaskResponse[] = [];
     const meetings: MeetingResponse[] = [];
-    Object.keys({ ...index.tasks, ...index.meetings }).sort().forEach(key => {
+    const shoots: ShootResponse[] = [];
+    Object.keys({ ...index.tasks, ...index.meetings, ...index.shoots }).sort().forEach(key => {
         if (!isDateInRange(key, range[0], range[1])) return;
         (index.tasks[key] ?? []).forEach(task => {
             if (!taskIds.has(task.id)) {
@@ -267,8 +317,14 @@ function collectAgenda(index: DateIndex, range: [string, string] | null) {
                 meetings.push(meeting);
             }
         });
+        (index.shoots[key] ?? []).forEach(shoot => {
+            if (!shootIds.has(shoot.id)) {
+                shootIds.add(shoot.id);
+                shoots.push(shoot);
+            }
+        });
     });
-    return { tasks, meetings };
+    return { tasks, meetings, shoots };
 }
 
 function getSelection(selectedDate: string | null, filter: QuickFilter, today: Date): [string, string] | null {

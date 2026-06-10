@@ -9,6 +9,7 @@ import com.fogistanbul.crm.repository.PrProjectPhaseRepository;
 import com.fogistanbul.crm.repository.PrProjectRepository;
 import com.fogistanbul.crm.repository.TaskRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
+import com.fogistanbul.crm.prproject.application.PrProjectProgressService;
 import com.fogistanbul.crm.service.NotificationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,7 +50,7 @@ class TaskServiceTest {
     @Mock
     private TaskMapper mapper;
     @Mock
-    private TaskPhaseCompletionService phaseCompletionService;
+    private PrProjectProgressService prProjectProgressService;
 
     @InjectMocks
     private TaskService taskService;

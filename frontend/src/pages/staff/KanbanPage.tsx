@@ -1,8 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { staffApi } from '../../api/staff';
 import { settingsApi } from '../../api/settings';
-import type { ShootResponse, PrProjectResponse, PageResponse } from '../../api/staff';
+import type { PageResponse } from '../../api/staff';
 import {
     taskApi,
     taskKeys,
@@ -11,6 +10,8 @@ import {
     type TaskStatus,
 } from '../../features/tasks';
 import { meetingApi, meetingKeys, type MeetingResponse } from '../../features/meetings';
+import { useStaffShoots, type ShootResponse } from '../../features/shoots';
+import { usePrProjects } from '../../features/pr-projects';
 import { useAuth } from '../../store/AuthContext';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -279,20 +280,14 @@ export default function KanbanPage() {
         queryFn: () => taskApi.listMine(0, 50),
     });
 
-    const { data: shootsData, isLoading: loadingShoots } = useQuery<PageResponse<ShootResponse>>({
-        queryKey: ['my-panel-shoots'],
-        queryFn: () => staffApi.getShoots(0, 50),
-    });
+    const { data: shootsData, isLoading: loadingShoots } = useStaffShoots(0, 50);
 
     const { data: meetingsData } = useQuery<PageResponse<MeetingResponse>>({
         queryKey: meetingKeys.staffList(undefined, 50),
         queryFn: () => meetingApi.list(0, 50),
     });
 
-    const { data: prData } = useQuery<PageResponse<PrProjectResponse>>({
-        queryKey: ['my-panel-pr'],
-        queryFn: () => staffApi.getPrProjects(0, 50),
-    });
+    const { data: prData } = usePrProjects(0, 50);
 
     const allTasks = myTasksData?.content ?? [];
     const allShoots = shootsData?.content ?? [];
@@ -306,7 +301,7 @@ export default function KanbanPage() {
     const upcomingShoots = allShoots.filter(s => isFuture(s.shootDate) && s.status !== 'CANCELLED').sort((a, b) => new Date(a.shootDate!).getTime() - new Date(b.shootDate!).getTime());
     const todayShoots = allShoots.filter(s => isToday(s.shootDate) && s.status !== 'CANCELLED');
     const upcomingMeetings = allMeetings.filter(m => isFuture(m.meetingDate) && m.status !== 'CANCELLED').sort((a, b) => new Date(a.meetingDate).getTime() - new Date(b.meetingDate).getTime());
-    const activePr = allPr.filter(p => p.status === 'IN_PROGRESS' || p.status === 'ACTIVE');
+    const activePr = allPr.filter(p => p.status === 'ACTIVE');
 
     const completionRate = allTasks.length > 0 ? Math.round((completedTasks.length / allTasks.length) * 100) : 0;
 

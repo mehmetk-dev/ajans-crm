@@ -3,8 +3,8 @@ import { useAuth } from '../store/AuthContext';
 import { gaApi } from '../api/googleAnalytics';
 import { scApi } from '../api/searchConsole';
 import { igApi } from '../api/instagram';
-import { clientApi } from '../api/clientPanel';
 import { taskApi, taskKeys } from '../features/tasks';
+import { shootApi, shootKeys } from '../features/shoots';
 import { useActiveServices } from './useActiveServices';
 
 const STALE = Infinity;       // never auto-refetch
@@ -46,7 +46,7 @@ export function useClientDataPrefetch() {
         enabled: enabled && !servicesLoading && hasSocialMedia, staleTime: STALE, gcTime: CACHE,
     });
     const shoots = useQuery({
-        queryKey: ['client-shoots', cid], queryFn: () => clientApi.getMyShoots(0, 20),
+        queryKey: shootKeys.list('client', 0, 20), queryFn: () => shootApi.listClient(0, 20),
         enabled: enabled && !servicesLoading && hasProduction, staleTime: STALE, gcTime: CACHE,
     });
     const tasks = useQuery({
@@ -66,9 +66,10 @@ export function useRefreshAllClientData() {
     const { user } = useAuth();
     const cid = user?.companyId || '';
     return () => {
-        ['client-ga', 'client-sc', 'client-ig', 'client-ig-status', 'client-ig-reels', 'client-ig-posts', 'client-shoots', 'client-tasks'].forEach(key => {
+        ['client-ga', 'client-sc', 'client-ig', 'client-ig-status', 'client-ig-reels', 'client-ig-posts', 'client-tasks'].forEach(key => {
             qc.invalidateQueries({ queryKey: [key, cid] });
         });
+        qc.invalidateQueries({ queryKey: shootKeys.all });
     };
 }
 
@@ -78,6 +79,10 @@ export function useRefreshPanel() {
     const { user } = useAuth();
     const cid = user?.companyId || '';
     return (panel: 'ga' | 'sc' | 'ig' | 'ig-status' | 'ig-reels' | 'ig-posts' | 'shoots' | 'tasks') => {
+        if (panel === 'shoots') {
+            qc.invalidateQueries({ queryKey: shootKeys.all });
+            return;
+        }
         qc.invalidateQueries({ queryKey: [`client-${panel}`, cid] });
     };
 }

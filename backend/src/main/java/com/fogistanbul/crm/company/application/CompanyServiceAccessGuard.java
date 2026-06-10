@@ -8,6 +8,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -39,5 +40,15 @@ public class CompanyServiceAccessGuard {
                 .orElseThrow(() -> new AccessDeniedException("Bagli musteri sirketi bulunamadi"));
         requireService(userId, companyId, category);
         return companyId;
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> accessibleClientCompanies(UUID userId, ServiceCategory category) {
+        return membershipRepository.findClientCompanyIdsForUser(userId).stream()
+                .filter(companyId -> companyServiceRepository
+                        .findByCompanyIdAndServiceCategory(companyId, category)
+                        .map(com.fogistanbul.crm.entity.CompanyService::isActive)
+                        .orElse(false))
+                .toList();
     }
 }
