@@ -1,7 +1,7 @@
-package com.fogistanbul.crm.controller;
+package com.fogistanbul.crm.messaging.web;
 
-import com.fogistanbul.crm.dto.SendMessageRequest;
-import com.fogistanbul.crm.service.MessagingService;
+import com.fogistanbul.crm.messaging.dto.SendMessageRequest;
+import com.fogistanbul.crm.messaging.application.MessagingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;

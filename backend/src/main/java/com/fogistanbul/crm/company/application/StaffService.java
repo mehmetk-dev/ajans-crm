@@ -7,7 +7,7 @@ import com.fogistanbul.crm.entity.*;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
 import com.fogistanbul.crm.entity.enums.MembershipRole;
 import com.fogistanbul.crm.repository.*;
-import com.fogistanbul.crm.service.GroupMessagingService;
+import com.fogistanbul.crm.messaging.application.GroupMessagingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

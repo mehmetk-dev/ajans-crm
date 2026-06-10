@@ -1,6 +1,6 @@
 package com.fogistanbul.crm.task.application;
 
-import com.fogistanbul.crm.dto.ContactResponse;
+import com.fogistanbul.crm.messaging.dto.ContactResponse;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;

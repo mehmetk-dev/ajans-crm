@@ -20,7 +20,7 @@ import com.fogistanbul.crm.repository.PersonRepository;
 import com.fogistanbul.crm.repository.TaskRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
 import com.fogistanbul.crm.service.CompanyServicesManager;
-import com.fogistanbul.crm.service.GroupMessagingService;
+import com.fogistanbul.crm.messaging.application.GroupMessagingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

@@ -1,6 +1,6 @@
 package com.fogistanbul.crm.task.web;
 
-import com.fogistanbul.crm.dto.ContactResponse;
+import com.fogistanbul.crm.messaging.dto.ContactResponse;
 import com.fogistanbul.crm.entity.enums.TaskStatus;
 import com.fogistanbul.crm.task.application.TaskNoteService;
 import com.fogistanbul.crm.task.application.TaskAssignableUserService;

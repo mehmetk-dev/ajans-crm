@@ -1,9 +1,7 @@
-package com.fogistanbul.crm.controller;
+package com.fogistanbul.crm.messaging.web;
 
-import com.fogistanbul.crm.dto.GroupConversationResponse;
-import com.fogistanbul.crm.dto.GroupMessageResponse;
-import com.fogistanbul.crm.dto.SendMessageRequest;
-import com.fogistanbul.crm.service.GroupMessagingService;
+import com.fogistanbul.crm.messaging.dto.*;
+import com.fogistanbul.crm.messaging.application.GroupMessagingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,9 +14,9 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/staff/messaging/groups")
+@RequestMapping("/api/client/messaging/groups")
 @RequiredArgsConstructor
-public class GroupMessagingController {
+public class ClientGroupMessagingController {
 
     private final GroupMessagingService groupMessagingService;
 

@@ -1,7 +1,7 @@
-package com.fogistanbul.crm.controller;
+package com.fogistanbul.crm.messaging.web;
 
-import com.fogistanbul.crm.dto.*;
-import com.fogistanbul.crm.service.MessagingService;
+import com.fogistanbul.crm.messaging.dto.*;
+import com.fogistanbul.crm.messaging.application.MessagingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,9 +14,9 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/staff/messaging")
+@RequestMapping("/api/client/messaging")
 @RequiredArgsConstructor
-public class MessagingController {
+public class ClientMessagingController {
 
     private final MessagingService messagingService;
 
@@ -69,5 +69,4 @@ public class MessagingController {
         messagingService.markConversationAsRead(conversationId, userId);
         return ResponseEntity.ok().build();
     }
-
 }

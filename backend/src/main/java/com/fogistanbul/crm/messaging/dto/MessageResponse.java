@@ -1,4 +1,4 @@
-package com.fogistanbul.crm.dto;
+package com.fogistanbul.crm.messaging.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

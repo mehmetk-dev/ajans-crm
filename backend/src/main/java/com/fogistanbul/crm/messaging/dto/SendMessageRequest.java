@@ -1,4 +1,4 @@
-package com.fogistanbul.crm.dto;
+package com.fogistanbul.crm.messaging.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

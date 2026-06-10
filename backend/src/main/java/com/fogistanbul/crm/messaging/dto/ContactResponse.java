@@ -1,4 +1,4 @@
-package com.fogistanbul.crm.dto;
+package com.fogistanbul.crm.messaging.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

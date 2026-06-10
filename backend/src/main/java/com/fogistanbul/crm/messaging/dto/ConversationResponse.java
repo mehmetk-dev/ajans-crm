@@ -1,4 +1,4 @@
-package com.fogistanbul.crm.dto;
+package com.fogistanbul.crm.messaging.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,7 +16,7 @@ public class ConversationResponse {
     private String otherUserId;
     private String otherUserName;
     private String otherUserAvatarUrl;
-    private String otherUserRole; // Let the frontend know if it's Client or Staff
+    private String otherUserRole;
     private String otherUserCompanyName;
     private String otherUserMembershipRole;
     private String otherUserPositionTitle;

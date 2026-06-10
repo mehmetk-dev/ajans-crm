@@ -1,0 +1,97 @@
+package com.fogistanbul.crm.messaging.application;
+
+import com.fogistanbul.crm.entity.Conversation;
+import com.fogistanbul.crm.entity.Message;
+import com.fogistanbul.crm.entity.UserProfile;
+import com.fogistanbul.crm.entity.enums.GlobalRole;
+import com.fogistanbul.crm.messaging.dto.MessageResponse;
+import com.fogistanbul.crm.messaging.dto.SendMessageRequest;
+import com.fogistanbul.crm.repository.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class MessagingServiceTest {
+
+    @Mock MessageRepository messageRepository;
+    @Mock ConversationRepository conversationRepository;
+    @Mock CompanyMembershipRepository membershipRepository;
+    @Mock UserProfileRepository userProfileRepository;
+    @Mock SimpMessagingTemplate messagingTemplate;
+    @Mock MessageAccessPolicy accessPolicy;
+    @Mock MessageMapper mapper;
+
+    @InjectMocks MessagingService service;
+
+    @Test
+    void send_message_delegates_access_check_and_broadcasts() {
+        UUID convId = UUID.randomUUID();
+        UUID senderId = UUID.randomUUID();
+
+        UserProfile u1 = makeUser(senderId, GlobalRole.AGENCY_STAFF);
+        UserProfile u2 = makeUser(UUID.randomUUID(), GlobalRole.AGENCY_STAFF);
+
+        Conversation conv = new Conversation();
+        conv.setId(convId);
+        conv.setUser1(u1);
+        conv.setUser2(u2);
+        conv.setUpdatedAt(Instant.now());
+
+        Message savedMsg = new Message();
+        savedMsg.setId(UUID.randomUUID());
+        savedMsg.setConversation(conv);
+        savedMsg.setSender(u1);
+        savedMsg.setContent("hello");
+        savedMsg.setIsRead(false);
+        savedMsg.setIsApprovalPending(false);
+        savedMsg.setCreatedAt(Instant.now());
+
+        MessageResponse expected = MessageResponse.builder()
+                .id(savedMsg.getId().toString())
+                .conversationId(convId.toString())
+                .senderId(senderId.toString())
+                .content("hello")
+                .build();
+
+        when(conversationRepository.findById(convId)).thenReturn(Optional.of(conv));
+        when(userProfileRepository.findById(senderId)).thenReturn(Optional.of(u1));
+        when(messageRepository.save(any())).thenReturn(savedMsg);
+        when(conversationRepository.save(any())).thenReturn(conv);
+        when(mapper.toMessageResponse(savedMsg)).thenReturn(expected);
+
+        SendMessageRequest req = new SendMessageRequest();
+        req.setContent("hello");
+
+        MessageResponse result = service.sendMessage(convId, req, senderId);
+
+        verify(accessPolicy).requireConversationAccess(conv, senderId);
+        assertNotNull(result);
+        assertEquals("hello", result.getContent());
+    }
+
+    @Test
+    void cannot_start_conversation_with_self() {
+        UUID userId = UUID.randomUUID();
+        assertThrows(RuntimeException.class,
+                () -> service.getOrStartConversation(userId, userId));
+    }
+
+    private UserProfile makeUser(UUID id, GlobalRole role) {
+        UserProfile u = new UserProfile();
+        u.setId(id);
+        u.setGlobalRole(role);
+        return u;
+    }
+}

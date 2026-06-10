@@ -1557,3 +1557,58 @@ Files / media library dikey dilimi backend authorization, entity bazli erisim, s
 
 **Siradaki modul: Messaging.** Ilk hedef direct mesajlasma, grup mesajlasma, WebSocket entegrasyonu ve okunmamis sayac akislarini ayni feature sinirinda birlestirmek.
 
+## 26. Messaging Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 10 Haziran 2026
+
+### Backend
+
+- `MessagingService`, `GroupMessagingService` ve 5 controller (`MessagingController`, `GroupMessagingController`, `ClientMessagingController`, `ClientGroupMessagingController`, `WebSocketController`) eski `controller/` ve `service/` paketlerinden `com.fogistanbul.crm.messaging` modulu altinda `web/` ve `application/` sinirlarina tasindi.
+- 6 DTO (`MessageResponse`, `ConversationResponse`, `ContactResponse`, `GroupMessageResponse`, `GroupConversationResponse`, `SendMessageRequest`) eski `dto/` paketinden `messaging/dto/` altina tasindi.
+- `MessageAccessPolicy` olusturuldu: DM erisim kontrolu (paylasilan sirket, employee kisitlari), konusma katilimcisi dogrulama ve grup uyeligi kontrolu tek noktada toplandı.
+- `MessageMapper` olusturuldu: `toMessageResponse`, `toConversationResponse`, `toGroupMessageResponse`, `toContactResponse` donusum metodlari servis katmanindan ayrildi.
+- `MessagingService` ve `GroupMessagingService` yetkilendirme sorumluluklarini `MessageAccessPolicy`'e, mapping'i `MessageMapper`'a delege ediyor.
+- `ContactResponse` kross-modul bagimliligini korumak icin `task/application/TaskAssignableUserService` ve `task/web/StaffTaskController` importlari guncellendi.
+- `company/application/CompanyService` ve `StaffService` icindeki `GroupMessagingService` importlari yeni modül yoluna guncellendi.
+- Eski 13 dosya (`controller/`, `service/`, `dto/` altindakiler) silindi.
+- Mevcut HTTP endpoint contract'lari korundu (`/api/staff/messaging/**`, `/api/client/messaging/**`).
+
+### Frontend
+
+- `frontend/src/features/messaging` altinda API client, tipler, query key factory, WebSocket hook, handler'lar, model yardimcilari ve UI bilesenleri olusturuldu.
+- `messaging.types.ts`: Tum tip tanimlari (`ConversationResponse`, `MessageResponse`, `ContactResponse`, `GroupConversationResponse`, `GroupMessageResponse`, `SendMessageRequest`, `PageResponse`).
+- `messagingKeys.ts`: React Query key factory (`conversations`, `messages`, `contacts`, `groups`, `groupMessages`).
+- `messagingApi.ts`: API fonksiyonlari `api/messaging.ts`'den ayrildi.
+- `hooks/useWebSocket.ts`: `hooks/useWebSocket.ts`'den `features/messaging/hooks/`'e tasindi; import yolu guncellendi.
+- `hooks/useMessaging.ts`: WebSocket event handler'lari (`handleWsMessage`, `handleGlobalMessage`, `handleReadReceipt`) sayfa componentlerinden ayrildi.
+- `model/messaging.utils.ts`: `timeAgo`, `formatMessageTime`, `getRoleLabel` fonksiyonlari her iki sayfada tekrarlanan inline koddan cikarildi.
+- `ui/ConversationList.tsx`: DM + grup sidebar listesi bagimsiz bilesenine ayrildi.
+- `ui/MessageThread.tsx`: `DmMessageThread` ve `GroupMessageThread` bilesenleri.
+- `ui/MessageComposer.tsx`: Yeniden kullanilabilir mesaj yazma alani + gonder butonu.
+- `ui/NewConversationModal.tsx`: Yeni sohbet baslat modali.
+- `api/messaging.ts` ve `hooks/useWebSocket.ts` backward compat re-export dosyalarina donusturuldu.
+- `hooks/useUnreadCount.ts` import yolu `features/messaging`'e guncellendi.
+- `StaffMessagingPage.tsx` 622 satirdan ~196 satira, `ClientMessagingPage.tsx` 601 satirdan ~200 satira indirildi.
+
+### Test ve Dogrulama
+
+- Backend `MessageAccessPolicyTest`: 8 test.
+- Backend `MessagingServiceTest`: 2 test.
+- Tum backend sonucu: **81 test basarili** (onceki 71'den 10 yeni test).
+- Frontend `messaging.utils.test.ts`: 7 yeni test.
+- Tum frontend sonucu: **43 test basarili** (onceki 36'dan 7 yeni test).
+- `npm run build`: **basarili**.
+- `mvn clean compile` + `mvn test`: **basarili**.
+
+### Bilinen Gecis Borclari
+
+- `ContactResponse` halen `messaging/dto/` altinda; `TaskAssignableUserService` ortak bir `UserSummaryResponse` kullanmali (ileride task refaktor sırasında duzeltilmeli).
+- `FileAccessPolicy` `MessageRepository`'e dogrudan bagli kalmaya devam ediyor; messaging modulu tamamlandigina gore bu bagimlilik messaging policy'e devredilebilir.
+- `WebSocketConfig` `config/` paketinde kalmaya devam ediyor (infrastructure concern, feature'a tasima gerekmez).
+- Production bundle yaklasik 1.85 MB; route-level lazy loading Faz 0/route duzenlemesinde ele alinmali.
+
+### Sonuc ve Siradaki Modul
+
+Messaging dikey dilimi backend authorization, DM/grup mesajlasma, WebSocket entegrasyonu ve ortak frontend feature'i ile tamamlandi. Yetkisiz konusma/grup erisim acigi kapandi; sayfa bilesenleri orkestrator pattern'ine donusturuldu.
+
+**Siradaki modul: Entegrasyon modulleri (Faz 6).** Ilk hedef PageSpeed / Web Design entegrasyonunu ayri feature sinirinda yapılandırmak.
