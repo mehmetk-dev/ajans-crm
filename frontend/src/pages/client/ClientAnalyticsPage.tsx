@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { GoogleAnalyticsPanel, SearchConsolePanel, ContentPlanPanel, WebDesignPanel } from '../../components/analytics';
 import { PostsColumn, ReelsColumn, StatsColumn } from '../../features/instagram';
 import GoogleAdsPanel from '../../components/analytics/GoogleAdsPanel';
-import MetaAdsPanel from '../../components/analytics/MetaAdsPanel';
+import { MetaAdsPanel } from '../../features/meta-ads';
 import type { PageResponse } from '../../api/staff';
 import { shootApi, shootKeys, type ShootResponse } from '../../features/shoots';
 import { useAuth } from '../../store/AuthContext';

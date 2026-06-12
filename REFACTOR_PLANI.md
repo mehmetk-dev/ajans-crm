@@ -41,7 +41,7 @@ Onerilen strateji:
 | PR projects | **TAMAMLANDI** | 10 Haziran 2026 | Proje/faz/uye/not/task baglantilari, authorization ve ortak frontend feature'i modullestirildi |
 | Files / media library | **TAMAMLANDI** | 10 Haziran 2026 | Dosya erisimi, attachment baglantilari ve ortak medya feature'i modullestirildi |
 | Messaging | **TAMAMLANDI** | 10 Haziran 2026 | Direct/grup mesajlasma, WebSocket ve ortak frontend feature'i modullestirildi |
-| Integrations | Devam ediyor | - | PageSpeed/Web Design, Google Analytics, Search Console, Google Ads ve Instagram tamamlandi; sirada Meta Ads var |
+| Integrations | **TAMAMLANDI** | 12 Haziran 2026 | PageSpeed/Web Design, Google Analytics, Search Console, Google Ads, Instagram ve Meta Ads ayri modul sinirlarina tasindi |
 
 ## 2. Mevcut Durumun Olculebilir Ozeti
 
@@ -1882,3 +1882,57 @@ Google Ads dikey dilimi authorization, GAQL client'i, metrik mapping ve ortak fr
 Instagram dikey dilimi Graph client, parser, tarih araligi, medya insight, overview orkestrasyonu, authorization ve ortak frontend feature siniri ile tamamlandi. Eski monolit servis kaldirildi; Instagram ile Meta Ads'in paylastigi OAuth/token sahipligi tek modulde toplandi.
 
 **Siradaki modul: Meta Ads (Faz 6 - 6. entegrasyon).** Hedef: Meta Ads rapor client'i, metrik mapping, authorization ve frontend panel/detail akislarini ayri feature sinirinda modularize etmek.
+
+## 32. Meta Ads Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 12 Haziran 2026
+
+### Backend
+
+- `MetaAdsController`, `MetaAdsService` ve `MetaAdsOverviewResponse` eski teknik katman paketlerinden `com.fogistanbul.crm.metaads` modulu altinda `web/`, `application/` ve `dto/` sinirlarina tasindi.
+- `MetaAdsClient` olusturuldu; Graph API v21 URL'i, query parameter encoding, tarih preset/time range secimi ve ham `data` response listeleri infrastructure katmanina tasindi.
+- Hesap, kampanya ve gunluk insight sorgulari ayri client metotlarina bolundu. Kampanya ve gunluk trend cagrilarinin toleransli bos liste fallback davranisi korundu.
+- `MetaAdsMapper` olusturuldu; Graph API string metriklerinin sayisal donusumu, kampanya/gunluk satir mapping'i, overview DTO uretimi ve kullanici hata mesajlari application service'den ayrildi.
+- `MetaAdsService` 197 satirdan 63 satira indirildi; servis artik OAuth baglami, reklam hesabi, tarih araligi ve rapor orkestrasyonundan sorumlu.
+- `MetaAdsAccessPolicy` ile AD_MANAGEMENT servis erisimi controller'dan ayrildi.
+- `MetaAdsAccountService` olusturuldu; reklam hesap ID normalizasyonu ve token kaydindaki Meta Ads alaninin yonetimi Instagram OAuth servisinden ayrildi.
+- Bos hesap ID'sini `"act_"` degerine ceviren disconnect hatasi duzeltildi; `/disconnect` artik reklam hesap baglantisini gercekten temizliyor.
+- Kullanilmayan `InstagramTokenRepository` bagimliligi eski Meta Ads servisinden kaldirildi.
+- Controller request/response contract'lari tipli DTO'lara donusturuldu (`MetaAdsStatusResponse`, `MetaAdsAccountRequest`, `MetaAdsWriteResponse`).
+- Mevcut HTTP endpoint ve JSON contract'lari korundu (`/api/client/analytics/meta-ads/status`, `/overview`, `/ad-account`, `/disconnect`).
+
+### Frontend
+
+- `frontend/src/features/meta-ads/` altinda tipler, API client, query key factory, model yardimcilari ve panel bileseni olusturuldu.
+- `metaAds.types.ts`: overview, status, kampanya, gunluk trend ve siralama kolon tipleri tek modulde toplandi.
+- `metaAdsKeys.ts`: status ve overview sorgulari icin merkezi React Query key factory olusturuldu.
+- `api/metaAdsApi.ts`: API fonksiyonlari eski `api/metaAds.ts` dosyasindan ayrildi.
+- `model/metaAds.utils.ts`: para/sayi formatlama ve kampanya siralama mantigi panel ve detay sayfasindan ayrildi.
+- `ui/MetaAdsPanel.tsx`: eski analytics component klasorunden feature modulune tasindi.
+- `api/metaAds.ts` ve `components/analytics/MetaAdsPanel.tsx` backward compatibility re-export dosyalarina donusturuldu.
+- `MetaAdsDetailPage.tsx` literal query key'ler yerine feature key factory kullaniyor; formatter ve immutable kampanya siralama kodu feature modeline tasindi.
+- `ClientAnalyticsPage` Meta Ads feature public API'sini kullanmaya basladi.
+
+### Test ve Dogrulama
+
+- Backend `MetaAdsAccessPolicyTest`: 2 test.
+- Backend `MetaAdsAccountServiceTest`: 3 test.
+- Backend `MetaAdsMapperTest`: 4 test.
+- Backend `MetaAdsServiceTest`: 5 test.
+- Tum backend sonucu: **160 test basarili** (onceki 146'dan 14 yeni test).
+- Frontend `metaAds.utils.test.ts`: 2 yeni test.
+- Tum frontend sonucu: **120 test basarili** (onceki 118'den 2 yeni test).
+- `npm run build`: **basarili**.
+- `mvn test`: **basarili**.
+
+### Bilinen Gecis Borclari
+
+- Meta Ads ve Instagram halen ayni Facebook OAuth token kaydini kullaniyor. Bu paylasim kasitli; ileride scope seti urun bazli yonetilirse token capability bilgisi acik bir domain modeline alinmali.
+- `MetaAdsDetailPage.tsx` 250 satir civarinda ve mevcut sert inceleme esiginin altinda; tablo ve grafik bilesenleri tekrar kullanilmaya baslarsa ayri presentational bilesenlere alinabilir.
+- Production bundle ~1.84 MB; route-level lazy loading Faz 7'de ele alinmali.
+
+### Sonuc ve Siradaki Faz
+
+Meta Ads dikey dilimi Graph client, mapping, hesap ID yonetimi, authorization, tipli controller contract'lari ve ortak frontend feature siniri ile tamamlandi. Boylece Faz 6 kapsamindaki alti harici entegrasyonun tamami ayri modul sinirlarina tasindi.
+
+**Siradaki faz: Faz 7 - Modul sonrasi genel UI ve performans.** Ilk hedef route-level code splitting ve bundle analizi ile 1.84 MB production bundle'ini parcalamak.

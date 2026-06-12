@@ -5,32 +5,35 @@ import {
     TrendingUp, MousePointerClick, Eye, Users, AlertTriangle,
     Loader2, Link, Check, RefreshCw, ChevronUp, ChevronDown
 } from 'lucide-react';
-import { metaAdsApi } from '../../api/metaAds';
+import {
+    formatMetaAdsCurrency,
+    formatMetaAdsMetric,
+    metaAdsApi,
+    metaAdsKeys,
+    sortMetaAdsCampaigns,
+    type MetaAdsSortColumn,
+} from '../../features/meta-ads';
 import { useAuth } from '../../store/AuthContext';
 
-function currency(n: number) { return '₺' + n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-function fmt(n: number) {
-    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-    if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
-    return n.toLocaleString('tr-TR');
-}
+const currency = formatMetaAdsCurrency;
+const fmt = formatMetaAdsMetric;
 
 export default function MetaAdsDetailPage() {
     const { user } = useAuth();
     const qc = useQueryClient();
     const [adAccountInput, setAdAccountInput] = useState('');
     const [showSetup, setShowSetup] = useState(false);
-    const [sortCol, setSortCol] = useState<'spend' | 'clicks' | 'impressions' | 'reach'>('spend');
+    const [sortCol, setSortCol] = useState<MetaAdsSortColumn>('spend');
     const [sortAsc, setSortAsc] = useState(false);
 
     const { data: status } = useQuery({
-        queryKey: ['meta-ads-status', user?.companyId],
+        queryKey: metaAdsKeys.status(user?.companyId ?? ''),
         queryFn: () => metaAdsApi.getStatus(user!.companyId!),
         enabled: !!user?.companyId,
     });
 
     const { data, isLoading } = useQuery({
-        queryKey: ['meta-ads-overview', user?.companyId],
+        queryKey: metaAdsKeys.overview(user?.companyId ?? ''),
         queryFn: () => metaAdsApi.getOverview(user!.companyId!),
         enabled: !!user?.companyId,
         staleTime: 5 * 60 * 1000,
@@ -39,16 +42,17 @@ export default function MetaAdsDetailPage() {
     const saveMut = useMutation({
         mutationFn: (id: string) => metaAdsApi.saveAdAccount(user!.companyId!, id),
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['meta-ads-overview'] });
-            qc.invalidateQueries({ queryKey: ['meta-ads-status'] });
+            qc.invalidateQueries({ queryKey: metaAdsKeys.all });
             setShowSetup(false);
         },
     });
 
     if (!user?.companyId) return null;
 
-    const sortedCampaigns = [...(data?.campaigns ?? [])].sort((a, b) =>
-        sortAsc ? a[sortCol] - b[sortCol] : b[sortCol] - a[sortCol]
+    const sortedCampaigns = sortMetaAdsCampaigns(
+        data?.campaigns ?? [],
+        sortCol,
+        sortAsc,
     );
 
     const handleSort = (col: typeof sortCol) => {
@@ -78,7 +82,7 @@ export default function MetaAdsDetailPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => qc.invalidateQueries({ queryKey: ['meta-ads-overview'] })}
+                        <button onClick={() => qc.invalidateQueries({ queryKey: metaAdsKeys.overview(user.companyId!) })}
                             className="p-2 rounded-xl border border-white/[0.06] text-zinc-500 hover:text-zinc-300 transition-colors">
                             <RefreshCw className="w-3.5 h-3.5" />
                         </button>

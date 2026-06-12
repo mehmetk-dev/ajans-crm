@@ -20,6 +20,8 @@ export { default as SearchConsolePanel } from './SearchConsolePanel';
 
 export { default as InstagramPanel } from './InstagramPanel';
 
+export { default as MetaAdsPanel } from './MetaAdsPanel';
+
 export { default as ContentPlanPanel } from './ContentPlanPanel';
 
 export { default as WebDesignPanel } from './WebDesignPanel';

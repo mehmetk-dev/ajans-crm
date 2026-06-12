@@ -468,26 +468,4 @@ public class InstagramOAuthService {
 
     }
 
-    // ─── Meta Ads Ad Account ID ─────────────────────────────────
-
-    @Transactional
-    public void saveMetaAdAccountId(UUID companyId, String adAccountId) {
-        tokenRepository.findByCompanyId(companyId).ifPresent(token -> {
-            String cleaned = adAccountId.startsWith("act_") ? adAccountId : "act_" + adAccountId.replaceAll("[^0-9]", "");
-            token.setMetaAdAccountId(cleaned);
-            tokenRepository.save(token);
-        });
-    }
-
-    public java.util.Optional<String> getMetaAdAccountId(UUID companyId) {
-        return tokenRepository.findByCompanyId(companyId)
-                .map(InstagramToken::getMetaAdAccountId);
-    }
-
-    public boolean hasMetaAdAccount(UUID companyId) {
-        return tokenRepository.findByCompanyId(companyId)
-                .map(t -> t.getMetaAdAccountId() != null && !t.getMetaAdAccountId().isBlank())
-                .orElse(false);
-    }
-
 }

@@ -1,4 +1,4 @@
-package com.fogistanbul.crm.dto;
+package com.fogistanbul.crm.metaads.dto;
 
 import java.util.List;
 
@@ -7,8 +7,6 @@ public record MetaAdsOverviewResponse(
         String adAccountId,
         String adAccountName,
         String errorMessage,
-
-        // Temel metrikler
         double totalSpend,
         long impressions,
         long clicks,
@@ -16,20 +14,24 @@ public record MetaAdsOverviewResponse(
         double cpm,
         double cpc,
         double ctr,
-
-        // Kampanya bazlı
         List<CampaignRow> campaigns,
-
-        // Günlük trend
         List<DailyRow> dailyTrend
 ) {
     public static MetaAdsOverviewResponse disabled() {
-        return new MetaAdsOverviewResponse(false, null, null, null,
+        return new MetaAdsOverviewResponse(
+                false, null, null, null,
                 0, 0, 0, 0, 0, 0, 0, List.of(), List.of());
     }
 
-    public static MetaAdsOverviewResponse error(String adAccountId, String msg) {
-        return new MetaAdsOverviewResponse(true, adAccountId, null, msg,
+    public static MetaAdsOverviewResponse missingAccount() {
+        return new MetaAdsOverviewResponse(
+                true, null, null, "Meta Ads hesap ID'si girilmemiş.",
+                0, 0, 0, 0, 0, 0, 0, List.of(), List.of());
+    }
+
+    public static MetaAdsOverviewResponse error(String adAccountId, String message) {
+        return new MetaAdsOverviewResponse(
+                true, adAccountId, null, message,
                 0, 0, 0, 0, 0, 0, 0, List.of(), List.of());
     }
 
@@ -44,8 +46,11 @@ public record MetaAdsOverviewResponse(
             long reach,
             double cpm,
             double cpc,
-            double ctr
-    ) {}
+            double ctr) {}
 
-    public record DailyRow(String date, double spend, long impressions, long clicks) {}
+    public record DailyRow(
+            String date,
+            double spend,
+            long impressions,
+            long clicks) {}
 }
