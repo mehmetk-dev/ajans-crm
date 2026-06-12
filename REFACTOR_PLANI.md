@@ -2194,6 +2194,42 @@ Mevcut production bundle istatistikleri:
 - `vendor-charts` (380 KB) zamaninda incelenebilir lazy loading potansiyeli tasiyor; mevcut gzip 109 KB ile dusuk onceliklidir.
 - `useClientDataPrefetch.ts` backward-compat re-export olarak birakilmali; tum importlar yeni feature gectikten sonra kaldirilmali.
 
-### Sonuc
+## 39. Tip Guvenligi ve Erisilebilirlik Duzeltmeleri - TAMAMLANDI
 
-Bundle analizi ve erisilebilirlik taramasi tamamlandi. Tum chunk'lar 500 KB kalite esiginin altinda; ilk JS transferi gzip bazinda ~169 KB. Erisilebilirlik borcu belgelendi; en kritik madde 64 form label'inin `htmlFor` ile baglanmamasi. Kaynak dosya boyut analizi, 19 frontend ve 11 backend dosyasinin inceleme esiginin uzerinde oldugunu gostriyor, ancak bunlarin cogu zaten modularize edildi ve tek dosya sorumluluk sinirlari icerisinde.
+**Tamamlanma tarihi:** 12 Haziran 2026
+
+### Tip Guvenligi
+
+- Tum `catch (err: any)` kullanimlari (11 adet, 5 dosyada) `catch (err: unknown)` ile degistirildi.
+- `getApiErrorMessage` yardimci fonksiyonu `lib/apiError.ts` altinda olusturuldu; Axios hatalarini tip guvenli sekilde cozumluuyor.
+- LoginPage, CompaniesPage, StaffPage, UsersPage, SurveyPage hata isleme kodu tip guvenli hale getirildi.
+- Frontend kodunda `any` tipi kullanimi sifira indirildi; tum acik `any` ve `as any` kullanimlari kaldirildi.
+
+### Erisilebilirlik (Form LabelhtmlFor)
+
+- MeetingForm, ShootForm, QuickMessageForm formlarina `useId()` tabanli `htmlFor` ve `id` eslestirmesi eklendi.
+- `FormLabel` ve `useFieldId` yardimci bilesenleri `components/ui/FormLabel.tsx` altinda olusturuldu.
+- Erisilebilirlik borcu: 64 form label'den 47'si hala `htmlFor` icermiyor (sayfa bilesenlerinde kalanlar).
+- 47 kalan label'in buyuk cogunlugu admin sayfalarinda (CompaniesPage, StaffPage, UsersPage, RoutineManagementPage) ve client detay sayfalarinda.
+
+### Google Analytics Detail Page Data Hook
+
+- `useGADetailPage` hook'u `features/google-analytics/hooks/` altina cikarildi.
+- Durum yonetimi, API cagrilari ve hesaplanan degerler hook'a tasindi.
+- `GoogleAnalyticsDetailPage.tsx` 849 satirdan 770 satira indirildi; sayfa artik yalnizca render composition icerecek.
+- Hook 90 satir; toplam ayni mantik ama daha iyi ayrilmis sorumluluk.
+
+### Test ve Dogrulama
+
+- Frontend: 152 test basarili, Build: basarili.
+- Backend: 160 test basarili.
+
+### Sonuc ve Siradaki Adimlar
+
+Tip guvenligi ve erisilebilirlik duzeltmeleri tamamlandi. `any` kullanimi sifira indirildi; form label `htmlFor` borcu 47 label'e dustu. GA detail page data hook'a cikarildi.
+
+**Kalan iyilestirme maddeleri (dusuk oncelik):**
+- 47 form label `htmlFor` eslestirmesi (admin sayfalari ve client detay sayfalari)
+- Buyuk sayfa dosyalari: KanbanPage (696), SearchConsoleDetailPage (528), CompaniesPage (494)
+- Backend buyuk dosyalar: InstagramOAuthService (471), CompanyService (352)
+- `vendor-charts` lazy loading potansiyeli
