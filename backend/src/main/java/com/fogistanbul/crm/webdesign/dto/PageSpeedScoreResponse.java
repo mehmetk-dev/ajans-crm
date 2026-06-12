@@ -1,4 +1,4 @@
-package com.fogistanbul.crm.dto;
+package com.fogistanbul.crm.webdesign.dto;
 
 import lombok.Builder;
 import lombok.Data;

@@ -1,4 +1,4 @@
-package com.fogistanbul.crm.dto;
+package com.fogistanbul.crm.googleanalytics.dto;
 
 import java.util.List;
 
@@ -7,7 +7,7 @@ public record GaOverviewResponse(
         String propertyId,
         String errorMessage,
 
-        // Temel metrikler (son 30 gün)
+        // Temel metrikler
         long sessions,
         long totalUsers,
         long newUsers,
@@ -15,7 +15,7 @@ public record GaOverviewResponse(
         double bounceRate,
         double avgSessionDuration,
 
-        // Günlük trend (son 30 gün)
+        // Günlük trend
         List<GaDailyRow> dailyTrend,
 
         // Trafik kaynakları

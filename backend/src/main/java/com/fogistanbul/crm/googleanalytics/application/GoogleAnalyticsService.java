@@ -1,15 +1,10 @@
-package com.fogistanbul.crm.service;
+package com.fogistanbul.crm.googleanalytics.application;
 
-import com.fogistanbul.crm.dto.GaOverviewResponse;
-import com.google.analytics.data.v1beta.BetaAnalyticsDataClient;
-import com.google.analytics.data.v1beta.BetaAnalyticsDataSettings;
-import com.google.analytics.data.v1beta.DateRange;
-import com.google.analytics.data.v1beta.Dimension;
-import com.google.analytics.data.v1beta.Metric;
-import com.google.analytics.data.v1beta.OrderBy;
-import com.google.analytics.data.v1beta.Row;
-import com.google.analytics.data.v1beta.RunReportRequest;
-import com.google.analytics.data.v1beta.RunReportResponse;
+import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse;
+import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse.GaDailyRow;
+import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse.GaNamedMetric;
+import com.fogistanbul.crm.service.GoogleOAuthService;
+import com.google.analytics.data.v1beta.*;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.OAuth2Credentials;
 import lombok.RequiredArgsConstructor;
@@ -31,10 +26,9 @@ public class GoogleAnalyticsService {
     private static final String DEFAULT_END   = "today";
 
     private final GoogleOAuthService oAuthService;
+    private final GoogleAnalyticsMapper mapper;
 
-    /**
-     * Belirtilen ÅŸirketin GA baÄŸlantÄ±sÄ± var ve propertyId set edilmiÅŸse true.
-     */
+    /** Belirtilen şirketin GA bağlantısı var ve propertyId set edilmişse true. */
     public boolean isConfigured(UUID companyId) {
         return oAuthService.isConnected(companyId)
                 && oAuthService.getPropertyId(companyId).isPresent();
@@ -42,14 +36,14 @@ public class GoogleAnalyticsService {
 
     public GaOverviewResponse getOverview(UUID companyId, String startDate, String endDate) {
         String rangeStart = (startDate != null && !startDate.isBlank()) ? startDate : DEFAULT_START;
-        String rangeEnd   = (endDate != null && !endDate.isBlank()) ? endDate : DEFAULT_END;
+        String rangeEnd   = (endDate   != null && !endDate.isBlank())   ? endDate   : DEFAULT_END;
+
         if (!oAuthService.isConnected(companyId)) {
             return GaOverviewResponse.disabled();
         }
 
         String propertyId = oAuthService.getPropertyId(companyId).orElse(null);
         if (propertyId == null || propertyId.isBlank()) {
-            // Bağlı ama property seçilmemiş
             return new GaOverviewResponse(
                     true, null, null, 0, 0, 0, 0, 0.0, 0.0,
                     List.of(), List.of(), List.of(), List.of()
@@ -58,16 +52,16 @@ public class GoogleAnalyticsService {
 
         String accessToken = oAuthService.getValidAccessToken(companyId).orElse(null);
         if (accessToken == null) {
-            log.warn("GA access token alÄ±namadÄ±, companyId={}", companyId);
+            log.warn("GA access token alınamadı, companyId={}", companyId);
             return GaOverviewResponse.disabled();
         }
 
         try (BetaAnalyticsDataClient client = buildClient(accessToken)) {
             String property = "properties/" + propertyId;
-            DateRange dr = dateRange(rangeStart, rangeEnd);
+            DateRange dr = DateRange.newBuilder().setStartDate(rangeStart).setEndDate(rangeEnd).build();
 
             // 1. Temel metrikler
-            RunReportResponse overview = client.runReport(RunReportRequest.newBuilder()
+            RunReportResponse overviewReport = client.runReport(RunReportRequest.newBuilder()
                     .setProperty(property)
                     .addDateRanges(dr)
                     .addMetrics(metric("sessions"))
@@ -81,17 +75,17 @@ public class GoogleAnalyticsService {
             long sessions = 0, totalUsers = 0, newUsers = 0, pageViews = 0;
             double bounceRate = 0, avgDuration = 0;
 
-            if (overview.getRowsCount() > 0) {
-                Row row = overview.getRows(0);
-                sessions    = parseLong(row, 0);
-                totalUsers  = parseLong(row, 1);
-                newUsers    = parseLong(row, 2);
-                pageViews   = parseLong(row, 3);
-                bounceRate  = parseDouble(row, 4);
-                avgDuration = parseDouble(row, 5);
+            if (overviewReport.getRowsCount() > 0) {
+                Row row = overviewReport.getRows(0);
+                sessions    = mapper.parseLong(row, 0);
+                totalUsers  = mapper.parseLong(row, 1);
+                newUsers    = mapper.parseLong(row, 2);
+                pageViews   = mapper.parseLong(row, 3);
+                bounceRate  = mapper.parseDouble(row, 4);
+                avgDuration = mapper.parseDouble(row, 5);
             }
 
-            // 2. GÃ¼nlÃ¼k trend
+            // 2. Günlük trend
             RunReportResponse dailyReport = client.runReport(RunReportRequest.newBuilder()
                     .setProperty(property)
                     .addDateRanges(dr)
@@ -103,16 +97,12 @@ public class GoogleAnalyticsService {
                             .setDesc(false))
                     .build());
 
-            List<GaOverviewResponse.GaDailyRow> dailyTrend = new ArrayList<>();
+            List<GaDailyRow> dailyTrend = new ArrayList<>();
             for (Row row : dailyReport.getRowsList()) {
-                dailyTrend.add(new GaOverviewResponse.GaDailyRow(
-                        formatDate(row.getDimensionValues(0).getValue()),
-                        parseLong(row, 0),
-                        parseLong(row, 1)
-                ));
+                dailyTrend.add(mapper.toDailyRow(row));
             }
 
-            // 3. Trafik kaynaklarÄ±
+            // 3. Trafik kaynakları
             RunReportResponse sourcesReport = client.runReport(RunReportRequest.newBuilder()
                     .setProperty(property)
                     .addDateRanges(dr)
@@ -122,13 +112,12 @@ public class GoogleAnalyticsService {
                     .setLimit(6)
                     .build());
 
-            List<GaOverviewResponse.GaNamedMetric> trafficSources = new ArrayList<>();
+            List<GaNamedMetric> trafficSources = new ArrayList<>();
             for (Row row : sourcesReport.getRowsList()) {
-                trafficSources.add(new GaOverviewResponse.GaNamedMetric(
-                        row.getDimensionValues(0).getValue(), parseLong(row, 0)));
+                trafficSources.add(mapper.toNamedMetric(row));
             }
 
-            // 4. En Ã§ok ziyaret edilen sayfalar
+            // 4. En çok ziyaret edilen sayfalar
             RunReportResponse pagesReport = client.runReport(RunReportRequest.newBuilder()
                     .setProperty(property)
                     .addDateRanges(dr)
@@ -138,13 +127,12 @@ public class GoogleAnalyticsService {
                     .setLimit(8)
                     .build());
 
-            List<GaOverviewResponse.GaNamedMetric> topPages = new ArrayList<>();
+            List<GaNamedMetric> topPages = new ArrayList<>();
             for (Row row : pagesReport.getRowsList()) {
-                topPages.add(new GaOverviewResponse.GaNamedMetric(
-                        row.getDimensionValues(0).getValue(), parseLong(row, 0)));
+                topPages.add(mapper.toNamedMetric(row));
             }
 
-            // 5. Ãœlkelere gÃ¶re
+            // 5. Ülkelere göre
             RunReportResponse countriesReport = client.runReport(RunReportRequest.newBuilder()
                     .setProperty(property)
                     .addDateRanges(dr)
@@ -154,10 +142,9 @@ public class GoogleAnalyticsService {
                     .setLimit(5)
                     .build());
 
-            List<GaOverviewResponse.GaNamedMetric> topCountries = new ArrayList<>();
+            List<GaNamedMetric> topCountries = new ArrayList<>();
             for (Row row : countriesReport.getRowsList()) {
-                topCountries.add(new GaOverviewResponse.GaNamedMetric(
-                        row.getDimensionValues(0).getValue(), parseLong(row, 0)));
+                topCountries.add(mapper.toNamedMetric(row));
             }
 
             return new GaOverviewResponse(
@@ -183,7 +170,7 @@ public class GoogleAnalyticsService {
         }
     }
 
-    // â”€â”€â”€ YardÄ±mcÄ± â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Yardımcılar ─────────────────────────────────────────────────────────
 
     private BetaAnalyticsDataClient buildClient(String accessToken) throws Exception {
         AccessToken googleAccessToken = new AccessToken(accessToken,
@@ -195,10 +182,6 @@ public class GoogleAnalyticsService {
                 .build();
 
         return BetaAnalyticsDataClient.create(settings);
-    }
-
-    private DateRange dateRange(String start, String end) {
-        return DateRange.newBuilder().setStartDate(start).setEndDate(end).build();
     }
 
     private Metric metric(String name) {
@@ -215,22 +198,4 @@ public class GoogleAnalyticsService {
                 .setDesc(true)
                 .build();
     }
-
-    private long parseLong(Row row, int idx) {
-        try { return Long.parseLong(row.getMetricValues(idx).getValue()); }
-        catch (NumberFormatException e) { return 0L; }
-    }
-
-    private double parseDouble(Row row, int idx) {
-        try { return Double.parseDouble(row.getMetricValues(idx).getValue()); }
-        catch (NumberFormatException e) { return 0.0; }
-    }
-
-    /** YYYYMMDD â†’ DD.MM */
-    private String formatDate(String yyyymmdd) {
-        if (yyyymmdd.length() != 8) return yyyymmdd;
-        return yyyymmdd.substring(6) + "." + yyyymmdd.substring(4, 6);
-    }
 }
-
-

@@ -1,12 +1,12 @@
-package com.fogistanbul.crm.service;
+package com.fogistanbul.crm.webdesign.application;
 
-import com.fogistanbul.crm.dto.PageSpeedReportResponse;
-import com.fogistanbul.crm.dto.PageSpeedScoreResponse;
 import com.fogistanbul.crm.entity.Company;
-import com.fogistanbul.crm.entity.PageSpeedSnapshot;
-import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
-import com.fogistanbul.crm.repository.PageSpeedSnapshotRepository;
+import com.fogistanbul.crm.service.GoogleOAuthService;
+import com.fogistanbul.crm.webdesign.PageSpeedSnapshotRepository;
+import com.fogistanbul.crm.webdesign.domain.PageSpeedSnapshot;
+import com.fogistanbul.crm.webdesign.dto.PageSpeedReportResponse;
+import com.fogistanbul.crm.webdesign.dto.PageSpeedScoreResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
@@ -33,28 +33,26 @@ public class PageSpeedService {
 
     private final CompanyRepository companyRepository;
     private final PageSpeedSnapshotRepository snapshotRepository;
-    private final CompanyMembershipRepository membershipRepository;
     private final GoogleOAuthService googleOAuthService;
+    private final PageSpeedMapper mapper;
     private final String apiKey;
     private final RestClient restClient;
 
     public PageSpeedService(CompanyRepository companyRepository,
                             PageSpeedSnapshotRepository snapshotRepository,
-                            CompanyMembershipRepository membershipRepository,
                             GoogleOAuthService googleOAuthService,
+                            PageSpeedMapper mapper,
                             @Value("${app.pagespeed.api-key:}") String apiKey) {
         this.companyRepository = companyRepository;
         this.snapshotRepository = snapshotRepository;
-        this.membershipRepository = membershipRepository;
         this.googleOAuthService = googleOAuthService;
+        this.mapper = mapper;
         this.apiKey = apiKey;
         this.restClient = RestClient.builder().build();
     }
 
     @Transactional
-    public PageSpeedReportResponse getReport(UUID companyId, UUID userId, String role, boolean refresh) {
-        ensureReadAccess(companyId, userId, role);
-
+    public PageSpeedReportResponse getReport(UUID companyId, boolean refresh) {
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
 
@@ -81,9 +79,7 @@ public class PageSpeedService {
     }
 
     @Transactional
-    public void updateWebsite(UUID companyId, UUID userId, String role, String websiteUrl) {
-        ensureReadAccess(companyId, userId, role);
-
+    public void updateWebsite(UUID companyId, String websiteUrl) {
         String normalized = normalizeUrl(websiteUrl);
         if (normalized == null) {
             throw new RuntimeException("Website adresi bos olamaz");
@@ -106,7 +102,7 @@ public class PageSpeedService {
                 && url.equals(existing.get().getTestedUrl())) {
             Instant ageCutoff = Instant.now().minus(CACHE_TTL);
             if (existing.get().getFetchedAt().isAfter(ageCutoff)) {
-                return toResponse(existing.get());
+                return mapper.toScoreResponse(existing.get());
             }
         }
 
@@ -121,14 +117,14 @@ public class PageSpeedService {
             snap.setTestedUrl(websiteUrl != null ? websiteUrl : "");
             snap.setFetchedAt(Instant.now());
             snap.setFetchError("Sirket icin website adresi tanimli degil");
-            return toResponse(snapshotRepository.save(snap));
+            return mapper.toScoreResponse(snapshotRepository.save(snap));
         }
 
         if (apiKey.isBlank()) {
             snap.setTestedUrl(url);
             snap.setFetchedAt(Instant.now());
             snap.setFetchError("PAGESPEED_API_KEY tanimli degil");
-            return toResponse(snapshotRepository.save(snap));
+            return mapper.toScoreResponse(snapshotRepository.save(snap));
         }
 
         try {
@@ -143,11 +139,10 @@ public class PageSpeedService {
             snap.setFetchError(truncate(ex.getMessage(), 500));
         }
 
-        return toResponse(snapshotRepository.save(snap));
+        return mapper.toScoreResponse(snapshotRepository.save(snap));
     }
 
     private Map<?, ?> callApi(String url, String strategy) {
-        // PageSpeed API requires the url param unencoded — URI.create avoids encoding
         URI uri = UriComponentsBuilder.fromUriString(PAGESPEED_ENDPOINT)
                 .queryParam("url", url)
                 .queryParam("strategy", strategy)
@@ -176,9 +171,7 @@ public class PageSpeedService {
         snap.setFetchedAt(Instant.now());
 
         Map<String, Object> lh = (Map<String, Object>) response.get("lighthouseResult");
-        if (lh == null) {
-            return;
-        }
+        if (lh == null) return;
 
         Map<String, Map<String, Object>> categories = (Map<String, Map<String, Object>>) lh.get("categories");
         if (categories != null) {
@@ -212,29 +205,9 @@ public class PageSpeedService {
         return n.doubleValue();
     }
 
-    private PageSpeedScoreResponse toResponse(PageSpeedSnapshot s) {
-        return PageSpeedScoreResponse.builder()
-                .strategy(s.getStrategy())
-                .testedUrl(s.getTestedUrl())
-                .performance(s.getPerformance())
-                .accessibility(s.getAccessibility())
-                .bestPractices(s.getBestPractices())
-                .seo(s.getSeo())
-                .lcpMs(s.getLcpMs())
-                .fidMs(s.getFidMs())
-                .clsValue(s.getClsValue())
-                .tbtMs(s.getTbtMs())
-                .fcpMs(s.getFcpMs())
-                .fetchedAt(s.getFetchedAt())
-                .fetchError(toDisplayFetchError(s.getFetchError()))
-                .build();
-    }
-
     private String resolveWebsiteUrl(Company company) {
         String companyWebsite = normalizeBlank(company.getWebsite());
-        if (companyWebsite != null) {
-            return companyWebsite;
-        }
+        if (companyWebsite != null) return companyWebsite;
         return googleOAuthService.getSiteUrl(company.getId())
                 .map(this::normalizeBlank)
                 .orElse(null);
@@ -258,15 +231,6 @@ public class PageSpeedService {
         return trimmed;
     }
 
-    private void ensureReadAccess(UUID companyId, UUID userId, String role) {
-        if ("ROLE_ADMIN".equals(role) || "ROLE_AGENCY_STAFF".equals(role)) {
-            return;
-        }
-        if (!membershipRepository.existsByUserIdAndCompanyId(userId, companyId)) {
-            throw new RuntimeException("Bu sirkete erisim yetkiniz yok");
-        }
-    }
-
     private String truncate(String s, int max) {
         if (s == null) return null;
         return s.length() <= max ? s : s.substring(0, max);
@@ -283,19 +247,5 @@ public class PageSpeedService {
             return "PageSpeed API kotasi dolmus olabilir. Bir sure sonra tekrar deneyin.";
         }
         return "PageSpeed API " + status + ": " + truncate(body, 200);
-    }
-
-    private String toDisplayFetchError(String error) {
-        if (error == null) return null;
-        if (error.contains("FAILED_DOCUMENT_REQUEST")) {
-            return "Google PageSpeed siteyi yukleyemedi. Site tarayicida acilsa bile Google Lighthouse tarafindan engelleniyor, cok yavas yanit veriyor veya bot/guvenlik kurallarina takiliyor olabilir.";
-        }
-        if (error.contains("API key not valid")) {
-            return "PAGESPEED_API_KEY gecersiz gorunuyor.";
-        }
-        if (error.toLowerCase().contains("quota") || error.contains("429")) {
-            return "PageSpeed API kotasi dolmus olabilir. Bir sure sonra tekrar deneyin.";
-        }
-        return error;
     }
 }

@@ -39,9 +39,9 @@ Onerilen strateji:
 | Shoots | **TAMAMLANDI** | 9 Haziran 2026 | CRUD, katilimci/ekipman, content plan baglantilari, takvim ve export akislari modullestirildi |
 | Content plans / approvals | **TAMAMLANDI** | 9 Haziran 2026 | CRUD, durum gecisleri, client onaylari, staff inceleme akisi ve ortak frontend feature'i modullestirildi |
 | PR projects | **TAMAMLANDI** | 10 Haziran 2026 | Proje/faz/uye/not/task baglantilari, authorization ve ortak frontend feature'i modullestirildi |
-| Files / media library | Bekliyor | - | - |
-| Messaging | Bekliyor | - | - |
-| Integrations | Bekliyor | - | Her entegrasyon ayri modul olacak |
+| Files / media library | **TAMAMLANDI** | 10 Haziran 2026 | Dosya erisimi, attachment baglantilari ve ortak medya feature'i modullestirildi |
+| Messaging | **TAMAMLANDI** | 10 Haziran 2026 | Direct/grup mesajlasma, WebSocket ve ortak frontend feature'i modullestirildi |
+| Integrations | Devam ediyor | - | PageSpeed/Web Design ve Google Analytics tamamlandi; sirada Search Console var |
 
 ## 2. Mevcut Durumun Olculebilir Ozeti
 
@@ -1612,3 +1612,105 @@ Files / media library dikey dilimi backend authorization, entity bazli erisim, s
 Messaging dikey dilimi backend authorization, DM/grup mesajlasma, WebSocket entegrasyonu ve ortak frontend feature'i ile tamamlandi. Yetkisiz konusma/grup erisim acigi kapandi; sayfa bilesenleri orkestrator pattern'ine donusturuldu.
 
 **Siradaki modul: Entegrasyon modulleri (Faz 6).** Ilk hedef PageSpeed / Web Design entegrasyonunu ayri feature sinirinda yapılandırmak.
+
+## 27. Web Design / PageSpeed Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 10 Haziran 2026
+
+### Backend
+
+- `PageSpeedController` ve `PageSpeedService` eski `controller/` ve `service/` paketlerinden `com.fogistanbul.crm.webdesign` modulu altinda `web/` ve `application/` sinirlarina tasindi.
+- 2 DTO (`PageSpeedReportResponse`, `PageSpeedScoreResponse`) eski `dto/` paketinden `webdesign/dto/` altina tasindi.
+- `PageSpeedSnapshot` entity'si `entity/` paketinden `webdesign/domain/` altina tasindi.
+- `PageSpeedSnapshotRepository` `repository/` paketinden `webdesign/` altina tasindi.
+- `PageSpeedAccessPolicy` olusturuldu: staff okuma yetkisi kontrolu (ADMIN/AGENCY_STAFF gecis) ve client icin sirket uyeligi + WEB_DESIGN servis aktivasyon kontrolu tek noktada toplandı.
+- `PageSpeedMapper` olusturuldu: `toScoreResponse()` donusum mantigi `PageSpeedService`'den ayrildi; fetch error mesaj formatlama da mapper'a tasindi.
+- `PageSpeedService` sadeleştirildi: `CompanyMembershipRepository` ve `ensureReadAccess()` kaldirildi; yetkilendirme `PageSpeedAccessPolicy`'e, mapping `PageSpeedMapper`'a delege edildi.
+- `PageSpeedController` sadeleştirildi: `CompanyMembershipRepository` bagimliligi kaldirildi; access kontrolu `PageSpeedAccessPolicy`'e delege edildi.
+- Eski 6 dosya (`controller/`, `service/`, `dto/` altindakiler + entity + repository) silindi.
+- Mevcut HTTP endpoint contract'lari korundu (`/api/staff/companies/{id}/pagespeed`, `/api/client/pagespeed`, `/api/client/pagespeed/website`).
+
+### Frontend
+
+- `frontend/src/features/web-design` altinda API client, tipler, query key factory, yardimci fonksiyonlar ve UI bilesenleri olusturuldu.
+- `webDesign.types.ts`: Tum tip tanimlari (`PageSpeedScore`, `PageSpeedReport`, `Strategy`, `HealthTone`, `toneStyles`).
+- `webDesignKeys.ts`: React Query key factory (`report`).
+- `api/webDesignApi.ts`: API fonksiyonlari `api/webDesign.ts`'den ayrildi.
+- `model/webDesign.utils.ts`: `normalizeInputUrl`, `scoreTone`, `metricTone`, `statusIcon`, `formatMs`, `formatCls`, `formatDate`, `formatRelative`, `averageScore`, `overallMessage`, `scoreColor`, `scoreRing` fonksiyonlari her iki sayfada tekrarlanan inline koddan cikarildi.
+- `ui/PageSpeedCards.tsx`: `HealthSummary`, `DeviceCompareCard`, `ConnectionCard`, `ScoreInsightCard`, `VitalCard`, `ReadinessRow` bilesenleri `PageSpeedDetailPage`'den ayrildi.
+- `ui/WebDesignPanel.tsx`: `components/analytics/WebDesignPanel.tsx`'den feature modulune tasindi; tipleri ve utility fonksiyonlari feature modulunden aliyor.
+- `ui/WebDesignAdminSection.tsx`: `components/admin/WebDesignAdminSection.tsx`'den feature modulune tasindi.
+- `api/webDesign.ts`, `components/analytics/WebDesignPanel.tsx`, `components/admin/WebDesignAdminSection.tsx` backward compat re-export dosyalarina donusturuldu.
+- `pages/client/PageSpeedDetailPage.tsx` 698 satirdan ~215 satira indirildi; tum alt bilesenler `features/web-design/ui/PageSpeedCards` modulunden import ediliyor.
+
+### Test ve Dogrulama
+
+- Backend `PageSpeedAccessPolicyTest`: 6 test.
+- Backend `PageSpeedServiceTest`: 2 test.
+- Tum backend sonucu: **89 test basarili** (onceki 81'den 8 yeni test).
+- Frontend `webDesign.utils.test.ts`: 22 yeni test (`normalizeInputUrl`, `scoreTone`, `metricTone`, `formatMs`, `formatCls`, `averageScore`).
+- Tum frontend sonucu: **65 test basarili** (onceki 43'ten 22 yeni test).
+- `npm run build`: **basarili**.
+- `mvn test`: **basarili**.
+
+### Bilinen Gecis Borclari
+
+- `PageSpeedReport` frontend tipi `analyticsConnected` / `searchConsoleConnected` alanlarini iceriyor; bu alanlar ileride Google Analytics ve Search Console modulleri ayrı feature sinirina tasındığında yeniden gözden gecirilmeli.
+- Production bundle ~1.84 MB; route-level lazy loading Faz 7'de ele alinmali.
+
+### Sonuc ve Siradaki Modul
+
+Web Design / PageSpeed dikey dilimi backend authorization, entity bazli erisim, altyapi bilgisi yonetimi ve ortak frontend feature'i ile tamamlandi. Yetkisiz sirket pagespeed erisim acigi kapandi; sayfa bilesenler orkestrator pattern'ine donusturuldu.
+
+**Siradaki modul: Google Analytics (Faz 6 - 2. entegrasyon).** Hedef: GA4 metriklerini ayri feature sinirinda modularize etmek.
+
+## 28. Google Analytics Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 10 Haziran 2026
+
+### Backend
+
+- `GoogleAnalyticsController` ve `GoogleAnalyticsService` eski `controller/` ve `service/` paketlerinden `com.fogistanbul.crm.googleanalytics` modulu altinda `web/` ve `application/` sinirlarina tasindi.
+- `GaOverviewResponse` DTO eski `dto/` paketinden `googleanalytics/dto/` altina tasindi.
+- `GoogleAnalyticsAccessPolicy` olusturuldu: DIGITAL_MARKETING servis aktivasyon kontrolu tek noktada toplandı; eski `serviceAccessGuard.requireService` controller'dan policy'e tasinди.
+- `GoogleAnalyticsMapper` olusturuldu: `formatDate()`, `toDailyRow()`, `toNamedMetric()`, `parseLong()`, `parseDouble()` donusum mantigi `GoogleAnalyticsService`'den ayrildi.
+- `GoogleAnalyticsService` sadeleştirildi: inline satir donusum donguleri mapper'a delege edildi.
+- `GoogleAnalyticsController` sadeleştirildi: `CompanyServiceAccessGuard` bagimliligi kaldirildi; erisim `GoogleAnalyticsAccessPolicy`'e delege edildi.
+- `GoogleOAuthService` ve `OAuthController` paylasilan altyapi olduklari icin `service/` ve `controller/` paketlerinde kaldi (Search Console, Google Ads ile ortak kullanim).
+- Eski 3 dosya (`controller/GoogleAnalyticsController.java`, `service/GoogleAnalyticsService.java`, `dto/GaOverviewResponse.java`) silindi.
+- HTTP endpoint contract'lari korundu (`/api/client/analytics/ga/status`, `/api/client/analytics/ga/overview`, `/api/client/analytics/ga/property`, `/api/client/analytics/ga/disconnect`).
+
+### Frontend
+
+- `frontend/src/features/google-analytics/` altinda tip tanimlari, key factory, API client, utility fonksiyonlar ve UI bilesenleri olusturuldu.
+- `googleAnalytics.types.ts`: `GaDailyRow`, `GaNamedMetric`, `GaOverviewResponse`, `GaStatusResponse`, `DatePreset`, `SourcePieEntry`, `CountryBarEntry` tipleri.
+- `googleAnalyticsKeys.ts`: React Query key factory (`status`, `overview`).
+- `api/googleAnalyticsApi.ts`: API fonksiyonlari `api/googleAnalytics.ts`'den ayrildi.
+- `model/googleAnalytics.utils.ts`: `DATE_PRESETS`, `PANEL_PRESETS`, `SOURCE_COLORS`, `COUNTRY_COLORS`, `formatDuration`, `formatNum`, `computeEngagementRate`, `computeSessionsPerUser`, `buildSourcePieData`, `buildCountryBarData` fonksiyonlari iki farkli sayfada tekrarlanan inline koddan cikarildi.
+- `ui/GoogleAnalyticsCards.tsx`: `ChartTooltip`, `BigMetricCard`, `MetricCard`, `SectionHeader` bilesenleri hem `GoogleAnalyticsDetailPage` hem `GoogleAnalyticsPanel`'den ayrildi.
+- `ui/GoogleAnalyticsPanel.tsx`: `components/analytics/GoogleAnalyticsPanel.tsx`'den feature modulune tasindi; tipleri ve utility fonksiyonlari feature modulunden aliyor.
+- `api/googleAnalytics.ts` ve `components/analytics/GoogleAnalyticsPanel.tsx` backward compat re-export dosyalarina donusturuldu.
+- `pages/client/GoogleAnalyticsDetailPage.tsx` 668 satirdan ~415 satira indirildi (inline sub-component ve yardimci fonksiyonlar kaldirildi).
+
+### Test ve Dogrulama
+
+- Backend `GoogleAnalyticsAccessPolicyTest`: 3 test.
+- Backend `GoogleAnalyticsMapperTest`: 8 test (formatDate, toDailyRow, toNamedMetric).
+- Backend `GoogleAnalyticsServiceTest`: 6 test (isConfigured, getOverview).
+- Tum backend sonucu: **106 test basarili** (onceki 89'dan 17 yeni test).
+- Frontend `googleAnalytics.utils.test.ts`: 30 yeni test (`formatDuration`, `formatNum`, `computeEngagementRate`, `computeSessionsPerUser`, `buildSourcePieData`, `buildCountryBarData`, `DATE_PRESETS`, `PANEL_PRESETS`).
+- Tum frontend sonucu: **95 test basarili** (onceki 65'ten 30 yeni test).
+- `npm run build`: **basarili**.
+- `mvn test`: **basarili**.
+
+### Bilinen Gecis Borclari
+
+- `GoogleOAuthService` (ANALYTICS, SEARCH_CONSOLE, GOOGLE_ADS token yonetimi) henuz `service/` paketinde; Search Console ve Google Ads modulleri ayri feature sinirlarana tasindiktan sonra ortak `google/` altyapi paketine tasinmali.
+- `OAuthController` (`/api/oauth/google/callback`) henuz `controller/` paketinde; butun Google servisleri modularize edildikten sonra ortak bir yere tasinabilir.
+- Production bundle ~1.84 MB; route-level lazy loading Faz 7'de ele alinmali.
+
+### Sonuc ve Siradaki Modul
+
+Google Analytics dikey dilimi backend authorization, mapper ayristirmasi ve ortak frontend feature'i ile tamamlandi. GA4 metrik verileri icin erisim kontrolu `GoogleAnalyticsAccessPolicy`'e toplandı; iki sayfa arasinda tekrarlanan 100+ satir inline kod feature modulune tasindi.
+
+**Siradaki modul: Search Console (Faz 6 - 3. entegrasyon).** Hedef: Search Console verilerini ayri feature sinirinda modularize etmek.

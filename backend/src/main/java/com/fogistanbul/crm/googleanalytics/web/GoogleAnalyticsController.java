@@ -1,9 +1,8 @@
-package com.fogistanbul.crm.controller;
+package com.fogistanbul.crm.googleanalytics.web;
 
-import com.fogistanbul.crm.dto.GaOverviewResponse;
-import com.fogistanbul.crm.entity.enums.ServiceCategory;
-import com.fogistanbul.crm.company.application.CompanyServiceAccessGuard;
-import com.fogistanbul.crm.service.GoogleAnalyticsService;
+import com.fogistanbul.crm.googleanalytics.application.GoogleAnalyticsAccessPolicy;
+import com.fogistanbul.crm.googleanalytics.application.GoogleAnalyticsService;
+import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse;
 import com.fogistanbul.crm.service.GoogleOAuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -17,13 +16,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class GoogleAnalyticsController {
 
-    private final GoogleAnalyticsService googleAnalyticsService;
+    private final GoogleAnalyticsService analyticsService;
     private final GoogleOAuthService googleOAuthService;
-    private final CompanyServiceAccessGuard serviceAccessGuard;
+    private final GoogleAnalyticsAccessPolicy accessPolicy;
 
     @GetMapping("/status")
     public Map<String, Object> status(@RequestParam UUID companyId, Authentication auth) {
-        serviceAccessGuard.requireService((UUID) auth.getPrincipal(), companyId, ServiceCategory.DIGITAL_MARKETING);
+        accessPolicy.requireClientAccess((UUID) auth.getPrincipal(), companyId);
         boolean connected = googleOAuthService.isConnected(companyId);
         String propertyId = googleOAuthService.getPropertyId(companyId).orElse(null);
         String authUrl = connected ? null : googleOAuthService.buildAuthorizationUrl(companyId, "ANALYTICS");
@@ -38,15 +37,15 @@ public class GoogleAnalyticsController {
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             Authentication auth) {
-        serviceAccessGuard.requireService((UUID) auth.getPrincipal(), companyId, ServiceCategory.DIGITAL_MARKETING);
-        return googleAnalyticsService.getOverview(companyId, startDate, endDate);
+        accessPolicy.requireClientAccess((UUID) auth.getPrincipal(), companyId);
+        return analyticsService.getOverview(companyId, startDate, endDate);
     }
 
     @PostMapping("/property")
     public Map<String, String> saveProperty(@RequestParam UUID companyId,
             @RequestBody Map<String, String> body,
             Authentication auth) {
-        serviceAccessGuard.requireService((UUID) auth.getPrincipal(), companyId, ServiceCategory.DIGITAL_MARKETING);
+        accessPolicy.requireClientAccess((UUID) auth.getPrincipal(), companyId);
         String propertyId = body.get("propertyId");
         if (propertyId == null || propertyId.isBlank()) {
             return Map.of("error", "propertyId bos olamaz");
@@ -57,7 +56,7 @@ public class GoogleAnalyticsController {
 
     @DeleteMapping("/disconnect")
     public Map<String, String> disconnect(@RequestParam UUID companyId, Authentication auth) {
-        serviceAccessGuard.requireService((UUID) auth.getPrincipal(), companyId, ServiceCategory.DIGITAL_MARKETING);
+        accessPolicy.requireClientAccess((UUID) auth.getPrincipal(), companyId);
         googleOAuthService.disconnect(companyId, "ANALYTICS");
         return Map.of("status", "ok");
     }

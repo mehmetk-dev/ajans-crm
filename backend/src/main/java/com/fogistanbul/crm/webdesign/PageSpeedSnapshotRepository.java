@@ -1,6 +1,6 @@
-package com.fogistanbul.crm.repository;
+package com.fogistanbul.crm.webdesign;
 
-import com.fogistanbul.crm.entity.PageSpeedSnapshot;
+import com.fogistanbul.crm.webdesign.domain.PageSpeedSnapshot;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
