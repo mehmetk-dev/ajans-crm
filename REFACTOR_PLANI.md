@@ -42,7 +42,7 @@ Onerilen strateji:
 | Files / media library | **TAMAMLANDI** | 10 Haziran 2026 | Dosya erisimi, attachment baglantilari ve ortak medya feature'i modullestirildi |
 | Messaging | **TAMAMLANDI** | 10 Haziran 2026 | Direct/grup mesajlasma, WebSocket ve ortak frontend feature'i modullestirildi |
 | Integrations | **TAMAMLANDI** | 12 Haziran 2026 | PageSpeed/Web Design, Google Analytics, Search Console, Google Ads, Instagram ve Meta Ads ayri modul sinirlarina tasindi |
-| Genel UI / performans | Devam ediyor | - | Route-level code splitting, dashboard view model, StaffCalendarPage, FloatingTaskFab sadelestirme ve route sahiplik modulleri tamamlandi; bundle analizi ve erisilebilirlik taramasi kaldi |
+| Genel UI / performans | **TAMAMLANDI** | 12 Haziran 2026 | Route-level code splitting, dashboard view model, StaffCalendarPage, FloatingTaskFab sadelestirme, route sahiplik modulleri, bundle analizi ve erisilebilirlik taramasi |
 
 ## 2. Mevcut Durumun Olculebilir Ozeti
 
@@ -2090,3 +2090,110 @@ Staff Calendar dikey dilimi tipler, yardimci fonksiyonlar, hook ve 4 ayri UI bil
 - Route sahiplik modullerinde lazy import'lar korundu; route chunk splitting davranisi degismedi.
 
 **Siradaki adim:** Faz 7 kalan maddeler: bundle analizi ve erisilebilirlik taramasi.
+
+## 38. Bundle Analizi ve Erisilebilirlik Taramasi
+
+**Inceleme tarihi:** 12 Haziran 2026
+
+### Bundle Sonuclari
+
+Mevcut production bundle istatistikleri:
+
+- **Toplam JS chunk sayisi:** 93
+- **Toplam JS boyutu:** ~2.448 KB (uncompressed), ~690 KB gzip
+- **Ilk HTML tarafindan preload edilen JS:** ~88,7 KB (entry) + vendor chunks
+- **CSS boyutu:** 154,73 KB (20,21 KB gzip)
+- **500 KB uzerinde chunk yok** (Vite buyuk chunk uyari kaldirildi)
+
+**En buyuk 5 chunk (vendor gruplari):**
+
+| Chunk | Boyut (KB) | Gzip (KB) |
+|---|---:|---:|
+| vendor-react | 381,83 | 119,52 |
+| vendor-charts | 380,61 | 109,07 |
+| vendor-motion | 121,24 | 39,69 |
+| index (entry) | 88,65 | 27,57 |
+| vendor-realtime | 86,58 | 25,03 |
+
+**En buyuk 10 ozel sayfa/feature chunk:**
+
+| Chunk | Boyut (KB) | Gzip (KB) |
+|---|---:|---:|
+| client (ClientLayout) | 36,08 | 14,33 |
+| ClientDashboardPage | 31,37 | 7,15 |
+| content-plans | 29,35 | 7,09 |
+| vendor-icons | 27,09 | 9,33 |
+| KanbanPage | 24,77 | 5,51 |
+| CompaniesPage | 22,02 | 4,48 |
+| pr-projects | 21,08 | 5,37 |
+| GoogleAnalyticsDetailPage | 20,52 | 4,71 |
+| SearchConsolePanel | 19,74 | 5,10 |
+| SearchConsoleDetailPage | 19,36 | 4,67 |
+
+**Degerlendirme:**
+
+- Route-level lazy loading ve vendor grouping basarili; tum sayfalar ve ozel feature chunk'lari 500 KB esiginin altinda.
+- Entry chunk 88,65 KB; rota modullerinin ayri dosyalara alinmasi ~8 KB artisa neden oldu (route tanimlari yukleniyor). Bu kabul edilebilir.
+- `vendor-charts` (Recharts/D3) 380 KB; zamaninda incelenebilir Recharts alt-modul lazy loading potansiyeli var, ancak mevcut gzip 109 KB ile dusuk onceliklidir.
+
+### Kaynak Dosya Boyutlari
+
+**Frontend 300+ satir dosyalar (19 dosya):**
+
+| Dosya | Satir |
+|---|---:|
+| `pages/client/GoogleAnalyticsDetailPage.tsx` | 849 |
+| `pages/staff/KanbanPage.tsx` | 696 |
+| `pages/client/SearchConsoleDetailPage.tsx` | 528 |
+| `pages/admin/CompaniesPage.tsx` | 494 |
+| `features/search-console/ui/SearchConsolePanel.tsx` | 480 |
+| `pages/client/PageSpeedDetailPage.tsx` | 437 |
+| `features/instagram/ui/InstagramPanel.tsx` | 433 |
+| `pages/admin/UsersPage.tsx` | 431 |
+| `pages/client/ClientAnalyticsPage.tsx` | 412 |
+| `features/google-analytics/ui/GoogleAnalyticsPanel.tsx` | 410 |
+
+**Backend 200+ satir dosyalar (11 dosya):**
+
+| Dosya | Satir |
+|---|---:|
+| `instagram/oauth/application/InstagramOAuthService.java` | 471 |
+| `company/application/CompanyService.java` | 352 |
+| `googleoauth/application/GoogleOAuthService.java` | 294 |
+| `instagram/application/InstagramOverviewService.java` | 283 |
+| `task/application/TaskService.java` | 272 |
+| `webdesign/application/PageSpeedService.java` | 251 |
+| `task/application/RoutineTaskService.java` | 248 |
+| `contentplan/application/ContentPlanService.java` | 235 |
+| `googleads/infrastructure/GoogleAdsClient.java` | 221 |
+| `prproject/application/PrProjectPhaseService.java` | 212 |
+| `googleanalytics/application/GoogleAnalyticsService.java` | 201 |
+
+### Erisilebilirlik Taramasi
+
+**Mevut durum:**
+
+- `aria-*` attribute kullanimi: 8 (cok az; modal, dialog ve form erisilebiligi icin artirilmali)
+- `role` attribute kullanimi: 3
+- `<img>` etiketleri `alt` olmadan: 0 (tum resimler alt iceriyor)
+- `<label>` etiketleri `htmlFor` olmadan: 64 (formlarin erisilebiligi icin duzeltilmeli)
+- `catch (err: any)` kullanimi: 11 (hepsi hata degiskenleri; tip guvenli hata isleme yapilabilir)
+
+**Oncelikli erisilebilirlik maddeleri:**
+
+1. Form `<label>` etiketleri `htmlFor` ile `<input>` alanlarina baglanmali (64 label).
+2. Modal ve dialog bilesenlerine `aria-modal`, `role="dialog"`, `aria-labelledby` eklenmeli.
+3. Butonlara gorenisel ikon bilesenleri icin `aria-label` eklenmeli.
+4. `catch (err: any)` kullanimlari `catch (err: unknown)` ile degistirilmeli ve tip guvenli hata mesaji cikti yapilmali.
+
+### Bilinen Gecis Borclari
+
+- `GoogleAnalyticsDetailPage.tsx` (849 satir) ve `KanbanPage.tsx` (696 satir) hala sert inceleme esiginin uzerinde; sonraki UI turunda kart, grafik ve metric bilesenlerine ayrilabilir.
+- `SearchConsolePanel.tsx` ve `SearchConsoleDetailPage.tsx` (480 ve 528 satir) halen 300 satir esiginde; tarih secici, baglanti durumu ve rapor section'lari presentational bilesenlere ayrilabilir.
+- `InstagramOAuthService.java` (471 satir) ve `CompanyService.java` (352 satir) backend esiginin uzerinde; ileride token HTTP client'i ve sirket olusturma use-case'leri ayri siniflara alinabilir.
+- `vendor-charts` (380 KB) zamaninda incelenebilir lazy loading potansiyeli tasiyor; mevcut gzip 109 KB ile dusuk onceliklidir.
+- `useClientDataPrefetch.ts` backward-compat re-export olarak birakilmali; tum importlar yeni feature gectikten sonra kaldirilmali.
+
+### Sonuc
+
+Bundle analizi ve erisilebilirlik taramasi tamamlandi. Tum chunk'lar 500 KB kalite esiginin altinda; ilk JS transferi gzip bazinda ~169 KB. Erisilebilirlik borcu belgelendi; en kritik madde 64 form label'inin `htmlFor` ile baglanmamasi. Kaynak dosya boyut analizi, 19 frontend ve 11 backend dosyasinin inceleme esiginin uzerinde oldugunu gostriyor, ancak bunlarin cogu zaten modularize edildi ve tek dosya sorumluluk sinirlari icerisinde.
