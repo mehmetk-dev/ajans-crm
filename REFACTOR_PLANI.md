@@ -42,7 +42,7 @@ Onerilen strateji:
 | Files / media library | **TAMAMLANDI** | 10 Haziran 2026 | Dosya erisimi, attachment baglantilari ve ortak medya feature'i modullestirildi |
 | Messaging | **TAMAMLANDI** | 10 Haziran 2026 | Direct/grup mesajlasma, WebSocket ve ortak frontend feature'i modullestirildi |
 | Integrations | **TAMAMLANDI** | 12 Haziran 2026 | PageSpeed/Web Design, Google Analytics, Search Console, Google Ads, Instagram ve Meta Ads ayri modul sinirlarina tasindi |
-| Genel UI / performans | Devam ediyor | - | Route-level code splitting, dashboard view model ve StaffCalendarPage moduler hale getirildi; FloatingTaskFab sadelestirme ve route sahiplik modülleri kaldi |
+| Genel UI / performans | Devam ediyor | - | Route-level code splitting, dashboard view model, StaffCalendarPage, FloatingTaskFab sadelestirme ve route sahiplik modulleri tamamlandi; bundle analizi ve erisilebilirlik taramasi kaldi |
 
 ## 2. Mevcut Durumun Olculebilir Ozeti
 
@@ -2041,4 +2041,52 @@ Uygulamanin tum sayfa kodunu ilk acilista indiren merkezi eager bundle kaldirild
 
 Client Dashboard view model ve query tekrar analizi tamamlandi. GA sorgusu icin inline key yerine feature key factory kullanildi; dashboard, detail sayfalari ve layout ayni veriyi ortak cache'den kullaniyor. 742 satirlik monolitik sayfa 1 satirlik route composition'a ve 6 ayrik feature bilesenine ayrildi. Tum tab component'leri tipli props kullaniyor.
 
-**Siradaki adim:** Faz 7 - Modul sonrasi genel UI ve performans kapsamindaki kalan maddeler: Dashboard view model'leri tamamlandigina gore sirada `StaffCalendarPage.tsx` (~400 satir) duzenleme, `FloatingTaskFab.tsx` sadelestirme, route sahiplik modulleri, bundle analizi ve erisilebilirlik taramasi var.
+## 35. Staff Calendar Feature Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 12 Haziran 2026
+
+### Frontend
+
+- `frontend/src/features/staff-calendar` altinda tipler, yardimci fonksiyonlar, indeks mantigi, hook ve UI bilesenleri olusturuldu.
+- `calendar.types.ts`: `QuickFilter`, `CalendarDay`, `DateIndex`, `AgendaItems` tipleri tanimlandi.
+- `calendar.utils.ts`: `formatDateKey`, `formatMeetingTime`, `getMonthDays`, `dateRange`, `getWeekRange`, `getMonthRange`, `isDateInRange`, `getSelection`, `selectionLabel`, `DAYS`, `MONTHS` fonksiyonlari ve sabitleri merkezi feature modulune alindi.
+- `calendar.index.ts`: `indexTasks`, `indexMeetings`, `indexShoots`, `collectAgenda` indeksleme ve ajanda toplama mantigi ayri dosyaya alindi.
+- `useStaffCalendar.ts`: Veri cekme, tarih secimi, ay degistirme ve ajanda hesaplama hook'u olusturuldu.
+- `CalendarGrid.tsx`: Takvim gridi, ay navigasyonu, gun hucreleri ve ajanda section'u ayri bilesen olarak ayrildi.
+- `ShootAgenda.tsx`, `MeetingAgenda.tsx`, `TaskAgenda.tsx`: Her ajanda turu ayri UI bilesenine alindi.
+- `StaffCalendarPage.tsx` 409 satirdan 48 satira indirildi; yalnizca route composition ve detay panel secimi iceriyor.
+
+### Test ve Dogrulama
+
+- Frontend `calendar.utils.test.ts`: 17 yeni test (formatDateKey, getMonthDays, dateRange, isDateInRange, getSelection, selectionLabel, indexTasks, collectAgenda).
+- Tum frontend sonucu: **152 test basarili** (onceki 133'ten 19 yeni test).
+- `npm run build`: **basarili**.
+
+### Sonuc
+
+Staff Calendar dikey dilimi tipler, yardimci fonksiyonlar, hook ve 4 ayri UI bileseniyle feature modulune tasindi. 409 satirlik sayfa 48 satirlik route composition'a donusturuldu.
+
+## 36. FloatingTaskFab Sadelestirme - TAMAMLANDI
+
+**Tamamlanma tarihi:** 12 Haziran 2026
+
+### Frontend
+
+- Satir ici `MessageForm` bileseni `features/messaging/ui/QuickMessageForm.tsx` olarak mesajlasma feature modulune tasindi.
+- `FloatingTaskFab.tsx` 171 satirdan 111 satira indirildi; dogrudan `messagingApi` bagimliligi kaldirildi.
+- QuickMessageForm `useNavigate` yerine `onNavigateMessages` callback prop'u kullaniyor; FAB ile sayfa navigasyonu birlesik ama moduler.
+
+## 37. Route Sahiplik Modulleri - TAMAMLANDI
+
+**Tamamlanma tarihi:** 12 Haziran 2026
+
+### Frontend
+
+- Admin, staff ve client route tanimlari `App.tsx`'ten ayri modul dosyalarina alindi:
+  - `app/routes/adminRoutes.tsx`
+  - `app/routes/staffRoutes.tsx`
+  - `app/routes/clientRoutes.tsx`
+- `App.tsx` 226 satirdan 65 satira indirildi; yalnizca provider composition, QueryClient yapilandirmasi ve route shell iceriyor.
+- Route sahiplik modullerinde lazy import'lar korundu; route chunk splitting davranisi degismedi.
+
+**Siradaki adim:** Faz 7 kalan maddeler: bundle analizi ve erisilebilirlik taramasi.
