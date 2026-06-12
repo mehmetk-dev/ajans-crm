@@ -42,7 +42,7 @@ Onerilen strateji:
 | Files / media library | **TAMAMLANDI** | 10 Haziran 2026 | Dosya erisimi, attachment baglantilari ve ortak medya feature'i modullestirildi |
 | Messaging | **TAMAMLANDI** | 10 Haziran 2026 | Direct/grup mesajlasma, WebSocket ve ortak frontend feature'i modullestirildi |
 | Integrations | **TAMAMLANDI** | 12 Haziran 2026 | PageSpeed/Web Design, Google Analytics, Search Console, Google Ads, Instagram ve Meta Ads ayri modul sinirlarina tasindi |
-| Genel UI / performans | Devam ediyor | - | Route-level code splitting tamamlandi; sirada dashboard view model ve query tekrar analizi var |
+| Genel UI / performans | Devam ediyor | - | Route-level code splitting tamamlandi; dashboard view model ve query tekrar analizi tamamlandi |
 
 ## 2. Mevcut Durumun Olculebilir Ozeti
 
@@ -878,7 +878,9 @@ Her PR:
 - [x] Shoots modulu.
 - [x] Content plans/approvals modulu.
 - [x] PR projects modulu.
-- [ ] Files ve media library modulu.
+- [x] Files ve media library modulu.
+- [x] Messaging modulu.
+- [x] Integrations (6 entegrasyon modulu)
 
 ## 10. Test Stratejisi
 
@@ -1991,3 +1993,52 @@ Meta Ads dikey dilimi Graph client, mapping, hesap ID yonetimi, authorization, t
 Uygulamanin tum sayfa kodunu ilk acilista indiren merkezi eager bundle kaldirildi. Route ve vendor sinirlari sayesinde ilk JS transferi yaklasik ucte bire indi ve tum chunk'lar kalite esiginin altina cekildi.
 
 **Siradaki adim: dashboard view model'leri ve query tekrar analizi.** Ilk hedef `ClientDashboard.tsx` icindeki coklu entegrasyon donusumlerini ve ayni veriyi farkli key'lerle isteyen sorgulari olcmek.
+
+## 34. Client Dashboard View Model ve Query Tekrar Analizi - TAMAMLANDI
+
+**Tamamlanma tarihi:** 12 Haziran 2026
+
+### Frontend
+
+- `frontend/src/features/client-dashboard` altinda tipler, query key factory, utility fonksiyonlar, hook ve UI bilesenleri olusturuldu.
+- `dashboard.types.ts`: TabKey, DashboardViewModel ve feature tipleri (GaOverviewResponse, ScOverviewResponse, IgOverviewResponse, ShootResponse, TaskResponse) re-export edildi.
+- `dashboardKeys.ts`: Tab bazli dogru query key factory'leri (`dashboardRefreshKeys.overview/web/social/schedule`) olusturuldu; her tab icin ilgili feature key factory'leri (`analyticsKeys`, `searchConsoleKeys`, `instagramKeys`, `shootKeys`, `taskKeys`) kullanildi.
+- `dashboard.utils.ts`: `fmt`, `pct`, `dur` formatlama fonksiyonlari merkezi feature modulu altina alindi.
+- `useClientDashboard.ts`: GA, SC, IG, shoots ve tasks sorgulari tek hook icinde toplandi; eski inline `['client-ga', cid]` key yerine `analyticsKeys.overview(companyId)` kullanildi; service gating mantigi hook icinde merkezi hale getirildi.
+- `useRefreshDashboard.ts`: Tab bazli yenileme ve tum veri yenileme hook'lari olusturuldu; dogru feature key factory'leri kullanarak invalidasyon yapiyor.
+- 742 satirlik `ClientDashboard.tsx` 1 satirlik route composition dosyasina donusturuldu.
+- `OverviewTab`, `WebAnalyticsTab`, `SocialTab`, `ScheduleTab` ayri sorumluluklara ayrildi.
+- `MetricCard`, `MiniStat`, `ChartCard`, `ListCard`, `QuickLink`, `EmptyState`, `DashboardLoader` yeniden kullanilabilir UI bilesenlerine ayrildi.
+- Tum tab component'leri artik tipli props kullaniyor; `any` kaldirildi.
+- ClientLayout `useClientDataPrefetch` yerine `useClientDashboard` hook'unu kullanmaya basladi.
+- ClientAnalyticsPage `useRefreshAllClientData` yerine `useRefreshDashboard` hook'unu kullanmaya basladi.
+- Eski `useClientDataPrefetch.ts` dosyasi backward-compat re-export olarak birakildi.
+
+### Query Key Duzenlemesi
+
+- GA sorgusu icin inline `['client-ga', companyId]` key yerine `analyticsKeys.overview(companyId)` kullanildi; ayni veri artik dashboard ve detail sayfalarinda ortak cache paylasiyor.
+- SC ve IG sorgulari zaten feature key factory'lerini kullaniyordu; devam edildi.
+- Shoots ve tasks sorgulari `shootKeys.list('client', 0, 20)` ve `taskKeys.clientList()` factory'lerini kullaniyor.
+- Tab bazli yenileme `dashboardRefreshKeys` ile her tab icin dogru feature key'lerini invalidate ediyor; string prefix yenileme kaldirildi.
+
+### Test ve Dogrulama
+
+- Frontend `dashboard.utils.test.ts`: 11 test (`fmt`, `pct`, `dur`).
+- Tum frontend sonucu: **133 test basarili** (onceki 122'den 11 yeni test).
+- Client-dashboard feature scoped ESLint: **basarili**.
+- `npm run build`: **basarili**.
+- `mvn test`: **160 test basarili**.
+
+### Bilinen Gecis Borclari
+
+- `ClientDashboardPage.tsx` yaklasik 140 satir; hedef esigin altinda ancak hero section, tab nav ve loading state halen tek dosyada. Ileride hero component'i ayri bir presentational bilesene alinabilir.
+- `SocialTab.tsx` ve `WebAnalyticsTab.tsx` Chart ve metric bilesenleri daha ince alt bilesenlere bolunebilir; mevcut durumda her tab sorumluluk sinirinda.
+- Route tanimlari hala merkezi `App.tsx` dosyasinda; sonraki router sahipligi turunda ayri modul dosyalarina alinabilir.
+- `useClientDataPrefetch.ts` backward-compat re-export olarak birakildi; tum importlar yeni feature gectikten sonra kaldirilmali.
+- Production bundle ~1.84 MB; route-level lazy loading ve vendor grouping zaten uygulandi.
+
+### Sonuc ve Siradaki Adim
+
+Client Dashboard view model ve query tekrar analizi tamamlandi. GA sorgusu icin inline key yerine feature key factory kullanildi; dashboard, detail sayfalari ve layout ayni veriyi ortak cache'den kullaniyor. 742 satirlik monolitik sayfa 1 satirlik route composition'a ve 6 ayrik feature bilesenine ayrildi. Tum tab component'leri tipli props kullaniyor.
+
+**Siradaki adim:** Faz 7 - Modul sonrasi genel UI ve performans kapsamindaki kalan maddeler: Dashboard view model'leri tamamlandigina gore sirada `StaffCalendarPage.tsx` (~400 satir) duzenleme, `FloatingTaskFab.tsx` sadelestirme, route sahiplik modulleri, bundle analizi ve erisilebilirlik taramasi var.

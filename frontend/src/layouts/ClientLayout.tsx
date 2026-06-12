@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { useUnreadCount } from '../hooks/useUnreadCount';
-import { useClientDataPrefetch } from '../hooks/useClientDataPrefetch';
+import { useClientDashboard } from '../features/client-dashboard';
 import { useActiveServices } from '../hooks/useActiveServices';
 import { clientApi } from '../api/clientPanel';
 import NotificationBell from '../components/NotificationBell';
@@ -48,7 +48,7 @@ const ALL_NAV_ITEMS = [
 export default function ClientLayout() {
     const { user, logout } = useAuth();
     const msgCount = useUnreadCount(clientApi.getMyConversations);
-    const { isLoading, isAllSettled } = useClientDataPrefetch();
+    const { isLoading, isAllSettled } = useClientDashboard();
     const { hasService, isLoading: servicesLoading } = useActiveServices();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [splashDone, setSplashDone] = useState(false);

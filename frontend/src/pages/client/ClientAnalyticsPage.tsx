@@ -15,14 +15,14 @@ import { MetaAdsPanel } from '../../features/meta-ads';
 import type { PageResponse } from '../../api/staff';
 import { shootApi, shootKeys, type ShootResponse } from '../../features/shoots';
 import { useAuth } from '../../store/AuthContext';
-import { useRefreshAllClientData } from '../../hooks/useClientDataPrefetch';
+import { useRefreshDashboard } from '../../features/client-dashboard';
 import { useActiveServices } from '../../hooks/useActiveServices';
 import { ServiceBlurOverlay } from '../../components/ServiceUpsellOverlay';
 
 export default function ClientAnalyticsPage() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const refreshAll = useRefreshAllClientData();
+    const { refreshAll } = useRefreshDashboard();
     const [refreshing, setRefreshing] = useState(false);
     
     const { hasService } = useActiveServices();
