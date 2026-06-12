@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
+import { isAxiosError } from 'axios';
 import { useAuth } from '../../store/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,18 +26,22 @@ export default function LoginPage() {
         try {
             await login(email, password);
             setTimeout(() => navigate('/'), 600);
-        } catch (err: any) {
-            const status = err?.response?.status;
-            if (!err?.response) {
-                setError('Sunucuya ulasilamiyor. Lutfen birkac saniye sonra tekrar deneyin.');
-            } else if (status === 429) {
-                setError('Cok fazla deneme yapildi. Lutfen biraz bekleyip tekrar deneyin.');
-            } else if (status === 401) {
-                setError('Gecersiz email veya sifre.');
-            } else if (status >= 500) {
-                setError('Sunucu gecici olarak hazir degil. Lutfen tekrar deneyin.');
+        } catch (err: unknown) {
+            if (isAxiosError(err)) {
+                const status = err.response?.status;
+                if (!err.response) {
+                    setError('Sunucuya ulasilamiyor. Lutfen birkas saniye sonra tekrar deneyin.');
+                } else if (status === 429) {
+                    setError('Cok fazla deneme yapildi. Lutfen biraz bekleyip tekrar deneyin.');
+                } else if (status === 401) {
+                    setError('Gecersiz email veya sifre.');
+                } else if ((status ?? 0) >= 500) {
+                    setError('Sunucu gecici olarak hazir degil. Lutfen tekrar deneyin.');
+                } else {
+                    setError(err.response?.data?.message || 'Erisim reddedildi. Bilgilerinizi dogrulayin.');
+                }
             } else {
-                setError(err.response?.data?.message || 'Erisim reddedildi. Bilgilerinizi dogrulayin.');
+                setError('Beklenmeyen bir hata olustu.');
             }
             setLoading(false);
         }

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useId, type FormEvent } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useStaffCompanies } from '../../company';
 import { useAssignableUsers } from '../../tasks';
@@ -17,6 +17,7 @@ export function ShootForm({ onSuccess }: { onSuccess: () => void }) {
     const { data: companies = [] } = useStaffCompanies();
     const { data: users = [] } = useAssignableUsers(form.companyId || undefined);
     const createShoot = useCreateShoot();
+    const id = useId();
 
     const update = <K extends keyof ShootFormValues>(key: K, value: ShootFormValues[K]) => {
         setForm(current => ({ ...current, [key]: value }));
@@ -33,21 +34,21 @@ export function ShootForm({ onSuccess }: { onSuccess: () => void }) {
     return (
         <form onSubmit={submit} className="space-y-4">
             <div>
-                <label className={labelClass}>Şirket *</label>
-                <select value={form.companyId} onChange={event => update('companyId', event.target.value)}
+                <label htmlFor={`${id}-company`} className={labelClass}>Şirket *</label>
+                <select id={`${id}-company`} value={form.companyId} onChange={event => update('companyId', event.target.value)}
                     className={inputClass} required>
                     <option value="">Şirket seçin</option>
                     {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
                 </select>
             </div>
             <div>
-                <label className={labelClass}>Başlık *</label>
-                <input value={form.title} onChange={event => update('title', event.target.value)}
+                <label htmlFor={`${id}-title`} className={labelClass}>Başlık *</label>
+                <input id={`${id}-title`} value={form.title} onChange={event => update('title', event.target.value)}
                     className={inputClass} required />
             </div>
             <div>
-                <label className={labelClass}>Çekimci</label>
-                <select value={form.photographerId}
+                <label htmlFor={`${id}-photographer`} className={labelClass}>Çekimci</label>
+                <select id={`${id}-photographer`} value={form.photographerId}
                     onChange={event => update('photographerId', event.target.value)}
                     className={inputClass}>
                     <option value="">Seçilmedi</option>
@@ -55,30 +56,30 @@ export function ShootForm({ onSuccess }: { onSuccess: () => void }) {
                 </select>
             </div>
             <div>
-                <label className={labelClass}>Açıklama</label>
-                <textarea value={form.description} onChange={event => update('description', event.target.value)}
+                <label htmlFor={`${id}-desc`} className={labelClass}>Açıklama</label>
+                <textarea id={`${id}-desc`} value={form.description} onChange={event => update('description', event.target.value)}
                     className={`${inputClass} resize-none`} rows={2} />
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <div>
-                    <label className={labelClass}>Tarih</label>
-                    <input type="date" value={form.shootDate}
+                    <label htmlFor={`${id}-date`} className={labelClass}>Tarih</label>
+                    <input id={`${id}-date`} type="date" value={form.shootDate}
                         onChange={event => update('shootDate', event.target.value)} className={inputClass} />
                 </div>
                 <div>
-                    <label className={labelClass}>Saat</label>
-                    <input type="time" value={form.shootTime}
+                    <label htmlFor={`${id}-time`} className={labelClass}>Saat</label>
+                    <input id={`${id}-time`} type="time" value={form.shootTime}
                         onChange={event => update('shootTime', event.target.value)} className={inputClass} />
                 </div>
             </div>
             <div>
-                <label className={labelClass}>Konum</label>
-                <input value={form.location} onChange={event => update('location', event.target.value)}
+                <label htmlFor={`${id}-location`} className={labelClass}>Konum</label>
+                <input id={`${id}-location`} value={form.location} onChange={event => update('location', event.target.value)}
                     className={inputClass} />
             </div>
             <div>
-                <label className={labelClass}>Notlar</label>
-                <textarea value={form.notes} onChange={event => update('notes', event.target.value)}
+                <label htmlFor={`${id}-notes`} className={labelClass}>Notlar</label>
+                <textarea id={`${id}-notes`} value={form.notes} onChange={event => update('notes', event.target.value)}
                     className={`${inputClass} resize-none`} rows={2} />
             </div>
             <ParticipantFields form={form} update={update} users={users} />

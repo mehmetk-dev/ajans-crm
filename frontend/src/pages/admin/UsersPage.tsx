@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getApiErrorMessage } from '../../lib/apiError';
 import { adminApi } from '../../api/admin';
 import type { AllUserResponse } from '../../api/admin';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -58,8 +59,8 @@ export default function UsersPage() {
             setEditingUser(null);
             setNewRole('');
             loadUsers();
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Rol güncellenemedi');
+        } catch (err: unknown) {
+            setError(getApiErrorMessage(err, 'Rol güncellenemedi'));
         }
         setSaving(false);
     };
@@ -78,8 +79,8 @@ export default function UsersPage() {
             await adminApi.deleteUser(deleteConfirm.id);
             setDeleteConfirm(null);
             loadUsers();
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Kullanıcı silinemedi');
+        } catch (err: unknown) {
+            setError(getApiErrorMessage(err, 'Kullanıcı silinemedi'));
         }
         setDeleting(false);
     };

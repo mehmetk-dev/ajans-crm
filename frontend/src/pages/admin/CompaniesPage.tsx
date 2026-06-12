@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getApiErrorMessage } from '../../lib/apiError';
 import {
     companyApi,
     type CompanyResponse,
@@ -70,21 +71,8 @@ export default function CompaniesPage() {
                 selectedServices: [],
             });
             loadCompanies();
-        } catch (err: any) {
-            const data = err.response?.data;
-            if (data) {
-                if (typeof data.message === 'string') {
-                    setError(data.message);
-                } else if (typeof data === 'object') {
-                    // Validation errors come as { field: message } map
-                    const messages = Object.values(data).filter(v => typeof v === 'string');
-                    setError(messages.length > 0 ? messages.join(', ') : 'Şirket oluşturulamadı');
-                } else {
-                    setError('Şirket oluşturulamadı');
-                }
-            } else {
-                setError('Şirket oluşturulamadı');
-            }
+        } catch (err: unknown) {
+            setError(getApiErrorMessage(err, 'Şirket oluşturulamadı'));
         } finally {
             setSaving(false);
         }
@@ -129,10 +117,8 @@ export default function CompaniesPage() {
             await companyApi.update(editingCompany.id, payload as UpdateCompanyInput);
             setEditingCompany(null);
             loadCompanies();
-        } catch (err: any) {
-            const data = err.response?.data;
-            if (data?.message) setEditError(data.message);
-            else setEditError('Şirket güncellenemedi');
+        } catch (err: unknown) {
+            setEditError(getApiErrorMessage(err, 'Şirket güncellenemedi'));
         } finally {
             setEditSaving(false);
         }
@@ -152,8 +138,8 @@ export default function CompaniesPage() {
             await companyApi.delete(deleteConfirm.id);
             setDeleteConfirm(null);
             loadCompanies();
-        } catch (err: any) {
-            alert(err.response?.data?.message || 'Şirket silinemedi');
+        } catch (err: unknown) {
+            alert(getApiErrorMessage(err, 'Şirket silinemedi'));
         }
     };
 

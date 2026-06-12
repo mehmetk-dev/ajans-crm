@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getApiErrorMessage } from '../../lib/apiError';
 import {
     companyApi,
     type CompanyResponse,
@@ -61,20 +62,8 @@ export default function StaffPage() {
             setShowForm(false);
             setForm({ fullName: '', email: '', password: '', phone: '', position: '', department: '', initialCompanyId: '' });
             loadData();
-        } catch (err: any) {
-            const data = err.response?.data;
-            if (data) {
-                if (typeof data.message === 'string') {
-                    setError(data.message);
-                } else if (typeof data === 'object') {
-                    const messages = Object.values(data).filter(v => typeof v === 'string');
-                    setError(messages.length > 0 ? messages.join(', ') : 'Çalışan oluşturulamadı');
-                } else {
-                    setError('Çalışan oluşturulamadı');
-                }
-            } else {
-                setError('Çalışan oluşturulamadı');
-            }
+        } catch (err: unknown) {
+            setError(getApiErrorMessage(err, 'Çalışan oluşturulamadı'));
         } finally {
             setSaving(false);
         }
@@ -85,8 +74,8 @@ export default function StaffPage() {
             await companyApi.assignStaff(staffId, companyId);
             setOpenAssignId(null);
             loadData();
-        } catch (err: any) {
-            alert(err.response?.data?.message || 'Atama başarısız');
+        } catch (err: unknown) {
+            alert(getApiErrorMessage(err, 'Atama başarısız'));
         }
     };
 
@@ -94,8 +83,8 @@ export default function StaffPage() {
         try {
             await companyApi.unassignStaff(membershipId);
             loadData();
-        } catch (err: any) {
-            alert(err.response?.data?.message || 'Çıkarma başarısız');
+        } catch (err: unknown) {
+            alert(getApiErrorMessage(err, 'Çıkarma başarısız'));
         }
     };
 
@@ -105,8 +94,8 @@ export default function StaffPage() {
             await companyApi.deleteStaff(deleteConfirm.id);
             setDeleteConfirm(null);
             loadData();
-        } catch (err: any) {
-            alert(err.response?.data?.message || 'Çalışan silinemedi');
+        } catch (err: unknown) {
+            alert(getApiErrorMessage(err, 'Çalışan silinemedi'));
         }
     };
 

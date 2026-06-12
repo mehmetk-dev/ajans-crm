@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { messagingApi } from '../api/messagingApi';
 import type { AssignableUser } from '../../tasks';
 
@@ -13,6 +13,7 @@ interface QuickMessageFormProps {
 export function QuickMessageForm({ users, loading, setLoading, onDone, onNavigateMessages }: QuickMessageFormProps) {
     const [targetUserId, setTargetUserId] = useState('');
     const [message, setMessage] = useState('');
+    const id = useId();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,8 +31,8 @@ export function QuickMessageForm({ users, loading, setLoading, onDone, onNavigat
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Kime *</label>
-                <select value={targetUserId} onChange={e => setTargetUserId(e.target.value)}
+                <label htmlFor={`${id}-target`} className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Kime *</label>
+                <select id={`${id}-target`} value={targetUserId} onChange={e => setTargetUserId(e.target.value)}
                     className="w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors" required>
                     <option value="">Kişi seçiniz</option>
                     {users.map(u => (
@@ -40,8 +41,8 @@ export function QuickMessageForm({ users, loading, setLoading, onDone, onNavigat
                 </select>
             </div>
             <div>
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Mesaj *</label>
-                <textarea value={message} onChange={e => setMessage(e.target.value)}
+                <label htmlFor={`${id}-message`} className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Mesaj *</label>
+                <textarea id={`${id}-message`} value={message} onChange={e => setMessage(e.target.value)}
                     className="w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors resize-none" rows={3} placeholder="Mesajınızı yazın..." required />
             </div>
             <button type="submit" disabled={loading}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import { clientApi } from '../../api/clientPanel';
 import type { SurveyResponse } from '../../api/clientPanel';
 import { Star, Send, MessageSquareText, CheckCircle2, AlertCircle, BarChart3 } from 'lucide-react';
@@ -27,8 +28,8 @@ export default function SurveyPage() {
             setSuccessMsg('Anketiniz başarıyla gönderildi!');
             setTimeout(() => setSuccessMsg(''), 4000);
         },
-        onError: (err: any) => {
-            const msg = err?.response?.data?.message || err?.response?.data || 'Anket gönderilemedi';
+        onError: (err: unknown) => {
+            const msg = isAxiosError(err) ? (err.response?.data?.message || err.response?.data) : undefined;
             setErrorMsg(typeof msg === 'string' ? msg : 'Anket gönderilemedi');
             setTimeout(() => setErrorMsg(''), 4000);
         },

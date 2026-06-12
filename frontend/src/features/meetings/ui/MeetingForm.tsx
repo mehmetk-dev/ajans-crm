@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useId, type FormEvent } from 'react';
 import { useStaffCompanies } from '../../company';
 import { useAssignableUsers } from '../../tasks';
 import { useCreateMeeting } from '../hooks/useMeetings';
@@ -20,6 +20,7 @@ export function MeetingForm({ onSuccess }: MeetingFormProps) {
     const { data: companies = [] } = useStaffCompanies();
     const { data: users = [] } = useAssignableUsers(form.companyId || undefined);
     const createMeeting = useCreateMeeting();
+    const id = useId();
 
     const update = <K extends keyof MeetingFormValues>(key: K, value: MeetingFormValues[K]) => {
         setForm(current => ({ ...current, [key]: value }));
@@ -36,42 +37,42 @@ export function MeetingForm({ onSuccess }: MeetingFormProps) {
     return (
         <form onSubmit={submit} className="space-y-4">
             <div>
-                <label className={labelClass}>Şirket</label>
-                <select value={form.companyId} onChange={event => update('companyId', event.target.value)} className={inputClass}>
+                <label htmlFor={`${id}-company`} className={labelClass}>Şirket</label>
+                <select id={`${id}-company`} value={form.companyId} onChange={event => update('companyId', event.target.value)} className={inputClass}>
                     <option value="">Ajans İçi (Şirketsiz)</option>
                     {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
                 </select>
             </div>
             <div>
-                <label className={labelClass}>Toplantı Konusu *</label>
-                <input value={form.title} onChange={event => update('title', event.target.value)} className={inputClass} required />
+                <label htmlFor={`${id}-title`} className={labelClass}>Toplantı Konusu *</label>
+                <input id={`${id}-title`} value={form.title} onChange={event => update('title', event.target.value)} className={inputClass} required />
             </div>
             <div>
-                <label className={labelClass}>Açıklama</label>
-                <textarea value={form.description} onChange={event => update('description', event.target.value)}
+                <label htmlFor={`${id}-desc`} className={labelClass}>Açıklama</label>
+                <textarea id={`${id}-desc`} value={form.description} onChange={event => update('description', event.target.value)}
                     className={`${inputClass} resize-none`} rows={2} />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className={labelClass}>Tarih & Saat *</label>
-                    <input type="datetime-local" value={form.meetingDate}
+                    <label htmlFor={`${id}-date`} className={labelClass}>Tarih & Saat *</label>
+                    <input id={`${id}-date`} type="datetime-local" value={form.meetingDate}
                         onChange={event => update('meetingDate', event.target.value)} className={inputClass} required />
                 </div>
                 <div>
-                    <label className={labelClass}>Süre (dk)</label>
-                    <input type="number" value={form.durationMinutes}
+                    <label htmlFor={`${id}-duration`} className={labelClass}>Süre (dk)</label>
+                    <input id={`${id}-duration`} type="number" value={form.durationMinutes}
                         onChange={event => update('durationMinutes', Number(event.target.value))}
                         className={inputClass} min={15} step={15} />
                 </div>
             </div>
             <div>
-                <label className={labelClass}>Konum</label>
-                <input value={form.location} onChange={event => update('location', event.target.value)}
+                <label htmlFor={`${id}-location`} className={labelClass}>Konum</label>
+                <input id={`${id}-location`} value={form.location} onChange={event => update('location', event.target.value)}
                     className={inputClass} placeholder="Ofis, Zoom, vb..." />
             </div>
             <div>
-                <label className={labelClass}>Katılımcılar</label>
-                <select multiple value={form.participantIds}
+                <label htmlFor={`${id}-participants`} className={labelClass}>Katılımcılar</label>
+                <select id={`${id}-participants`} multiple value={form.participantIds}
                     onChange={event => update('participantIds', Array.from(event.target.selectedOptions, option => option.value))}
                     className={`${inputClass} min-h-[100px]`}>
                     {users.map(user => <option key={user.id} value={user.id}>{user.fullName}</option>)}
