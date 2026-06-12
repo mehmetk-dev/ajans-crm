@@ -42,6 +42,7 @@ Onerilen strateji:
 | Files / media library | **TAMAMLANDI** | 10 Haziran 2026 | Dosya erisimi, attachment baglantilari ve ortak medya feature'i modullestirildi |
 | Messaging | **TAMAMLANDI** | 10 Haziran 2026 | Direct/grup mesajlasma, WebSocket ve ortak frontend feature'i modullestirildi |
 | Integrations | **TAMAMLANDI** | 12 Haziran 2026 | PageSpeed/Web Design, Google Analytics, Search Console, Google Ads, Instagram ve Meta Ads ayri modul sinirlarina tasindi |
+| Genel UI / performans | Devam ediyor | - | Route-level code splitting tamamlandi; sirada dashboard view model ve query tekrar analizi var |
 
 ## 2. Mevcut Durumun Olculebilir Ozeti
 
@@ -1936,3 +1937,57 @@ Instagram dikey dilimi Graph client, parser, tarih araligi, medya insight, overv
 Meta Ads dikey dilimi Graph client, mapping, hesap ID yonetimi, authorization, tipli controller contract'lari ve ortak frontend feature siniri ile tamamlandi. Boylece Faz 6 kapsamindaki alti harici entegrasyonun tamami ayri modul sinirlarina tasindi.
 
 **Siradaki faz: Faz 7 - Modul sonrasi genel UI ve performans.** Ilk hedef route-level code splitting ve bundle analizi ile 1.84 MB production bundle'ini parcalamak.
+
+## 33. Route-Level Code Splitting ve Route Boundary - TAMAMLANDI
+
+**Tamamlanma tarihi:** 12 Haziran 2026
+
+### Route Yapisi
+
+- `App.tsx` icindeki 50 eager page/layout import'u `React.lazy()` tabanli dinamik import'lara donusturuldu.
+- Admin, staff ve client layout'lari da route seviyesinde lazy yukleniyor; kullanici yalnizca girdigi panelin layout ve sayfa kodunu indiriyor.
+- Ayni sayfayi kullanan admin/staff route'lari ayni dinamik chunk'i paylasmaya devam ediyor.
+- `ServicePageGate` named export'u lazy adapter ile dinamik yukleniyor; login ve admin/staff girislerinde client servis kontrol kodu artik zorunlu preload edilmiyor.
+- Route path'leri, rol kontrolleri, membership kontrolleri ve servis gate davranislari degistirilmedi.
+
+### Yukleme ve Hata Siniri
+
+- `components/routing/RouteBoundary.tsx` olusturuldu.
+- Tum route agaci ortak `Suspense` fallback'i kullaniyor; route chunk'i indirilirken standart yukleme ekrani gosteriliyor.
+- Dinamik chunk yukleme veya render hatalari route error boundary tarafindan yakalaniyor.
+- Hata ekrani tam sayfa yenileme aksiyonu sunuyor; route degistiginde boundary pathname anahtariyla sifirlaniyor.
+
+### Vendor Chunk Stratejisi
+
+- Vite 8 / Rolldown `output.codeSplitting.groups` kullanilarak vendor paketleri dengeli gruplandi.
+- React/router/query, Lucide ikonlari, Recharts/D3, Framer Motion, form/Zod, realtime ve drag-drop kutuphaneleri ayri cache edilebilir vendor chunk'larina alindi.
+- Otomatik code splitting'in olusturdugu cok sayida mikro icon/shared chunk azaltildi; route chunk'lari ayri kaldi.
+
+### Bundle Sonucu
+
+- Onceki production JS: tek ana dosya **1.840,56 KB / 486,87 KB gzip**.
+- Yeni uygulama entry chunk'i: **81,07 KB / 25,56 KB gzip**.
+- Ilk HTML tarafindan preload edilen toplam JS yaklasik **536 KB / 169 KB gzip**; ilk JS transferi gzip bazinda yaklasik **%65 azaldi**.
+- En buyuk chunk `vendor-react`: **381,83 KB**; ikinci `vendor-charts`: **380,61 KB**.
+- Tum chunk'lar 500 KB kalite sinirinin altinda; Vite buyuk chunk uyarisi kaldirildi.
+- Vendor gruplama oncesi 164 olan JS chunk sayisi **93** dosyaya indirildi.
+- CSS boyutu yaklasik **154,73 KB / 20,21 KB gzip** ile degismedi.
+
+### Test ve Dogrulama
+
+- `RouteBoundary.test.tsx`: loading fallback ve render/chunk hata ekrani icin 2 test.
+- Tum frontend sonucu: **122 test basarili** (onceki 120'den 2 yeni test).
+- `npm run build`: **basarili**.
+- `git diff --check`: **basarili**.
+
+### Bilinen Gecis Borclari
+
+- Route tanimlari halen merkezi `App.tsx` dosyasinda. Bundle problemi giderildi; sonraki router sahipligi turunda admin/staff/client route agaclari ayri modul dosyalarina alinabilir.
+- `vendor-react` ve `vendor-charts` yaklasik 380 KB seviyesinde ancak gzip boyutlari sirasiyla 120 KB ve 109 KB. Route bazli grafik kullanimlari olculdukten sonra Recharts alt modullerinin daha ince parcaya ihtiyaci yeniden degerlendirilmeli.
+- Service worker yeni deploy sonrasi eski chunk ismiyle acik sekmelerde hata uretebilir; route error boundary tam yenileme ile kurtarma sagliyor.
+
+### Sonuc ve Siradaki Adim
+
+Uygulamanin tum sayfa kodunu ilk acilista indiren merkezi eager bundle kaldirildi. Route ve vendor sinirlari sayesinde ilk JS transferi yaklasik ucte bire indi ve tum chunk'lar kalite esiginin altina cekildi.
+
+**Siradaki adim: dashboard view model'leri ve query tekrar analizi.** Ilk hedef `ClientDashboard.tsx` icindeki coklu entegrasyon donusumlerini ve ayni veriyi farkli key'lerle isteyen sorgulari olcmek.
