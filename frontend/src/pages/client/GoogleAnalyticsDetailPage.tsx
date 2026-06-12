@@ -1,4 +1,3 @@
-import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -35,106 +34,28 @@ import {
   Zap,
   ChevronDown,
 } from "lucide-react";
-import { useAuth } from "../../store/AuthContext";
 import {
-  googleAnalyticsApi,
   DATE_PRESETS,
   formatDuration,
   formatNum,
-  computeEngagementRate,
-  computeSessionsPerUser,
-  buildSourcePieData,
-  buildCountryBarData,
   BigMetricCard,
   SectionHeader,
   ChartTooltip,
-} from "../../features/google-analytics";
-import type {
-  GaOverviewResponse,
-  GaStatusResponse,
+  useGADetailPage,
 } from "../../features/google-analytics";
 
 export default function GoogleAnalyticsDetailPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const companyId = user?.companyId;
-
-  const [status, setStatus] = useState<GaStatusResponse | null>(null);
-  const [data, setData] = useState<GaOverviewResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activePreset, setActivePreset] = useState(2);
-  const [showDateMenu, setShowDateMenu] = useState(false);
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
-  const [isCustomRange, setIsCustomRange] = useState(false);
-
-  const currentRange = isCustomRange
-    ? {
-        start: customStart,
-        end: customEnd,
-        desc: `${customStart} — ${customEnd}`,
-      }
-    : DATE_PRESETS[activePreset];
-
-  const load = (showRefresh = false) => {
-    if (!companyId) return;
-    if (showRefresh) setRefreshing(true);
-    else setLoading(true);
-    setError(null);
-
-    const startDate = isCustomRange
-      ? customStart
-      : DATE_PRESETS[activePreset].start;
-    const endDate = isCustomRange ? customEnd : DATE_PRESETS[activePreset].end;
-
-    googleAnalyticsApi
-      .getStatus(companyId)
-      .then((s: GaStatusResponse) => {
-        setStatus(s);
-        if (s.connected && s.propertyId) {
-          return googleAnalyticsApi
-            .getOverview(companyId, startDate, endDate)
-            .then((d) => setData(d));
-        }
-      })
-      .catch((err: { response?: { data?: { message?: string } } }) =>
-        setError(
-          err?.response?.data?.message ||
-            "Google Analytics verileri yüklenirken hata oluştu",
-        ),
-      )
-      .finally(() => {
-        setLoading(false);
-        setRefreshing(false);
-      });
-  };
-
-  useEffect(() => {
-    load();
-  }, [companyId, activePreset, isCustomRange, customStart, customEnd]);
-
-  const sourcePieData = useMemo(
-    () => buildSourcePieData(data?.trafficSources ?? []),
-    [data?.trafficSources],
-  );
-  const countryBarData = useMemo(
-    () => buildCountryBarData(data?.topCountries ?? []),
-    [data?.topCountries],
-  );
-
-  const totalSources = sourcePieData.reduce((a, b) => a + b.value, 0);
-  const totalPages = (data?.topPages ?? []).reduce((a, b) => a + b.value, 0);
-  const maxPageViews = Math.max(
-    ...(data?.topPages ?? []).map((p) => p.value),
-    1,
-  );
-
-  const engagementRate = data ? computeEngagementRate(data.bounceRate) : "0";
-  const sessionsPerUser = data
-    ? computeSessionsPerUser(data.sessions, data.totalUsers)
-    : "0";
+  const {
+    status, data, loading, error, refreshing,
+    activePreset, showDateMenu, customStart, customEnd, isCustomRange,
+    currentRange, sourcePieData, countryBarData,
+    totalSources, totalPages, maxPageViews,
+    engagementRate, sessionsPerUser,
+    setActivePreset, setShowDateMenu,
+    setCustomStart, setCustomEnd, setIsCustomRange,
+    refresh,
+  } = useGADetailPage();
 
   if (loading) {
     return (
@@ -211,7 +132,7 @@ export default function GoogleAnalyticsDetailPage() {
           {/* Tarih aralığı seçici */}
           <div className="relative">
             <button
-              onClick={() => setShowDateMenu((v) => !v)}
+              onClick={() => setShowDateMenu(!showDateMenu)}
               className="flex items-center gap-1.5 bg-[#0C0C0E] border border-white/[0.06] hover:border-white/[0.12] rounded-full px-3 py-1.5 transition-colors"
             >
               <Calendar className="w-3.5 h-3.5 text-zinc-500" />
@@ -295,7 +216,7 @@ export default function GoogleAnalyticsDetailPage() {
             )}
           </div>
           <button
-            onClick={() => load(true)}
+            onClick={() => refresh()}
             disabled={refreshing}
             className="h-8 w-8 rounded-lg bg-[#0C0C0E] border border-white/[0.06] flex items-center justify-center text-zinc-400 hover:text-white hover:border-white/[0.12] transition-all disabled:opacity-50"
             title="Verileri Yenile"

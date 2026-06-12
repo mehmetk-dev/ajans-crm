@@ -32,3 +32,4 @@ export {
 // UI bileşenleri
 export { ChartTooltip, BigMetricCard, MetricCard, SectionHeader } from './ui/GoogleAnalyticsCards';
 export { default as GoogleAnalyticsPanel } from './ui/GoogleAnalyticsPanel';
+export { useGADetailPage } from './hooks/useGADetailPage';
