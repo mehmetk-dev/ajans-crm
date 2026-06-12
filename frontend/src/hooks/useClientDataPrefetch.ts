@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { gaApi } from '../api/googleAnalytics';
-import { scApi } from '../api/searchConsole';
 import { igApi } from '../api/instagram';
+import { searchConsoleApi, searchConsoleKeys } from '../features/search-console';
 import { taskApi, taskKeys } from '../features/tasks';
 import { shootApi, shootKeys } from '../features/shoots';
 import { useActiveServices } from './useActiveServices';
@@ -26,7 +26,7 @@ export function useClientDataPrefetch() {
         enabled: enabled && !servicesLoading && hasDigitalMarketing, staleTime: STALE, gcTime: CACHE,
     });
     const sc = useQuery({
-        queryKey: ['client-sc', cid], queryFn: () => scApi.getOverview(cid),
+        queryKey: searchConsoleKeys.overview(cid), queryFn: () => searchConsoleApi.getOverview(cid),
         enabled: enabled && !servicesLoading && hasDigitalMarketing, staleTime: STALE, gcTime: CACHE,
     });
     const ig = useQuery({

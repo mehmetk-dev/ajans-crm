@@ -10,102 +10,23 @@ import {
     Search, MousePointerClick, Eye, TrendingUp,
     Target, AlertCircle, Loader2, ArrowLeft,
     FileText, CheckCircle2, BarChart3,
-    ArrowUpRight, ArrowDownRight, RefreshCw, Calendar, Zap, ChevronDown, MapPin, Monitor
+    RefreshCw, Calendar, Zap, ChevronDown, MapPin, Monitor
 } from 'lucide-react';
-import { scApi, type ScOverviewResponse, type ScStatusResponse } from '../../api/searchConsole';
+import {
+    BigMetricCard,
+    ChartTooltip,
+    DATE_PRESETS,
+    SectionHeader,
+    buildCountryBarData,
+    buildDevicePieData,
+    computeClickThroughRate,
+    formatNum,
+    getPositionLabel,
+    searchConsoleApi,
+    type ScOverviewResponse,
+    type ScStatusResponse,
+} from '../../features/search-console';
 import { useAuth } from '../../store/AuthContext';
-
-const DEVICE_COLORS = ['#3b82f6', '#f97316', '#8b5cf6', '#10b981', '#ec4899'];
-const COUNTRY_COLORS = ['#3b82f6', '#10b981', '#f97316', '#8b5cf6', '#ec4899', '#06b6d4', '#f43f5e', '#84cc16'];
-
-interface DatePreset {
-    label: string;
-    start: string;
-    end: string;
-    desc: string;
-}
-
-const DATE_PRESETS: DatePreset[] = [
-    { label: 'Son 7 Gün', start: '7daysAgo', end: 'today', desc: 'Son 7 günlük' },
-    { label: 'Son 14 Gün', start: '14daysAgo', end: 'today', desc: 'Son 14 günlük' },
-    { label: 'Son 30 Gün', start: '30daysAgo', end: 'today', desc: 'Son 30 günlük' },
-    { label: 'Son 90 Gün', start: '90daysAgo', end: 'today', desc: 'Son 90 günlük' },
-    { label: 'Son 6 Ay', start: '180daysAgo', end: 'today', desc: 'Son 6 aylık' },
-    { label: 'Son 1 Yıl', start: '365daysAgo', end: 'today', desc: 'Son 1 yıllık' },
-];
-
-function ChartTooltip({ active, payload, label }: {
-    active?: boolean;
-    payload?: Array<{ name: string; value: number; color: string }>;
-    label?: string;
-}) {
-    if (!active || !payload?.length) return null;
-    return (
-        <div className="bg-[#1e1e22] border border-white/[0.08] rounded-xl px-4 py-3 shadow-xl">
-            <p className="text-xs text-zinc-400 mb-1.5">{label}</p>
-            {payload.map((entry, i) => (
-                <p key={i} className="text-sm font-semibold text-white flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ background: entry.color }} />
-                    {entry.name}: {entry.value?.toLocaleString('tr-TR')}
-                </p>
-            ))}
-        </div>
-    );
-}
-
-function BigMetricCard({ label, value, icon: Icon, color, bgColor, sub, trend }: {
-    label: string;
-    value: string | number;
-    icon: React.ElementType;
-    color: string;
-    bgColor: string;
-    sub?: string;
-    trend?: 'up' | 'down' | 'neutral';
-}) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5 hover:border-white/[0.1] transition-colors"
-        >
-            <div className="flex items-center justify-between mb-4">
-                <div className={`h-10 w-10 rounded-xl ${bgColor} flex items-center justify-center`}>
-                    <Icon className={`w-5 h-5 ${color}`} />
-                </div>
-                {trend && (
-                    <div className={`flex items-center gap-1 text-xs font-medium ${
-                        trend === 'up' ? 'text-pink-400' : trend === 'down' ? 'text-rose-400' : 'text-zinc-500'
-                    }`}>
-                        {trend === 'up' ? <ArrowUpRight className="w-3.5 h-3.5" /> :
-                         trend === 'down' ? <ArrowDownRight className="w-3.5 h-3.5" /> : null}
-                        {sub}
-                    </div>
-                )}
-            </div>
-            <p className="text-2xl font-bold text-white">{value}</p>
-            <p className="text-zinc-500 text-[13px] mt-1">{label}</p>
-        </motion.div>
-    );
-}
-
-function SectionHeader({ icon: Icon, title, color, children }: {
-    icon: React.ElementType;
-    title: string;
-    color: string;
-    children?: React.ReactNode;
-}) {
-    return (
-        <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-                <div className={`h-8 w-8 rounded-lg ${color} flex items-center justify-center`}>
-                    <Icon className="w-4 h-4 text-white/80" />
-                </div>
-                <h3 className="text-sm font-semibold text-white">{title}</h3>
-            </div>
-            {children}
-        </div>
-    );
-}
 
 export default function SearchConsoleDetailPage() {
     const navigate = useNavigate();
@@ -136,11 +57,11 @@ export default function SearchConsoleDetailPage() {
         const startDate = isCustomRange ? customStart : DATE_PRESETS[activePreset].start;
         const endDate = isCustomRange ? customEnd : DATE_PRESETS[activePreset].end;
 
-        scApi.getStatus(companyId)
+        searchConsoleApi.getStatus(companyId)
             .then((s: ScStatusResponse) => {
                 setStatus(s);
                 if (s.connected && s.siteUrl) {
-                    return scApi.getOverview(companyId, startDate, endDate).then(d => setData(d));
+                    return searchConsoleApi.getOverview(companyId, startDate, endDate).then(d => setData(d));
                 }
             })
             .catch((err: { response?: { data?: { message?: string } } }) =>
@@ -154,21 +75,11 @@ export default function SearchConsoleDetailPage() {
 
     useEffect(() => { load(); }, [companyId, activePreset, isCustomRange, customStart, customEnd]);
 
-    const formatNum = (n: number) => {
-        if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-        if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-        return n.toLocaleString('tr-TR');
-    };
-
     const devicePieData = useMemo(() =>
-        (data?.devices ?? []).map((d, i) => ({
-            name: d.name, value: d.clicks, color: DEVICE_COLORS[i % DEVICE_COLORS.length],
-        })), [data?.devices]);
+        buildDevicePieData(data?.devices ?? []), [data?.devices]);
 
     const countryBarData = useMemo(() =>
-        (data?.countries ?? []).map((c, i) => ({
-            name: c.name, value: c.clicks, fill: COUNTRY_COLORS[i % COUNTRY_COLORS.length],
-        })), [data?.countries]);
+        buildCountryBarData(data?.countries ?? []), [data?.countries]);
 
     if (loading) {
         return (
@@ -364,9 +275,7 @@ export default function SearchConsoleDetailPage() {
                         </div>
                         <p className="text-2xl font-bold text-white">{data.avgPosition}</p>
                         <p className="text-[11px] text-zinc-600 mt-2">
-                            {data.avgPosition <= 3 ? 'Harika! İlk 3\'te' :
-                             data.avgPosition <= 10 ? 'İlk sayfada' :
-                             data.avgPosition <= 20 ? 'İkinci sayfada' : 'Geliştirilebilir'}
+                            {getPositionLabel(data.avgPosition)}
                         </p>
                     </motion.div>
 
@@ -377,9 +286,7 @@ export default function SearchConsoleDetailPage() {
                             <span className="text-xs text-zinc-500">Tıklama / Gösterim</span>
                         </div>
                         <p className="text-2xl font-bold text-white">
-                            {data.totalImpressions > 0
-                                ? (data.totalClicks / data.totalImpressions * 100).toFixed(2) + '%'
-                                : '0%'}
+                            {computeClickThroughRate(data.totalClicks, data.totalImpressions)}
                         </p>
                         <p className="text-[11px] text-zinc-600 mt-2">Gerçek tıklama oranı</p>
                     </motion.div>

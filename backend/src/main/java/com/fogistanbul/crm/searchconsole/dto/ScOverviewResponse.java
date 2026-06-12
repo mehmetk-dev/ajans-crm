@@ -1,4 +1,4 @@
-package com.fogistanbul.crm.dto;
+package com.fogistanbul.crm.searchconsole.dto;
 
 import java.util.List;
 

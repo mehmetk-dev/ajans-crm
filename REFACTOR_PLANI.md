@@ -41,7 +41,7 @@ Onerilen strateji:
 | PR projects | **TAMAMLANDI** | 10 Haziran 2026 | Proje/faz/uye/not/task baglantilari, authorization ve ortak frontend feature'i modullestirildi |
 | Files / media library | **TAMAMLANDI** | 10 Haziran 2026 | Dosya erisimi, attachment baglantilari ve ortak medya feature'i modullestirildi |
 | Messaging | **TAMAMLANDI** | 10 Haziran 2026 | Direct/grup mesajlasma, WebSocket ve ortak frontend feature'i modullestirildi |
-| Integrations | Devam ediyor | - | PageSpeed/Web Design ve Google Analytics tamamlandi; sirada Search Console var |
+| Integrations | Devam ediyor | - | PageSpeed/Web Design, Google Analytics ve Search Console tamamlandi; sirada Google Ads var |
 
 ## 2. Mevcut Durumun Olculebilir Ozeti
 
@@ -1714,3 +1714,54 @@ Web Design / PageSpeed dikey dilimi backend authorization, entity bazli erisim, 
 Google Analytics dikey dilimi backend authorization, mapper ayristirmasi ve ortak frontend feature'i ile tamamlandi. GA4 metrik verileri icin erisim kontrolu `GoogleAnalyticsAccessPolicy`'e toplandı; iki sayfa arasinda tekrarlanan 100+ satir inline kod feature modulune tasindi.
 
 **Siradaki modul: Search Console (Faz 6 - 3. entegrasyon).** Hedef: Search Console verilerini ayri feature sinirinda modularize etmek.
+
+## 29. Search Console Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 12 Haziran 2026
+
+### Backend
+
+- `SearchConsoleController`, `SearchConsoleService` ve `ScOverviewResponse` eski teknik katman paketlerinden `com.fogistanbul.crm.searchconsole` modulu altinda `web/`, `application/` ve `dto/` sinirlarina tasindi.
+- `SearchConsoleAccessPolicy` olusturuldu; DIGITAL_MARKETING servis aktivasyonu ve sirket erisimi controller'lardan tek policy noktasina alindi.
+- `SearchConsoleClient` olusturuldu; Search Console HTTP endpoint'leri, bearer header olusturma ve ham Google `Map` response parse islemleri infrastructure katmanina tasindi.
+- `SearchConsoleMapper` olusturuldu; relative tarih cozumleme, gunluk/sorgu/sayfa/cihaz/ulke satir donusumleri, yuvarlama ve kullanici hata mesajlari application service'den ayrildi.
+- `SearchConsoleService` 332 satirdan 106 satira indirildi; servis artik OAuth baglami, 6 rapor sorgusu ve response orkestrasyonundan sorumlu.
+- Status, site listesi ve site URL kaydetme endpoint'leri icin tipli DTO'lar eklendi (`ScStatusResponse`, `ScSiteResponse`, `ScSaveSiteUrlRequest`, `ScSaveSiteUrlResponse`).
+- String `"SEARCH_CONSOLE"` tekrarlarinin yerine `GoogleOAuthService.SVC_SEARCH_CONSOLE` sabiti kullanildi.
+- Mevcut HTTP endpoint contract'lari korundu (`/api/client/analytics/sc/status`, `/sites`, `/overview`, `/site-url`).
+
+### Frontend
+
+- `frontend/src/features/search-console/` altinda tipler, query key factory, API client, model yardimcilari, ortak kartlar ve panel bileseni olusturuldu.
+- `searchConsole.types.ts`: overview, status, site, tarih preset'i ve grafik view model tipleri.
+- `searchConsoleKeys.ts`: dashboard/prefetch ile ortak `client-sc` cache contract'ini koruyan key factory.
+- `api/searchConsoleApi.ts`: API fonksiyonlari eski `api/searchConsole.ts` dosyasindan ayrildi.
+- `model/searchConsole.utils.ts`: tarih preset'leri, renk paletleri, sayi formatlama, CTR/pozisyon hesaplari ve cihaz/ulke grafik donusumleri ortaklastirildi.
+- `ui/SearchConsoleCards.tsx`: `ChartTooltip`, `BigMetricCard`, `MetricCard` ve `SectionHeader` iki kullanim yuzeyinden ayrildi.
+- `ui/SearchConsolePanel.tsx`: eski analytics component klasorunden feature modulune tasindi; OAuth callback kontrolu gercek redirect parametresi olan `connected=true` degerini destekleyecek sekilde duzeltildi.
+- `api/searchConsole.ts` ve `components/analytics/SearchConsolePanel.tsx` backward compatibility re-export dosyalarina donusturuldu.
+- `ClientDashboard` ve `useClientDataPrefetch` Search Console feature public API'si ile merkezi query key factory'yi kullanmaya basladi.
+- `SearchConsoleDetailPage.tsx` 621 satirdan 528 satira, panel 535 satirdan 480 satira indirildi; inline tip, preset, formatter, grafik mapper ve ortak kart tanimlari kaldirildi.
+
+### Test ve Dogrulama
+
+- Backend `SearchConsoleAccessPolicyTest`: 2 test.
+- Backend `SearchConsoleMapperTest`: 4 test.
+- Backend `SearchConsoleServiceTest`: 6 test.
+- Tum backend sonucu: **118 test basarili** (onceki 106'dan 12 yeni test).
+- Frontend `searchConsole.utils.test.ts`: 11 yeni test.
+- Tum frontend sonucu: **106 test basarili** (onceki 95'ten 11 yeni test).
+- `npm run build`: **basarili**.
+- `mvn test`: **basarili**.
+
+### Bilinen Gecis Borclari
+
+- `SearchConsolePanel.tsx` ve `SearchConsoleDetailPage.tsx` halen 300 satir sert inceleme esiginin uzerinde. Tekrarlanan model ve kart kodu ayrildi; bir sonraki UI turunda tarih secici, baglanti durumlari ve rapor section'lari ayri presentational bilesenlere bolunmeli.
+- `GoogleOAuthService` ANALYTICS, SEARCH_CONSOLE ve GOOGLE_ADS token yonetimini ortak `service/` paketinde tasiyor. Google Ads modulu tamamlandiktan sonra ortak `googleoauth` altyapi modulune alinmali.
+- Production bundle ~1.84 MB; route-level lazy loading Faz 7'de ele alinmali.
+
+### Sonuc ve Siradaki Modul
+
+Search Console dikey dilimi backend authorization, harici API client'i, response mapping ve ortak frontend feature siniri ile tamamlandi. Ham Google response yapilari application katmanindan cikarildi; dashboard, panel ve detay sayfasi ayni API/type/query key contract'ini kullanmaya basladi.
+
+**Siradaki modul: Google Ads (Faz 6 - 4. entegrasyon).** Hedef: Google Ads OAuth, rapor client'i, metrik mapping ve frontend panel/detail akislarini ayri feature sinirinda modularize etmek.

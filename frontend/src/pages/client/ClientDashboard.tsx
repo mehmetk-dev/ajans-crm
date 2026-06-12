@@ -3,9 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { gaApi, type GaOverviewResponse } from '../../api/googleAnalytics';
-import { scApi, type ScOverviewResponse } from '../../api/searchConsole';
 import { igApi, type IgOverviewResponse } from '../../api/instagram';
 import type { PageResponse } from '../../api/staff';
+import {
+    searchConsoleApi,
+    searchConsoleKeys,
+    type ScOverviewResponse,
+} from '../../features/search-console';
 import { taskApi, taskKeys, type TaskResponse } from '../../features/tasks';
 import { shootApi, shootKeys, type ShootResponse } from '../../features/shoots';
 import { useActiveServices } from '../../hooks/useActiveServices';
@@ -56,8 +60,8 @@ export default function ClientDashboard() {
         enabled: !!companyId, staleTime: STALE, gcTime: CACHE,
     });
     const { data: sc, isLoading: scLoading } = useQuery<ScOverviewResponse>({
-        queryKey: ['client-sc', companyId],
-        queryFn: () => scApi.getOverview(companyId),
+        queryKey: searchConsoleKeys.overview(companyId),
+        queryFn: () => searchConsoleApi.getOverview(companyId),
         enabled: !!companyId, staleTime: STALE, gcTime: CACHE,
     });
     const { data: ig, isLoading: igLoading } = useQuery<IgOverviewResponse>({
