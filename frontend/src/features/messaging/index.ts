@@ -8,3 +8,4 @@ export { ConversationList } from './ui/ConversationList';
 export { DmMessageThread, GroupMessageThread } from './ui/MessageThread';
 export { MessageComposer } from './ui/MessageComposer';
 export { NewConversationModal } from './ui/NewConversationModal';
+export { QuickMessageForm } from './ui/QuickMessageForm';

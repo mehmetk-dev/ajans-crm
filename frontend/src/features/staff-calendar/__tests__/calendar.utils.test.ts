@@ -3,16 +3,12 @@ import {
     formatDateKey,
     getMonthDays,
     dateRange,
-    getWeekRange,
-    getMonthRange,
     isDateInRange,
     getSelection,
     selectionLabel,
 } from '../model/calendar.utils';
 import {
     indexTasks,
-    indexMeetings,
-    indexShoots,
     collectAgenda,
 } from '../model/calendar.index';
 
