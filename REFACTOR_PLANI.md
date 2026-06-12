@@ -42,7 +42,7 @@ Onerilen strateji:
 | Files / media library | **TAMAMLANDI** | 10 Haziran 2026 | Dosya erisimi, attachment baglantilari ve ortak medya feature'i modullestirildi |
 | Messaging | **TAMAMLANDI** | 10 Haziran 2026 | Direct/grup mesajlasma, WebSocket ve ortak frontend feature'i modullestirildi |
 | Integrations | **TAMAMLANDI** | 12 Haziran 2026 | PageSpeed/Web Design, Google Analytics, Search Console, Google Ads, Instagram ve Meta Ads ayri modul sinirlarina tasindi |
-| Genel UI / performans | Devam ediyor | - | Route-level code splitting tamamlandi; dashboard view model ve query tekrar analizi tamamlandi |
+| Genel UI / performans | Devam ediyor | - | Route-level code splitting, dashboard view model ve StaffCalendarPage moduler hale getirildi; FloatingTaskFab sadelestirme ve route sahiplik modülleri kaldi |
 
 ## 2. Mevcut Durumun Olculebilir Ozeti
 
