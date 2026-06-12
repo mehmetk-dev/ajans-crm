@@ -1,7 +1,7 @@
 package com.fogistanbul.crm.googleanalytics.application;
 
 import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse;
-import com.fogistanbul.crm.service.GoogleOAuthService;
+import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

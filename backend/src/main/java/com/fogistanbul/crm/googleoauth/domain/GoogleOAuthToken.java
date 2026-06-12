@@ -1,5 +1,6 @@
-package com.fogistanbul.crm.entity;
+package com.fogistanbul.crm.googleoauth.domain;
 
+import com.fogistanbul.crm.entity.Company;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UpdateTimestamp;

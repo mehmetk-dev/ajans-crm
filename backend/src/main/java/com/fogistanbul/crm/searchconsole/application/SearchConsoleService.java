@@ -4,7 +4,7 @@ import com.fogistanbul.crm.searchconsole.dto.ScOverviewResponse;
 import com.fogistanbul.crm.searchconsole.dto.ScSiteResponse;
 import com.fogistanbul.crm.searchconsole.infrastructure.SearchConsoleClient;
 import com.fogistanbul.crm.searchconsole.infrastructure.SearchConsoleClient.QueryRow;
-import com.fogistanbul.crm.service.GoogleOAuthService;
+import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -41,7 +41,7 @@ Onerilen strateji:
 | PR projects | **TAMAMLANDI** | 10 Haziran 2026 | Proje/faz/uye/not/task baglantilari, authorization ve ortak frontend feature'i modullestirildi |
 | Files / media library | **TAMAMLANDI** | 10 Haziran 2026 | Dosya erisimi, attachment baglantilari ve ortak medya feature'i modullestirildi |
 | Messaging | **TAMAMLANDI** | 10 Haziran 2026 | Direct/grup mesajlasma, WebSocket ve ortak frontend feature'i modullestirildi |
-| Integrations | Devam ediyor | - | PageSpeed/Web Design, Google Analytics ve Search Console tamamlandi; sirada Google Ads var |
+| Integrations | Devam ediyor | - | PageSpeed/Web Design, Google Analytics, Search Console ve Google Ads tamamlandi; sirada Instagram var |
 
 ## 2. Mevcut Durumun Olculebilir Ozeti
 
@@ -1765,3 +1765,60 @@ Google Analytics dikey dilimi backend authorization, mapper ayristirmasi ve orta
 Search Console dikey dilimi backend authorization, harici API client'i, response mapping ve ortak frontend feature siniri ile tamamlandi. Ham Google response yapilari application katmanindan cikarildi; dashboard, panel ve detay sayfasi ayni API/type/query key contract'ini kullanmaya basladi.
 
 **Siradaki modul: Google Ads (Faz 6 - 4. entegrasyon).** Hedef: Google Ads OAuth, rapor client'i, metrik mapping ve frontend panel/detail akislarini ayri feature sinirinda modularize etmek.
+
+## 30. Google Ads ve Ortak Google OAuth Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 12 Haziran 2026
+
+### Backend - Google Ads
+
+- `GoogleAdsController`, `GoogleAdsService` ve `GoogleAdsOverviewResponse` eski teknik katman paketlerinden `com.fogistanbul.crm.googleads` modulu altinda `web/`, `application/` ve `dto/` sinirlarina tasindi.
+- `GoogleAdsAccessPolicy` olusturuldu; AD_MANAGEMENT servis aktivasyonu ve sirket erisimi controller'dan policy katmanina alindi.
+- `GoogleAdsClient` olusturuldu; Google Ads API v24 URL'i, GAQL sorgulari, developer token/login customer header'lari ve ham JSON parse islemleri infrastructure katmanina tasindi.
+- `GoogleAdsMapper` olusturuldu; customer ID temizleme, relative tarih cozumleme, micros para birimi donusumu, kampanya mapping, gunluk toplamlama ve KPI hesaplari application service'den ayrildi.
+- `GoogleAdsService` 218 satirdan 71 satira indirildi; servis OAuth/config kontrolu, rapor sorgulari ve hata orkestrasyonundan sorumlu.
+- Controller response/request contract'lari tipli DTO'lara donusturuldu (`GoogleAdsStatusResponse`, `GoogleAdsCustomerIdRequest`, `GoogleAdsWriteResponse`).
+- Kampanya `metrics.ctr` degeri Google Ads API'nin oran formatindan UI'in bekledigi yuzde formatina donusturuldu.
+- `/disconnect` endpoint'i yalnizca customer ID'yi bosaltmak yerine Google Ads OAuth kaydini gercekten siliyor.
+- Mevcut HTTP endpoint'leri korundu (`/api/client/analytics/google-ads/status`, `/overview`, `/customer-id`, `/disconnect`).
+
+### Backend - Ortak Google OAuth
+
+- Google Analytics, Search Console ve Google Ads modulleri tamamlandigi icin ortak OAuth altyapisi `com.fogistanbul.crm.googleoauth` modulune tasindi.
+- `GoogleOAuthService` `googleoauth/application`, `GoogleOAuthToken` `googleoauth/domain`, repository `googleoauth/infrastructure` ve callback controller `googleoauth/web` altina alindi.
+- GA, Search Console, Google Ads ve PageSpeed bagimliliklari yeni ortak modul public paketine yonlendirildi.
+- Veritabani tablo adi, JPA alanlari ve `/api/oauth/google/callback` endpoint contract'i korunarak yalnizca paket sahipligi degistirildi.
+
+### Frontend
+
+- `frontend/src/features/google-ads/` altinda tipler, query key factory, API client, model yardimcilari ve panel bileseni olusturuldu.
+- `googleAds.types.ts`: overview, status, kampanya, gunluk trend ve siralama kolon tipleri.
+- `googleAdsKeys.ts`: status ve overview sorgulari icin merkezi query key factory.
+- `api/googleAdsApi.ts`: API fonksiyonlari eski `api/googleAds.ts` dosyasindan ayrildi.
+- `model/googleAds.utils.ts`: para/sayi formatlama, kampanya siralama ve status renk secimi ortaklastirildi.
+- `ui/GoogleAdsPanel.tsx`: eski analytics component klasorunden feature modulune tasindi.
+- `api/googleAds.ts` ve `components/analytics/GoogleAdsPanel.tsx` backward compatibility re-export dosyalarina donusturuldu.
+- `GoogleAdsDetailPage.tsx` literal query key'ler yerine feature key factory kullaniyor; formatter ve siralama kodu feature modeline tasindi.
+
+### Test ve Dogrulama
+
+- Backend `GoogleAdsAccessPolicyTest`: 2 test.
+- Backend `GoogleAdsMapperTest`: 6 test.
+- Backend `GoogleAdsServiceTest`: 6 test.
+- Tum backend sonucu: **132 test basarili** (onceki 118'den 14 yeni test).
+- Frontend `googleAds.utils.test.ts`: 9 yeni test.
+- Tum frontend sonucu: **115 test basarili** (onceki 106'dan 9 yeni test).
+- `npm run build`: **basarili**.
+- `mvn test`: **basarili**.
+
+### Bilinen Gecis Borclari
+
+- `GoogleOAuthService` 294 satirla application service esiginin uzerinde. Paket sahipligi duzeltildi; ileride token HTTP client'i, state parser ve urun metadata registry'si ayri siniflara alinabilir.
+- Google Ads tarih araligi backend tarafinda destekleniyor ancak mevcut frontend raporu sabit varsayilan araligi kullaniyor.
+- Production bundle ~1.84 MB; route-level lazy loading Faz 7'de ele alinmali.
+
+### Sonuc ve Siradaki Modul
+
+Google Ads dikey dilimi authorization, GAQL client'i, metrik mapping ve ortak frontend feature'i ile tamamlandi. Uc Google urununun ortak OAuth altyapisi tek module toplandi; Google Ads disconnect ve kampanya CTR davranislarindaki tutarsizliklar giderildi.
+
+**Siradaki modul: Instagram (Faz 6 - 5. entegrasyon).** Hedef: buyuk `InstagramService` sinifini Graph client, parser, tarih araligi, medya insight ve overview orkestrasyonu sinirlarina ayirmak; frontend panel/detail tekrarlarini ayni feature modulu altinda toplamak.

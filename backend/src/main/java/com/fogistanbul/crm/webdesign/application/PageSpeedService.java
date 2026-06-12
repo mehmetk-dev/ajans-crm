@@ -2,7 +2,7 @@ package com.fogistanbul.crm.webdesign.application;
 
 import com.fogistanbul.crm.entity.Company;
 import com.fogistanbul.crm.repository.CompanyRepository;
-import com.fogistanbul.crm.service.GoogleOAuthService;
+import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import com.fogistanbul.crm.webdesign.PageSpeedSnapshotRepository;
 import com.fogistanbul.crm.webdesign.domain.PageSpeedSnapshot;
 import com.fogistanbul.crm.webdesign.dto.PageSpeedReportResponse;

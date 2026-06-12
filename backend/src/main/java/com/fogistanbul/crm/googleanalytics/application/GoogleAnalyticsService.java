@@ -3,7 +3,7 @@ package com.fogistanbul.crm.googleanalytics.application;
 import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse;
 import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse.GaDailyRow;
 import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse.GaNamedMetric;
-import com.fogistanbul.crm.service.GoogleOAuthService;
+import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import com.google.analytics.data.v1beta.*;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.OAuth2Credentials;

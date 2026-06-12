@@ -3,7 +3,7 @@ package com.fogistanbul.crm.googleanalytics.web;
 import com.fogistanbul.crm.googleanalytics.application.GoogleAnalyticsAccessPolicy;
 import com.fogistanbul.crm.googleanalytics.application.GoogleAnalyticsService;
 import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse;
-import com.fogistanbul.crm.service.GoogleOAuthService;
+import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;

@@ -1,9 +1,9 @@
-package com.fogistanbul.crm.service;
+package com.fogistanbul.crm.googleoauth.application;
 
 import com.fogistanbul.crm.entity.Company;
-import com.fogistanbul.crm.entity.GoogleOAuthToken;
+import com.fogistanbul.crm.googleoauth.domain.GoogleOAuthToken;
+import com.fogistanbul.crm.googleoauth.infrastructure.GoogleOAuthTokenRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
-import com.fogistanbul.crm.repository.GoogleOAuthTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

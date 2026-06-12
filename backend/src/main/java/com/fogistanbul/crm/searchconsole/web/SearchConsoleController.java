@@ -7,7 +7,7 @@ import com.fogistanbul.crm.searchconsole.dto.ScSaveSiteUrlRequest;
 import com.fogistanbul.crm.searchconsole.dto.ScSaveSiteUrlResponse;
 import com.fogistanbul.crm.searchconsole.dto.ScSiteResponse;
 import com.fogistanbul.crm.searchconsole.dto.ScStatusResponse;
-import com.fogistanbul.crm.service.GoogleOAuthService;
+import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;

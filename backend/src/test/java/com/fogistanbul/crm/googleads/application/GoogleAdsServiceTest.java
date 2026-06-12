@@ -1,0 +1,130 @@
+package com.fogistanbul.crm.googleads.application;
+
+import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse;
+import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient;
+import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.CampaignMetrics;
+import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.DailyMetrics;
+import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class GoogleAdsServiceTest {
+
+    @Mock
+    GoogleOAuthService oAuthService;
+
+    @Mock
+    GoogleAdsClient client;
+
+    @Mock
+    GoogleAdsMapper mapper;
+
+    @InjectMocks
+    GoogleAdsService service;
+
+    @Test
+    void getOverview_notConnected_returnsDisabledResponse() {
+        UUID companyId = UUID.randomUUID();
+        when(oAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(false);
+
+        GoogleAdsOverviewResponse result = service.getOverview(companyId, null, null);
+
+        assertThat(result.connected()).isFalse();
+        verifyNoInteractions(client, mapper);
+    }
+
+    @Test
+    void getOverview_withoutCustomerId_returnsError() {
+        UUID companyId = UUID.randomUUID();
+        when(oAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(true);
+        when(oAuthService.getAdsCustomerId(companyId)).thenReturn(Optional.empty());
+
+        GoogleAdsOverviewResponse result = service.getOverview(companyId, null, null);
+
+        assertThat(result.errorMessage()).contains("müşteri ID");
+        verifyNoInteractions(client);
+    }
+
+    @Test
+    void getOverview_withoutAccessToken_returnsError() {
+        UUID companyId = UUID.randomUUID();
+        when(oAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(true);
+        when(oAuthService.getAdsCustomerId(companyId)).thenReturn(Optional.of("123-456-7890"));
+        when(mapper.sanitizeCustomerId("123-456-7890")).thenReturn("1234567890");
+        when(oAuthService.getValidAccessToken(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(Optional.empty());
+
+        GoogleAdsOverviewResponse result = service.getOverview(companyId, null, null);
+
+        assertThat(result.errorMessage()).contains("access token");
+        verifyNoInteractions(client);
+    }
+
+    @Test
+    void getOverview_withoutDeveloperToken_returnsError() {
+        UUID companyId = configuredCompany();
+        when(client.isConfigured()).thenReturn(false);
+
+        GoogleAdsOverviewResponse result = service.getOverview(companyId, null, null);
+
+        assertThat(result.errorMessage()).contains("developer token");
+    }
+
+    @Test
+    void getOverview_fetchesCampaignsAndDailyTrend() {
+        UUID companyId = configuredCompany();
+        GoogleAdsOverviewResponse expected = GoogleAdsOverviewResponse.error("1234567890", "mapped");
+        List<CampaignMetrics> campaigns = List.of();
+        List<DailyMetrics> daily = List.of();
+        when(client.isConfigured()).thenReturn(true);
+        when(mapper.resolveDate(anyString(), any())).thenReturn("2026-06-01", "2026-06-12");
+        when(client.fetchCampaigns("token", "1234567890", "2026-06-01", "2026-06-12"))
+                .thenReturn(campaigns);
+        when(client.fetchDailyTrend("token", "1234567890", "2026-06-01", "2026-06-12"))
+                .thenReturn(daily);
+        when(mapper.toOverviewResponse("1234567890", campaigns, daily)).thenReturn(expected);
+
+        assertThat(service.getOverview(companyId, "11daysAgo", "today")).isSameAs(expected);
+    }
+
+    @Test
+    void getOverview_clientFailure_returnsMappedError() {
+        UUID companyId = configuredCompany();
+        when(client.isConfigured()).thenReturn(true);
+        when(mapper.resolveDate(anyString(), any())).thenReturn("2026-06-01", "2026-06-12");
+        when(client.fetchCampaigns(anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new RuntimeException("403 PERMISSION_DENIED"));
+        when(mapper.toUserErrorMessage("403 PERMISSION_DENIED")).thenReturn("mapped error");
+
+        GoogleAdsOverviewResponse result = service.getOverview(companyId, null, null);
+
+        assertThat(result.errorMessage()).isEqualTo("mapped error");
+    }
+
+    private UUID configuredCompany() {
+        UUID companyId = UUID.randomUUID();
+        when(oAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(true);
+        when(oAuthService.getAdsCustomerId(companyId)).thenReturn(Optional.of("123-456-7890"));
+        when(mapper.sanitizeCustomerId("123-456-7890")).thenReturn("1234567890");
+        when(oAuthService.getValidAccessToken(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(Optional.of("token"));
+        return companyId;
+    }
+}

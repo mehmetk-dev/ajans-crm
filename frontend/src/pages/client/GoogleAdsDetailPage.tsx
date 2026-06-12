@@ -5,32 +5,33 @@ import {
     TrendingUp, MousePointerClick, Eye, Target, AlertTriangle,
     Loader2, Link, Check, RefreshCw, ChevronUp, ChevronDown
 } from 'lucide-react';
-import { googleAdsApi } from '../../api/googleAds';
+import {
+    campaignStatusTone,
+    formatCurrency,
+    formatMetric,
+    googleAdsApi,
+    googleAdsKeys,
+    sortCampaigns,
+    type GoogleAdsSortColumn,
+} from '../../features/google-ads';
 import { useAuth } from '../../store/AuthContext';
-
-function currency(n: number) { return '₺' + n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-function fmt(n: number) {
-    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-    if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
-    return n.toLocaleString('tr-TR');
-}
 
 export default function GoogleAdsDetailPage() {
     const { user } = useAuth();
     const qc = useQueryClient();
     const [customerIdInput, setCustomerIdInput] = useState('');
     const [showSetup, setShowSetup] = useState(false);
-    const [sortCol, setSortCol] = useState<'spend' | 'clicks' | 'impressions' | 'conversions'>('spend');
+    const [sortCol, setSortCol] = useState<GoogleAdsSortColumn>('spend');
     const [sortAsc, setSortAsc] = useState(false);
 
     const { data: status } = useQuery({
-        queryKey: ['google-ads-status', user?.companyId],
+        queryKey: googleAdsKeys.status(user?.companyId ?? ''),
         queryFn: () => googleAdsApi.getStatus(user!.companyId!),
         enabled: !!user?.companyId,
     });
 
     const { data, isLoading } = useQuery({
-        queryKey: ['google-ads-overview', user?.companyId],
+        queryKey: googleAdsKeys.overview(user?.companyId ?? ''),
         queryFn: () => googleAdsApi.getOverview(user!.companyId!),
         enabled: !!user?.companyId,
         staleTime: 5 * 60 * 1000,
@@ -39,17 +40,14 @@ export default function GoogleAdsDetailPage() {
     const saveMut = useMutation({
         mutationFn: (id: string) => googleAdsApi.saveCustomerId(user!.companyId!, id),
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['google-ads-overview'] });
-            qc.invalidateQueries({ queryKey: ['google-ads-status'] });
+            qc.invalidateQueries({ queryKey: googleAdsKeys.all });
             setShowSetup(false);
         },
     });
 
     if (!user?.companyId) return null;
 
-    const sortedCampaigns = [...(data?.campaigns ?? [])].sort((a, b) =>
-        sortAsc ? a[sortCol] - b[sortCol] : b[sortCol] - a[sortCol]
-    );
+    const sortedCampaigns = sortCampaigns(data?.campaigns ?? [], sortCol, sortAsc);
 
     const handleSort = (col: typeof sortCol) => {
         if (sortCol === col) setSortAsc(v => !v);
@@ -77,7 +75,7 @@ export default function GoogleAdsDetailPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => qc.invalidateQueries({ queryKey: ['google-ads-overview'] })}
+                        <button onClick={() => qc.invalidateQueries({ queryKey: googleAdsKeys.overview(user.companyId!) })}
                             className="p-2 rounded-xl border border-white/[0.06] text-zinc-500 hover:text-zinc-300 transition-colors">
                             <RefreshCw className="w-3.5 h-3.5" />
                         </button>
@@ -144,10 +142,10 @@ export default function GoogleAdsDetailPage() {
                     {/* KPI cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         {[
-                            { label: 'Toplam Harcama',  value: currency(data.totalSpend),               icon: TrendingUp,        color: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20' },
-                            { label: 'Tıklama',         value: fmt(data.clicks),                        icon: MousePointerClick,  color: 'text-violet-400',  bg: 'bg-violet-500/10',  border: 'border-violet-500/20' },
-                            { label: 'Gösterim',        value: fmt(data.impressions),                   icon: Eye,                color: 'text-cyan-400',    bg: 'bg-cyan-500/10',    border: 'border-cyan-500/20' },
-                            { label: 'Dönüşüm',         value: fmt(data.conversions),                   icon: Target,             color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+                            { label: 'Toplam Harcama',  value: formatCurrency(data.totalSpend), icon: TrendingUp,        color: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20' },
+                            { label: 'Tıklama',         value: formatMetric(data.clicks),       icon: MousePointerClick,  color: 'text-violet-400',  bg: 'bg-violet-500/10',  border: 'border-violet-500/20' },
+                            { label: 'Gösterim',        value: formatMetric(data.impressions),  icon: Eye,                color: 'text-cyan-400',    bg: 'bg-cyan-500/10',    border: 'border-cyan-500/20' },
+                            { label: 'Dönüşüm',         value: formatMetric(data.conversions),  icon: Target,             color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
                         ].map(s => {
                             const Icon = s.icon;
                             return (
@@ -165,7 +163,7 @@ export default function GoogleAdsDetailPage() {
                     {/* Secondary metrics */}
                     <div className="grid grid-cols-3 gap-4">
                         {[
-                            { label: 'CPC (Tıklama Başı Maliyet)', value: currency(data.cpc) },
+                            { label: 'CPC (Tıklama Başı Maliyet)', value: formatCurrency(data.cpc) },
                             { label: 'CTR (Tıklama Oranı)',         value: data.ctr.toFixed(2) + '%' },
                             { label: 'Dönüşüm Oranı',               value: data.conversionRate.toFixed(2) + '%' },
                         ].map(m => (
@@ -197,7 +195,7 @@ export default function GoogleAdsDetailPage() {
                                         contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12 }}
                                         labelStyle={{ color: '#a1a1aa', fontSize: 11 }}
                                         itemStyle={{ color: '#3b82f6', fontSize: 12 }}
-                                        formatter={(v) => [currency(Number(v ?? 0)), 'Harcama']}
+                                        formatter={(v) => [formatCurrency(Number(v ?? 0)), 'Harcama']}
                                     />
                                     <Area type="monotone" dataKey="spend" stroke="#3b82f6" strokeWidth={2} fill="url(#gadsGrad)" />
                                 </AreaChart>
@@ -233,12 +231,12 @@ export default function GoogleAdsDetailPage() {
                                             <tr key={c.campaignId} className="border-b border-white/[0.03] hover:bg-white/[0.01] transition-colors">
                                                 <td className="px-5 py-3">
                                                     <p className="text-[12px] text-white font-medium">{c.campaignName}</p>
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.status === 'ENABLED' ? 'text-emerald-400 bg-emerald-500/10' : 'text-zinc-500 bg-zinc-500/10'}`}>{c.status}</span>
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${campaignStatusTone(c.status)}`}>{c.status}</span>
                                                 </td>
-                                                <td className="px-4 py-3 text-right text-[12px] font-semibold text-blue-400">{currency(c.spend)}</td>
-                                                <td className="px-4 py-3 text-right text-[12px] text-zinc-300">{fmt(c.clicks)}</td>
-                                                <td className="px-4 py-3 text-right text-[12px] text-zinc-300">{fmt(c.impressions)}</td>
-                                                <td className="px-4 py-3 text-right text-[12px] text-zinc-300">{fmt(c.conversions)}</td>
+                                                <td className="px-4 py-3 text-right text-[12px] font-semibold text-blue-400">{formatCurrency(c.spend)}</td>
+                                                <td className="px-4 py-3 text-right text-[12px] text-zinc-300">{formatMetric(c.clicks)}</td>
+                                                <td className="px-4 py-3 text-right text-[12px] text-zinc-300">{formatMetric(c.impressions)}</td>
+                                                <td className="px-4 py-3 text-right text-[12px] text-zinc-300">{formatMetric(c.conversions)}</td>
                                                 <td className="px-5 py-3 text-right text-[12px] text-zinc-400">{c.ctr.toFixed(2)}%</td>
                                             </tr>
                                         ))}

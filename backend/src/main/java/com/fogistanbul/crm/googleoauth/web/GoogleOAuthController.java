@@ -1,6 +1,6 @@
-package com.fogistanbul.crm.controller;
+package com.fogistanbul.crm.googleoauth.web;
 
-import com.fogistanbul.crm.service.GoogleOAuthService;
+import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -17,9 +17,9 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/api/oauth/google")
 @RequiredArgsConstructor
-public class OAuthController {
+public class GoogleOAuthController {
 
-    private static final Logger log = LoggerFactory.getLogger(OAuthController.class);
+    private static final Logger log = LoggerFactory.getLogger(GoogleOAuthController.class);
 
     private final GoogleOAuthService googleOAuthService;
 

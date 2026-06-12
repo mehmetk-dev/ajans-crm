@@ -1,6 +1,6 @@
-package com.fogistanbul.crm.repository;
+package com.fogistanbul.crm.googleoauth.infrastructure;
 
-import com.fogistanbul.crm.entity.GoogleOAuthToken;
+import com.fogistanbul.crm.googleoauth.domain.GoogleOAuthToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
