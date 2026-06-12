@@ -41,7 +41,7 @@ Onerilen strateji:
 | PR projects | **TAMAMLANDI** | 10 Haziran 2026 | Proje/faz/uye/not/task baglantilari, authorization ve ortak frontend feature'i modullestirildi |
 | Files / media library | **TAMAMLANDI** | 10 Haziran 2026 | Dosya erisimi, attachment baglantilari ve ortak medya feature'i modullestirildi |
 | Messaging | **TAMAMLANDI** | 10 Haziran 2026 | Direct/grup mesajlasma, WebSocket ve ortak frontend feature'i modullestirildi |
-| Integrations | Devam ediyor | - | PageSpeed/Web Design, Google Analytics, Search Console ve Google Ads tamamlandi; sirada Instagram var |
+| Integrations | Devam ediyor | - | PageSpeed/Web Design, Google Analytics, Search Console, Google Ads ve Instagram tamamlandi; sirada Meta Ads var |
 
 ## 2. Mevcut Durumun Olculebilir Ozeti
 
@@ -1822,3 +1822,63 @@ Search Console dikey dilimi backend authorization, harici API client'i, response
 Google Ads dikey dilimi authorization, GAQL client'i, metrik mapping ve ortak frontend feature'i ile tamamlandi. Uc Google urununun ortak OAuth altyapisi tek module toplandi; Google Ads disconnect ve kampanya CTR davranislarindaki tutarsizliklar giderildi.
 
 **Siradaki modul: Instagram (Faz 6 - 5. entegrasyon).** Hedef: buyuk `InstagramService` sinifini Graph client, parser, tarih araligi, medya insight ve overview orkestrasyonu sinirlarina ayirmak; frontend panel/detail tekrarlarini ayni feature modulu altinda toplamak.
+
+## 31. Instagram ve Ortak Meta OAuth Modulu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 12 Haziran 2026
+
+### Backend - Instagram
+
+- Eski 1.402 satirlik `InstagramService` kaldirildi; sorumluluklar `com.fogistanbul.crm.instagram` modulu altinda application, infrastructure, dto ve web sinirlarina ayrildi.
+- `InstagramGraphClient` olusturuldu; Graph API v21 base URL'i, query parameter encoding ve `RestTemplate` GET cagrilari infrastructure katmanina tasindi.
+- `InstagramInsightParser` olusturuldu; `data`, `values`, `total_value`, tek metrik ve `follows_and_unfollows` response sekilleri application orkestrasyonundan ayrildi.
+- `InstagramDateRangeResolver` olusturuldu; relative tarih, ozel tarih, Istanbul ay baslangici ve gecersiz aralik fallback kurallari tek noktada toplandi.
+- `InstagramMediaInsightService` olusturuldu; reels/post metrik fallback siralari (`plays`, `views`, `impressions`, `reach`, `saved`, `shares`) ayri servise tasindi.
+- `InstagramMediaService` reels, post ve son medya listeleme/mapping akislarini yonetiyor.
+- `InstagramOverviewService` token baglami, profil/insight sorgulari, gunluk trend, takipci fallback'i ve response orkestrasyonundan sorumlu hale geldi.
+- `InstagramAccessPolicy` ile SOCIAL_MEDIA servis erisimi controller'dan ayrildi.
+- Controller response contract'lari tipli DTO'lara donusturuldu (`InstagramStatusResponse`, `InstagramWriteResponse`, `InstagramOverviewResponse`).
+- Mevcut HTTP endpoint ve JSON contract'lari korundu (`/api/client/analytics/ig/status`, `/overview`, `/reels`, `/posts`, `/disconnect`).
+
+### Backend - Ortak Meta OAuth
+
+- Instagram ve Meta Ads tarafindan ortak kullanilan OAuth/token altyapisi `instagram/oauth` altinda toplandi.
+- `InstagramOAuthService` application, `InstagramToken` domain, repository infrastructure ve callback controller web paketine tasindi.
+- Veritabani tablo adi, JPA alanlari ve `/api/oauth/instagram/callback` endpoint'i degistirilmedi.
+- Meta Ads servis/controller bagimliliklari yeni ortak OAuth paketine yonlendirildi; Meta Ads davranisi bu adimda degistirilmedi.
+
+### Frontend
+
+- `frontend/src/features/instagram/` altinda tipler, API client, query key factory, model yardimcilari ve panel bileseni olusturuldu.
+- `instagram.types.ts`: overview, status, gunluk trend, medya, reels ve post tipleri tek modulde toplandi.
+- `instagramKeys.ts`: dashboard, prefetch ve panel tarafindaki `client-ig*` cache contract'larini koruyan merkezi key factory olusturuldu.
+- `api/instagramApi.ts`: API fonksiyonlari eski `api/instagram.ts` dosyasindan ayrildi.
+- `model/instagram.utils.ts`: kompakt sayi formatlama, takipci buyume orani ve etkilesim orani ortaklastirildi.
+- `ui/InstagramPanel.tsx`: eski analytics component klasorunden feature modulune tasindi.
+- `api/instagram.ts` ve `components/analytics/InstagramPanel.tsx` backward compatibility re-export dosyalarina donusturuldu.
+- `ClientDashboard`, `ClientAnalyticsPage`, `useClientDataPrefetch`, Instagram detay, reels ve post sayfalari feature public API'sini kullanmaya basladi.
+
+### Test ve Dogrulama
+
+- Backend Graph response fixture'lari eklendi: `total_value`, gunluk `values` ve takip/unfollow breakdown sekilleri.
+- Backend `InstagramInsightParserTest`: 5 test.
+- Backend `InstagramDateRangeResolverTest`: 4 test.
+- Backend `InstagramAccessPolicyTest`: 2 test.
+- Backend `InstagramOverviewServiceTest`: 3 test.
+- Tum backend sonucu: **146 test basarili** (onceki 132'den 14 yeni test).
+- Frontend `instagram.utils.test.ts`: 3 yeni test.
+- Tum frontend sonucu: **118 test basarili** (onceki 115'ten 3 yeni test).
+- `npm run build`: **basarili**.
+- `mvn test`: **basarili**.
+
+### Bilinen Gecis Borclari
+
+- `InstagramOAuthService` 494 satirla application service esiginin uzerinde. Paket sahipligi duzeltildi; token exchange/refresh HTTP client'i, callback state dogrulamasi ve Facebook page/Instagram hesap secimi ayri siniflara alinabilir.
+- `InstagramPanel.tsx` ve Instagram detay sayfalari halen 300 satir inceleme esiginin uzerinde. Veri contract'i ve ortak hesaplamalar ayrildi; sonraki UI turunda status, metric grid, carousel ve chart section'lari presentational bilesenlere bolunmeli.
+- Production bundle ~1.84 MB; route-level lazy loading Faz 7'de ele alinmali.
+
+### Sonuc ve Siradaki Modul
+
+Instagram dikey dilimi Graph client, parser, tarih araligi, medya insight, overview orkestrasyonu, authorization ve ortak frontend feature siniri ile tamamlandi. Eski monolit servis kaldirildi; Instagram ile Meta Ads'in paylastigi OAuth/token sahipligi tek modulde toplandi.
+
+**Siradaki modul: Meta Ads (Faz 6 - 6. entegrasyon).** Hedef: Meta Ads rapor client'i, metrik mapping, authorization ve frontend panel/detail akislarini ayri feature sinirinda modularize etmek.

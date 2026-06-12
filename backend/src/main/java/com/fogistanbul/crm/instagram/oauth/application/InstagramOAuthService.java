@@ -1,14 +1,14 @@
-package com.fogistanbul.crm.service;
+package com.fogistanbul.crm.instagram.oauth.application;
 
 
 
 import com.fogistanbul.crm.entity.Company;
 
-import com.fogistanbul.crm.entity.InstagramToken;
+import com.fogistanbul.crm.instagram.oauth.domain.InstagramToken;
 
 import com.fogistanbul.crm.repository.CompanyRepository;
 
-import com.fogistanbul.crm.repository.InstagramTokenRepository;
+import com.fogistanbul.crm.instagram.oauth.infrastructure.InstagramTokenRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -491,4 +491,3 @@ public class InstagramOAuthService {
     }
 
 }
-

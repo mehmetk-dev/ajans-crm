@@ -6,14 +6,14 @@ import {
     ArrowLeft, CheckCircle2, ExternalLink,
     Image as ImageIcon, Calendar, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import { igApi, type IgPostRow } from '../../api/instagram';
+import {
+    formatInstagramMetric,
+    igApi,
+    type IgPostRow,
+} from '../../features/instagram';
 import { useAuth } from '../../store/AuthContext';
 
-const fmtNum = (n: number) => {
-    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-    if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
-    return n.toLocaleString('tr-TR');
-};
+const fmtNum = formatInstagramMetric;
 
 function SummaryCard({ label, value, icon: Icon, color, bgColor }: {
     label: string; value: string | number; icon: React.ElementType; color: string; bgColor: string;

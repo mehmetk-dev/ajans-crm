@@ -1,6 +1,6 @@
-package com.fogistanbul.crm.repository;
+package com.fogistanbul.crm.instagram.oauth.infrastructure;
 
-import com.fogistanbul.crm.entity.InstagramToken;
+import com.fogistanbul.crm.instagram.oauth.domain.InstagramToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

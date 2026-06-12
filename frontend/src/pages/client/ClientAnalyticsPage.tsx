@@ -9,7 +9,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { GoogleAnalyticsPanel, SearchConsolePanel, ContentPlanPanel, WebDesignPanel } from '../../components/analytics';
-import { PostsColumn, ReelsColumn, StatsColumn } from '../../components/analytics/InstagramPanel';
+import { PostsColumn, ReelsColumn, StatsColumn } from '../../features/instagram';
 import GoogleAdsPanel from '../../components/analytics/GoogleAdsPanel';
 import MetaAdsPanel from '../../components/analytics/MetaAdsPanel';
 import type { PageResponse } from '../../api/staff';

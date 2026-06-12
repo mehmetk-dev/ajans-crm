@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "name": "follows_and_unfollows",
+      "total_value": {
+        "breakdowns": [
+          {
+            "results": [
+              {
+                "dimension_values": ["FOLLOWER"],
+                "value": 37
+              },
+              {
+                "dimension_values": ["UNFOLLOW"],
+                "value": 9
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

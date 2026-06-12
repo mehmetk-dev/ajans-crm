@@ -8,7 +8,16 @@ import {
     ArrowLeft, CheckCircle2, Calendar, ChevronDown, ChevronRight,
     Image as ImageIcon, LogOut, BarChart3, Play, Share2, Bookmark, Percent
 } from 'lucide-react';
-import { igApi, type IgOverviewResponse, type IgStatusResponse, type IgReelRow, type IgPostRow } from '../../api/instagram';
+import {
+    formatInstagramMetric,
+    igApi,
+    instagramEngagementRate,
+    instagramGrowthRate,
+    type IgOverviewResponse,
+    type IgPostRow,
+    type IgReelRow,
+    type IgStatusResponse,
+} from '../../features/instagram';
 import { useAuth } from '../../store/AuthContext';
 
 const DATE_PRESETS = [
@@ -18,11 +27,7 @@ const DATE_PRESETS = [
     { label: 'Özel Aralık', start: 'custom', end: 'custom' },
 ] as const;
 
-const fmtNum = (n: number) => {
-    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-    if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
-    return n.toLocaleString('tr-TR');
-};
+const fmtNum = formatInstagramMetric;
 
 function ChartTooltip({ active, payload, label }: {
     active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string;
@@ -115,10 +120,20 @@ export default function InstagramDetailPage() {
         await igApi.disconnect(companyId); setData(null); setReels([]); setPosts([]);
     };
 
-    const growthRate = data && data.followersCount > 0
-        ? ((data.followersGained - data.followersLost) / data.followersCount * 100).toFixed(2) : '0';
-    const engagementRate = data && data.followersCount > 0
-        ? ((data.totalLikes + data.totalComments) / data.followersCount * 100).toFixed(2) : '0';
+    const growthRate = data
+        ? instagramGrowthRate(
+            data.followersCount,
+            data.followersGained,
+            data.followersLost,
+        ).toFixed(2)
+        : '0';
+    const engagementRate = data
+        ? instagramEngagementRate(
+            data.followersCount,
+            data.totalLikes,
+            data.totalComments,
+        ).toFixed(2)
+        : '0';
     const avgLikesPerPost = reels.length + posts.length > 0
         ? Math.round((data?.totalLikes ?? 0) / (reels.length + posts.length)) : 0;
     const avgCommentsPerPost = reels.length + posts.length > 0

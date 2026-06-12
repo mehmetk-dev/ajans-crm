@@ -3,7 +3,7 @@ package com.fogistanbul.crm.controller;
 import com.fogistanbul.crm.dto.MetaAdsOverviewResponse;
 import com.fogistanbul.crm.entity.enums.ServiceCategory;
 import com.fogistanbul.crm.company.application.CompanyServiceAccessGuard;
-import com.fogistanbul.crm.service.InstagramOAuthService;
+import com.fogistanbul.crm.instagram.oauth.application.InstagramOAuthService;
 import com.fogistanbul.crm.service.MetaAdsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;

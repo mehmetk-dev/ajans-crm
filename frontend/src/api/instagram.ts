@@ -1,102 +1,13 @@
-import api from './client';
+/**
+ * @deprecated Yeni kod için `features/instagram` modülünü kullanın.
+ */
+export type {
+    IgDailyRow,
+    IgMediaRow,
+    IgOverviewResponse,
+    IgPostRow,
+    IgReelRow,
+    IgStatusResponse,
+} from '../features/instagram/instagram.types';
 
-export interface IgDailyRow {
-    date: string;
-    followers: number;
-    impressions: number;
-    reach: number;
-}
-
-export interface IgMediaRow {
-    id: string;
-    caption: string;
-    mediaType: string;
-    mediaUrl: string;
-    permalink: string;
-    timestamp: string;
-    likeCount: number;
-    commentsCount: number;
-}
-
-export interface IgReelRow {
-    id: string;
-    caption: string;
-    thumbnailUrl: string;
-    permalink: string;
-    timestamp: string;
-    likeCount: number;
-    commentsCount: number;
-    plays: number;
-    reach: number;
-    saved: number;
-    shares: number;
-}
-
-export interface IgOverviewResponse {
-    connected: boolean;
-    username: string | null;
-    errorMessage: string | null;
-    followersCount: number;
-    followsCount: number;
-    mediaCount: number;
-    impressions: number;
-    reach: number;
-    profileViews: number;
-    websiteClicks: number;
-    totalLikes: number;
-    totalComments: number;
-    followersGained: number;
-    followersLost: number;
-    dailyTrend: IgDailyRow[];
-    recentMedia: IgMediaRow[];
-}
-
-export interface IgStatusResponse {
-    configured: boolean;
-    connected: boolean;
-    authUrl: string;
-    username: string;
-    igUserId: string;
-}
-
-export interface IgPostRow {
-    id: string;
-    caption: string;
-    mediaType: string;
-    mediaUrl: string;
-    permalink: string;
-    timestamp: string;
-    likeCount: number;
-    commentsCount: number;
-    impressions: number;
-    reach: number;
-    saved: number;
-    shares: number;
-}
-
-export const igApi = {
-    getStatus: (companyId: string) =>
-        api.get<IgStatusResponse>('/client/analytics/ig/status', {
-            params: { companyId }
-        }).then(r => r.data),
-
-    getOverview: (companyId: string, startDate?: string, endDate?: string) =>
-        api.get<IgOverviewResponse>('/client/analytics/ig/overview', {
-            params: { companyId, startDate, endDate }
-        }).then(r => r.data),
-
-    disconnect: (companyId: string) =>
-        api.delete('/client/analytics/ig/disconnect', {
-            params: { companyId }
-        }).then(r => r.data),
-
-    getReels: (companyId: string, limit = 20) =>
-        api.get<IgReelRow[]>('/client/analytics/ig/reels', {
-            params: { companyId, limit }
-        }).then(r => r.data),
-
-    getPosts: (companyId: string, limit = 20) =>
-        api.get<IgPostRow[]>('/client/analytics/ig/posts', {
-            params: { companyId, limit }
-        }).then(r => r.data),
-};
+export { igApi } from '../features/instagram/api/instagramApi';

@@ -1,6 +1,6 @@
-package com.fogistanbul.crm.controller;
+package com.fogistanbul.crm.instagram.oauth.web;
 
-import com.fogistanbul.crm.service.InstagramOAuthService;
+import com.fogistanbul.crm.instagram.oauth.application.InstagramOAuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

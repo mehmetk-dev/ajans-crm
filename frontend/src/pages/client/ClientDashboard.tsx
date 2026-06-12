@@ -3,7 +3,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { gaApi, type GaOverviewResponse } from '../../api/googleAnalytics';
-import { igApi, type IgOverviewResponse } from '../../api/instagram';
+import {
+    igApi,
+    instagramKeys,
+    type IgOverviewResponse,
+} from '../../features/instagram';
 import type { PageResponse } from '../../api/staff';
 import {
     searchConsoleApi,
@@ -65,7 +69,7 @@ export default function ClientDashboard() {
         enabled: !!companyId, staleTime: STALE, gcTime: CACHE,
     });
     const { data: ig, isLoading: igLoading } = useQuery<IgOverviewResponse>({
-        queryKey: ['client-ig', companyId],
+        queryKey: instagramKeys.overview(companyId),
         queryFn: () => igApi.getOverview(companyId),
         enabled: !!companyId, staleTime: STALE, gcTime: CACHE,
     });
@@ -169,9 +173,9 @@ export default function ClientDashboard() {
                         <button
                             onClick={() => {
                                 const keyMap: Record<TabKey, string[]> = {
-                                    overview: ['client-ga', 'client-sc', 'client-ig', 'client-shoots', 'client-tasks'],
+                                    overview: ['client-ga', 'client-sc', instagramKeys.overviewRoot[0], 'client-shoots', 'client-tasks'],
                                     web: ['client-ga', 'client-sc'],
-                                    social: ['client-ig'],
+                                    social: [instagramKeys.overviewRoot[0]],
                                     schedule: ['client-shoots', 'client-tasks'],
                                 };
                                 refreshTab(keyMap[tab]);

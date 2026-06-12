@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { gaApi } from '../api/googleAnalytics';
-import { igApi } from '../api/instagram';
+import { igApi, instagramKeys } from '../features/instagram';
 import { searchConsoleApi, searchConsoleKeys } from '../features/search-console';
 import { taskApi, taskKeys } from '../features/tasks';
 import { shootApi, shootKeys } from '../features/shoots';
@@ -30,19 +30,19 @@ export function useClientDataPrefetch() {
         enabled: enabled && !servicesLoading && hasDigitalMarketing, staleTime: STALE, gcTime: CACHE,
     });
     const ig = useQuery({
-        queryKey: ['client-ig', cid], queryFn: () => igApi.getOverview(cid),
+        queryKey: instagramKeys.overview(cid), queryFn: () => igApi.getOverview(cid),
         enabled: enabled && !servicesLoading && hasSocialMedia, staleTime: STALE, gcTime: CACHE,
     });
     const igStatus = useQuery({
-        queryKey: ['client-ig-status', cid], queryFn: () => igApi.getStatus(cid),
+        queryKey: instagramKeys.status(cid), queryFn: () => igApi.getStatus(cid),
         enabled: enabled && !servicesLoading && hasSocialMedia, staleTime: STALE, gcTime: CACHE,
     });
     const igReels = useQuery({
-        queryKey: ['client-ig-reels', cid], queryFn: () => igApi.getReels(cid, 100),
+        queryKey: instagramKeys.reels(cid), queryFn: () => igApi.getReels(cid, 100),
         enabled: enabled && !servicesLoading && hasSocialMedia, staleTime: STALE, gcTime: CACHE,
     });
     const igPosts = useQuery({
-        queryKey: ['client-ig-posts', cid], queryFn: () => igApi.getPosts(cid, 100),
+        queryKey: instagramKeys.posts(cid), queryFn: () => igApi.getPosts(cid, 100),
         enabled: enabled && !servicesLoading && hasSocialMedia, staleTime: STALE, gcTime: CACHE,
     });
     const shoots = useQuery({
@@ -66,7 +66,15 @@ export function useRefreshAllClientData() {
     const { user } = useAuth();
     const cid = user?.companyId || '';
     return () => {
-        ['client-ga', 'client-sc', 'client-ig', 'client-ig-status', 'client-ig-reels', 'client-ig-posts', 'client-tasks'].forEach(key => {
+        [
+            'client-ga',
+            'client-sc',
+            instagramKeys.overviewRoot[0],
+            instagramKeys.statusRoot[0],
+            instagramKeys.reelsRoot[0],
+            instagramKeys.postsRoot[0],
+            'client-tasks',
+        ].forEach(key => {
             qc.invalidateQueries({ queryKey: [key, cid] });
         });
         qc.invalidateQueries({ queryKey: shootKeys.all });
