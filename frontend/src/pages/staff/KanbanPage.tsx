@@ -1,321 +1,50 @@
-import { useState, useMemo, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { settingsApi } from '../../api/settings';
-import type { PageResponse } from '../../api/staff';
-import {
-    taskApi,
-    taskKeys,
-    TaskDetailPanel,
-    type TaskResponse,
-    type TaskStatus,
-} from '../../features/tasks';
-import { meetingApi, meetingKeys, type MeetingResponse } from '../../features/meetings';
-import { useStaffShoots, type ShootResponse } from '../../features/shoots';
-import { usePrProjects } from '../../features/pr-projects';
-import { useAuth } from '../../store/AuthContext';
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-    Sun, Moon, Coffee, Sunrise,
     CheckCircle2, Clock, AlertTriangle, Camera, Rocket, Users, Calendar,
     ArrowRight, Target, TrendingUp,
-    MapPin, Pencil
+    MapPin, Pencil, Sun, Moon, Coffee, Sunrise
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { TaskDetailPanel } from '../../features/tasks';
 import { QuickNotes } from '../../features/notes';
+import { useKanbanData } from '../../features/kanban/hooks/useKanbanData';
+import { TaskMiniCard, ShootMiniCard, QuickStat, WeekStrip } from '../../features/kanban/ui';
+import { getGreeting, MOTIVATIONAL, dateToKey, toLocalDateKey, parseLocalDateKey, formatTime, formatDateShort } from '../../features/kanban/model/kanban.utils';
 
-/* ─── Helpers ─── */
-function getGreeting(): { text: string; icon: React.ReactNode } {
-    const h = new Date().getHours();
-    if (h < 6) return { text: 'İyi geceler', icon: <Moon className="w-5 h-5 text-indigo-400" /> };
-    if (h < 12) return { text: 'Günaydın', icon: <Sunrise className="w-5 h-5 text-amber-400" /> };
-    if (h < 18) return { text: 'İyi günler', icon: <Sun className="w-5 h-5 text-orange-400" /> };
-    return { text: 'İyi akşamlar', icon: <Coffee className="w-5 h-5 text-violet-400" /> };
+/* ─── Greeting Icon ─── */
+function GreetingIcon({ type }: { type: 'moon' | 'sunrise' | 'sun' | 'coffee' }) {
+    switch (type) {
+        case 'moon': return <Moon className="w-5 h-5 text-indigo-400" />;
+        case 'sunrise': return <Sunrise className="w-5 h-5 text-amber-400" />;
+        case 'sun': return <Sun className="w-5 h-5 text-orange-400" />;
+        case 'coffee': return <Coffee className="w-5 h-5 text-violet-400" />;
+    }
 }
 
-const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
-    TODO: { bg: 'bg-zinc-800', text: 'text-zinc-400', label: 'Bekliyor' },
-    IN_PROGRESS: { bg: 'bg-blue-900/30', text: 'text-blue-400', label: 'Devam Ediyor' },
-    DONE: { bg: 'bg-pink-900/30', text: 'text-pink-400', label: 'Tamamlandı' },
-};
-
-function isToday(iso: string | null) {
-    if (!iso) return false;
-    return dateToKey(iso) === toLocalDateKey(new Date());
-}
-
-function isFuture(iso: string | null) {
-    if (!iso) return false;
-    return new Date(iso) >= new Date(new Date().toDateString());
-}
-
-function isOverdue(task: TaskResponse) {
-    if (task.status === 'DONE') return false;
-    if (!task.endDate) return false;
-    return dateToKey(task.endDate) < toLocalDateKey(new Date());
-}
-
-function formatDateShort(iso: string | null) {
-    if (!iso) return '';
-    return new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-}
-
-function formatTime(t: string | null) {
-    if (!t) return null;
-    return t.slice(0, 5);
-}
-
-/** Format a Date as YYYY-MM-DD in local timezone (avoids UTC shift from toISOString) */
-function toLocalDateKey(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-}
-
-/** Convert any date string (ISO instant or YYYY-MM-DD) to local YYYY-MM-DD key */
-function dateToKey(iso: string | null): string {
-    if (!iso) return '';
-    // If it's already YYYY-MM-DD (10 chars, no T), return as-is
-    if (iso.length === 10 && !iso.includes('T')) return iso;
-    // Otherwise parse as Date and get local key
-    return toLocalDateKey(new Date(iso));
-}
-
-/** Parse a YYYY-MM-DD key back into a local Date */
-function parseLocalDateKey(key: string): Date {
-    const [y, m, d] = key.split('-').map(Number);
-    return new Date(y, m - 1, d);
-}
-
-const MOTIVATIONAL = [
-    'Her detay, mükemmelliğe giden bir adımdır.',
-    'Bugün harika işler çıkaracaksın!',
-    'Odaklan, uygula, başar.',
-    'Küçük adımlar, büyük sonuçlar.',
-    'Yaratıcılık disiplinle buluşunca harikalar olur.',
-    'Bugünkü emeğin yarının başarısını getirir.',
-    'Sen olmasaydın bu takım eksik olurdu.',
-];
-
-/* ─── Components ─── */
-
-function QuickStat({ icon, label, value, accent, delay = 0 }: {
-    icon: React.ReactNode; label: string; value: string | number; accent: string; delay?: number;
-}) {
+/* ─── Empty State Card ─── */
+function EmptyCard({ icon, label }: { icon: React.ReactNode; label: string }) {
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay }}
-            className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5 hover:border-white/[0.10] transition-all duration-300"
-        >
-            <div className="flex items-center gap-3 mb-3">
-                <div className={`h-9 w-9 rounded-xl flex items-center justify-center ${accent}`}>
-                    {icon}
-                </div>
-                <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">{label}</span>
-            </div>
-            <p className="text-2xl font-black text-white">{value}</p>
-        </motion.div>
-    );
-}
-
-function TaskMiniCard({ task, onClick }: { task: TaskResponse; onClick?: () => void }) {
-    const badge = STATUS_BADGE[task.status] || STATUS_BADGE.TODO;
-    const overdue = isOverdue(task);
-
-    return (
-        <div onClick={onClick} className={`flex items-center gap-3 bg-[#0C0C0E] border rounded-xl px-4 py-3 transition-colors cursor-pointer ${overdue ? 'border-red-500/20 hover:border-red-500/30' : 'border-white/[0.06] hover:border-pink-500/20'}`}>
-            <div className={`w-1 h-8 rounded-full bg-gradient-to-b from-pink-500 to-pink-700`} />
-            <div className="flex-1 min-w-0">
-                <p className="text-sm text-white font-medium truncate">{task.title}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                    {task.companyName && <span className="text-[10px] text-zinc-600">{task.companyName}</span>}
-                    {task.endDate && (
-                        <span className={`text-[10px] flex items-center gap-0.5 ${overdue ? 'text-red-400' : 'text-zinc-600'}`}>
-                            <Clock className="w-2.5 h-2.5" />
-                            {formatDateShort(task.endDate)}
-                        </span>
-                    )}
-                </div>
-            </div>
-            <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${badge.bg} ${badge.text}`}>
-                {badge.label}
-            </span>
-        </div>
-    );
-}
-
-function ShootMiniCard({ shoot }: { shoot: ShootResponse }) {
-    const today = isToday(shoot.shootDate);
-    return (
-        <div className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${today ? 'bg-blue-500/[0.06] border border-blue-500/20' : 'bg-white/[0.02] border border-white/[0.06]'}`}>
-            <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${today ? 'bg-blue-500/15' : 'bg-white/[0.04]'}`}>
-                <Camera className={`w-3.5 h-3.5 ${today ? 'text-blue-400' : 'text-zinc-500'}`} />
-            </div>
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                    <span className="text-sm text-white font-medium truncate">{shoot.title}</span>
-                    {today && <span className="text-[9px] font-bold text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-md">BUGÜN</span>}
-                </div>
-                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-zinc-500">
-                    <span className="flex items-center gap-0.5"><Calendar className="w-2.5 h-2.5" />{formatDateShort(shoot.shootDate)}{shoot.shootTime && ` · ${formatTime(shoot.shootTime)}`}</span>
-                    {shoot.location && <span className="flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" />{shoot.location}</span>}
-                </div>
-            </div>
-            <span className="text-[10px] text-zinc-600">{shoot.companyName}</span>
-        </div>
-    );
-}
-
-function WeekStrip({ shoots, tasks, meetings, selectedDay, onSelectDay }: {
-    shoots: ShootResponse[]; tasks: TaskResponse[]; meetings: MeetingResponse[];
-    selectedDay: string | null; onSelectDay: (key: string | null) => void;
-}) {
-    const days = useMemo(() => {
-        const arr = [];
-        const now = new Date();
-        const start = new Date(now);
-        start.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-        const dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-        for (let i = 0; i < 7; i++) {
-            const d = new Date(start);
-            d.setDate(start.getDate() + i);
-            const key = toLocalDateKey(d);
-            const isCurrent = d.toDateString() === now.toDateString();
-            const dayTasks = tasks.filter(t => dateToKey(t.endDate) === key);
-            const dayShoots = shoots.filter(s => dateToKey(s.shootDate) === key);
-            const dayMeetings = meetings.filter(m => m.meetingDate && dateToKey(m.meetingDate) === key);
-            const pendingTasks = dayTasks.filter(t => t.status !== 'DONE');
-            const todayKey = toLocalDateKey(new Date());
-            const overdueTasks = pendingTasks.filter(t => dateToKey(t.endDate) < todayKey);
-            const allDone = dayTasks.length > 0 && pendingTasks.length === 0;
-            const hasOverdue = overdueTasks.length > 0;
-            arr.push({
-                key, dayName: dayNames[i], date: d.getDate(), isCurrent,
-                allDone, hasOverdue,
-                shootCount: dayShoots.length, taskCount: pendingTasks.length, meetingCount: dayMeetings.length,
-            });
-        }
-        return arr;
-    }, [shoots, tasks, meetings]);
-
-    return (
-        <div className="grid grid-cols-7 gap-2">
-            {days.map((d) => (
-                <button
-                    key={d.key}
-                    onClick={() => onSelectDay(selectedDay === d.key || d.isCurrent ? null : d.key)}
-                    className={`relative text-center p-2.5 rounded-xl transition-all cursor-pointer ${
-                        selectedDay === d.key
-                            ? 'bg-white/[0.06] border-2 border-pink-500/40 ring-1 ring-pink-500/20'
-                            : d.isCurrent
-                                ? d.allDone
-                                    ? 'bg-pink-500/15 border border-pink-500/30'
-                                    : 'bg-pink-500/10 border border-pink-500/20'
-                                : d.allDone
-                                    ? 'bg-pink-500/[0.06] border border-pink-500/15'
-                                    : 'bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.10]'
-                    }`}
-                >
-                    {/* Overdue red dot */}
-                    {d.hasOverdue && (
-                        <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-                        </span>
-                    )}
-                    {/* All done checkmark */}
-                    {d.allDone && !d.hasOverdue && (
-                        <span className="absolute top-1.5 right-1.5">
-                            <CheckCircle2 className="w-3 h-3 text-pink-400" />
-                        </span>
-                    )}
-                    <p className={`text-[10px] font-semibold ${d.isCurrent ? 'text-pink-400' : d.allDone ? 'text-pink-500/70' : 'text-zinc-600'}`}>{d.dayName}</p>
-                    <p className={`text-lg font-bold mt-0.5 ${d.isCurrent ? 'text-white' : d.allDone ? 'text-pink-400/70' : 'text-zinc-400'}`}>{d.date}</p>
-                    <div className="flex justify-center mt-1 gap-0.5">
-                        {Array.from({ length: Math.min(d.shootCount, 3) }).map((_, j) => (
-                            <div key={`s${j}`} className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                        ))}
-                        {Array.from({ length: Math.min(d.taskCount, 3) }).map((_, j) => (
-                            <div key={`t${j}`} className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                        ))}
-                        {Array.from({ length: Math.min(d.meetingCount, 3) }).map((_, j) => (
-                            <div key={`m${j}`} className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                        ))}
-                    </div>
-                </button>
-            ))}
+        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6 text-center">
+            {icon}
+            <p className="text-xs text-zinc-600">{label}</p>
         </div>
     );
 }
 
 /* ─── Main Page ─── */
 export default function KanbanPage() {
-    const { user } = useAuth();
-    const queryClient = useQueryClient();
+    const {
+        user, selectedTask, setSelectedTask, selectedDay, setSelectedDay,
+        avatarInputRef, avatarMutation, handleAvatarChange,
+        isLoading,
+        allTasks, allShoots, allMeetings,
+        activeTasks, overdueTasks, todayTasks, todayShoots,
+        upcomingShoots, upcomingMeetings, activePr,
+        completionRate, handleTaskStatusChange,
+    } = useKanbanData();
+
     const greeting = getGreeting();
     const quote = MOTIVATIONAL[new Date().getDate() % MOTIVATIONAL.length];
-    const avatarInputRef = useRef<HTMLInputElement>(null);
-    const [selectedTask, setSelectedTask] = useState<TaskResponse | null>(null);
-    const [selectedDay, setSelectedDay] = useState<string | null>(null);
-
-    // --- Avatar upload ---
-    const avatarMutation = useMutation({
-        mutationFn: (file: File) => settingsApi.uploadAvatar(file),
-        onSuccess: () => {
-            // Force re-fetch user info so avatarUrl updates everywhere
-            window.location.reload();
-        },
-    });
-
-    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) avatarMutation.mutate(file);
-    };
-
-    // --- Data ---
-    const { data: myTasksData, isLoading: loadingTasks } = useQuery<PageResponse<TaskResponse>>({
-        queryKey: taskKeys.staffList('mine'),
-        queryFn: () => taskApi.listMine(0, 50),
-    });
-
-    const { data: shootsData, isLoading: loadingShoots } = useStaffShoots(0, 50);
-
-    const { data: meetingsData } = useQuery<PageResponse<MeetingResponse>>({
-        queryKey: meetingKeys.staffList(undefined, 50),
-        queryFn: () => meetingApi.list(0, 50),
-    });
-
-    const { data: prData } = usePrProjects(0, 50);
-
-    const allTasks = myTasksData?.content ?? [];
-    const allShoots = shootsData?.content ?? [];
-    const allMeetings = meetingsData?.content ?? [];
-    const allPr = prData?.content ?? [];
-    // --- Derived data ---
-    const activeTasks = allTasks.filter(t => t.status !== 'DONE');
-    const overdueTasks = allTasks.filter(isOverdue);
-    const todayTasks = allTasks.filter(t => isToday(t.endDate) && t.status !== 'DONE');
-    const completedTasks = allTasks.filter(t => t.status === 'DONE');
-    const upcomingShoots = allShoots.filter(s => isFuture(s.shootDate) && s.status !== 'CANCELLED').sort((a, b) => new Date(a.shootDate!).getTime() - new Date(b.shootDate!).getTime());
-    const todayShoots = allShoots.filter(s => isToday(s.shootDate) && s.status !== 'CANCELLED');
-    const upcomingMeetings = allMeetings.filter(m => isFuture(m.meetingDate) && m.status !== 'CANCELLED').sort((a, b) => new Date(a.meetingDate).getTime() - new Date(b.meetingDate).getTime());
-    const activePr = allPr.filter(p => p.status === 'ACTIVE');
-
-    const completionRate = allTasks.length > 0 ? Math.round((completedTasks.length / allTasks.length) * 100) : 0;
-
-    const handleTaskStatusChange = async (taskId: string, status: TaskStatus) => {
-        try {
-            await taskApi.update(taskId, { status });
-            queryClient.invalidateQueries({ queryKey: taskKeys.staffLists() });
-            setSelectedTask(null);
-        } catch {
-            // Keep the selected task open when the status update fails.
-        }
-    };
-
-    const isLoading = loadingTasks || loadingShoots;
 
     if (isLoading) {
         return (
@@ -361,7 +90,7 @@ export default function KanbanPage() {
                     </div>
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                            {greeting.icon}
+                            <GreetingIcon type={greeting.iconType} />
                             <span className="text-sm text-zinc-500">{greeting.text}</span>
                         </div>
                         <h1 className="text-2xl font-black text-white tracking-tight">
@@ -427,7 +156,7 @@ export default function KanbanPage() {
                     <div className="flex items-center justify-between">
                         <h2 className="text-sm font-semibold text-white flex items-center gap-2">
                             <AlertTriangle className="w-4 h-4 text-red-400" />
-                            {selectedDay ? (() => { return `${parseLocalDateKey(selectedDay).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' })} — Görevler`; })() : 'Gecikmiş Görevler'}
+                            {selectedDay ? `${parseLocalDateKey(selectedDay).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' })} — Görevler` : 'Gecikmiş Görevler'}
                         </h2>
                         <div className="flex items-center gap-2">
                             {selectedDay && (
@@ -447,12 +176,7 @@ export default function KanbanPage() {
                         const dayDone = dayTasks.filter(t => t.status === 'DONE');
                         const hasAny = dayTasks.length > 0;
 
-                        if (!hasAny) return (
-                            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6 text-center">
-                                <CheckCircle2 className="w-8 h-8 text-zinc-700/30 mx-auto mb-2" />
-                                <p className="text-xs text-zinc-600">Bu gün için görev yok</p>
-                            </div>
-                        );
+                        if (!hasAny) return <EmptyCard icon={<CheckCircle2 className="w-8 h-8 text-zinc-700/30 mx-auto mb-2" />} label="Bu gün için görev yok" />;
 
                         return (
                             <div className="space-y-3">
@@ -500,11 +224,8 @@ export default function KanbanPage() {
                             </div>
                         );
                     })() : (
-                        [...overdueTasks].length === 0 ? (
-                            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6 text-center">
-                                <CheckCircle2 className="w-8 h-8 text-pink-500/30 mx-auto mb-2" />
-                                <p className="text-xs text-zinc-600">Gecikmiş görev yok</p>
-                            </div>
+                        overdueTasks.length === 0 ? (
+                            <EmptyCard icon={<CheckCircle2 className="w-8 h-8 text-pink-500/30 mx-auto mb-2" />} label="Gecikmiş görev yok" />
                         ) : (
                             <div className="space-y-1.5">
                                 {overdueTasks.slice(0, 5).map(task => (
@@ -530,10 +251,7 @@ export default function KanbanPage() {
                                         {dayShoots.length > 0 && <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-md">{dayShoots.length}</span>}
                                     </h2>
                                     {dayShoots.length === 0 ? (
-                                        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-4 text-center">
-                                            <Camera className="w-6 h-6 text-zinc-700/30 mx-auto mb-1" />
-                                            <p className="text-xs text-zinc-600">Bu gün çekim yok</p>
-                                        </div>
+                                        <EmptyCard icon={<Camera className="w-6 h-6 text-zinc-700/30 mx-auto mb-1" />} label="Bu gün çekim yok" />
                                     ) : (
                                         <div className="space-y-1.5">
                                             {dayShoots.map(shoot => <ShootMiniCard key={shoot.id} shoot={shoot} />)}
@@ -549,10 +267,7 @@ export default function KanbanPage() {
                                         {dayMeetings.length > 0 && <span className="text-[10px] text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded-md">{dayMeetings.length}</span>}
                                     </h2>
                                     {dayMeetings.length === 0 ? (
-                                        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-4 text-center">
-                                            <Users className="w-6 h-6 text-zinc-700/30 mx-auto mb-1" />
-                                            <p className="text-xs text-zinc-600">Bu gün toplantı yok</p>
-                                        </div>
+                                        <EmptyCard icon={<Users className="w-6 h-6 text-zinc-700/30 mx-auto mb-1" />} label="Bu gün toplantı yok" />
                                     ) : (
                                         <div className="space-y-1.5">
                                             {dayMeetings.map(m => (
@@ -588,10 +303,7 @@ export default function KanbanPage() {
                                 </Link>
                             </div>
                             {upcomingShoots.length === 0 ? (
-                                <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6 text-center">
-                                    <Camera className="w-8 h-8 text-zinc-700/30 mx-auto mb-2" />
-                                    <p className="text-xs text-zinc-600">Yaklaşan çekim yok</p>
-                                </div>
+                                <EmptyCard icon={<Camera className="w-8 h-8 text-zinc-700/30 mx-auto mb-2" />} label="Yaklaşan çekim yok" />
                             ) : (
                                 <div className="space-y-1.5">
                                     {upcomingShoots.slice(0, 5).map(shoot => (
@@ -614,10 +326,7 @@ export default function KanbanPage() {
                         Yaklaşan Toplantılar
                     </h2>
                     {upcomingMeetings.length === 0 ? (
-                        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6 text-center">
-                            <Users className="w-8 h-8 text-zinc-700/30 mx-auto mb-2" />
-                            <p className="text-xs text-zinc-600">Planlanmış toplantı yok</p>
-                        </div>
+                        <EmptyCard icon={<Users className="w-8 h-8 text-zinc-700/30 mx-auto mb-2" />} label="Planlanmış toplantı yok" />
                     ) : (
                         <div className="space-y-1.5">
                             {upcomingMeetings.slice(0, 4).map(m => (
@@ -652,10 +361,7 @@ export default function KanbanPage() {
                         </Link>
                     </div>
                     {activePr.length === 0 ? (
-                        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6 text-center">
-                            <Rocket className="w-8 h-8 text-zinc-700/30 mx-auto mb-2" />
-                            <p className="text-xs text-zinc-600">Aktif proje yok</p>
-                        </div>
+                        <EmptyCard icon={<Rocket className="w-8 h-8 text-zinc-700/30 mx-auto mb-2" />} label="Aktif proje yok" />
                     ) : (
                         <div className="space-y-1.5">
                             {activePr.slice(0, 4).map(pr => (
