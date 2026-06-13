@@ -17,7 +17,6 @@ import com.fogistanbul.crm.entity.enums.MembershipRole;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.PersonRepository;
-import com.fogistanbul.crm.repository.TaskRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
 import com.fogistanbul.crm.service.CompanyServicesManager;
 import com.fogistanbul.crm.messaging.application.GroupMessagingService;
@@ -38,13 +37,13 @@ public class CompanyService {
     private final PersonRepository personRepository;
     private final UserProfileRepository userProfileRepository;
     private final CompanyMembershipRepository membershipRepository;
-    private final TaskRepository taskRepository;
     private final PasswordEncoder passwordEncoder;
     private final PermissionService permissionService;
     private final GroupMessagingService groupMessagingService;
     private final CompanyDataCleanup dataCleanup;
     private final CompanyServicesManager companyServicesManager;
     private final CompanyAccessPolicy companyAccessPolicy;
+    private final CompanyMapper companyMapper;
 
 
     @Transactional
@@ -105,13 +104,13 @@ public class CompanyService {
         // Initialize service categories (selected or all false)
         companyServicesManager.initializeServicesForCompany(company.getId(), req.getSelectedServices());
 
-        return toResponse(company);
+        return companyMapper.toResponse(company);
     }
 
     @Transactional(readOnly = true)
     public List<CompanyResponse> getAllClients() {
         return companyRepository.findByKind(CompanyKind.CLIENT).stream()
-                .map(this::toResponse)
+                .map(companyMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -128,7 +127,7 @@ public class CompanyService {
         }
 
         return companyRepository.findByIdInAndKind(companyIds, CompanyKind.CLIENT).stream()
-                .map(this::toResponse)
+                .map(companyMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -136,7 +135,7 @@ public class CompanyService {
     public CompanyResponse getById(UUID id) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
-        return toDetailedResponse(company);
+        return companyMapper.toDetailedResponse(company);
     }
 
     @Transactional(readOnly = true)
@@ -176,7 +175,7 @@ public class CompanyService {
         company.setThemeName(req.getThemeName());
         company = companyRepository.save(company);
 
-        return toResponse(company);
+        return companyMapper.toResponse(company);
     }
 
     @Transactional
@@ -190,7 +189,7 @@ public class CompanyService {
         company.setCmsVersion(req.getCmsVersion());
         company.setThemeName(req.getThemeName());
         company = companyRepository.save(company);
-        return toDetailedResponse(company);
+        return companyMapper.toDetailedResponse(company);
     }
 
     @Transactional
@@ -270,83 +269,8 @@ public class CompanyService {
         dataCleanup.deleteCompanyData(companyId, companyUserIds);
     }
 
-    private CompanyResponse toResponse(Company company) {
-        List<CompanyMembership> memberships = membershipRepository.findByCompanyId(company.getId());
-        long taskCount = taskRepository.countByCompanyId(company.getId());
-        int employeeCount = (int) memberships.stream().filter(m -> m.getMembershipRole().name().equals("OWNER") || m.getMembershipRole().name().equals("EMPLOYEE")).count();
-        int staffCount = (int) memberships.stream().filter(m -> m.getMembershipRole().name().equals("AGENCY_STAFF")).count();
-
-        return CompanyResponse.builder()
-                .id(company.getId().toString())
-                .kind(company.getKind().name())
-                .name(company.getName())
-                .industry(company.getIndustry())
-                .email(company.getEmail())
-                .phone(company.getPhone())
-                .contractStatus(company.getContractStatus() != null ? company.getContractStatus().name() : null)
-                .logoUrl(company.getLogoUrl())
-                .createdAt(company.getCreatedAt())
-                .memberCount(memberships.size())
-                .employeeCount(employeeCount)
-                .staffCount(staffCount)
-                .taskCount((int) taskCount)
-                .build();
-    }
-
     private UserProfile getUser(UUID userId) {
         return userProfileRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
-    }
-
-    private CompanyResponse toDetailedResponse(Company company) {
-        List<CompanyMembership> memberships = membershipRepository.findByCompanyId(company.getId());
-        long taskCount = taskRepository.countByCompanyId(company.getId());
-
-        List<CompanyResponse.MembershipInfo> memberInfos = memberships.stream().map(m -> {
-            Person p = m.getUser().getPerson();
-            return CompanyResponse.MembershipInfo.builder()
-                    .id(m.getId().toString())
-                    .userId(m.getUser().getId().toString())
-                    .fullName(p != null ? p.getFullName() : m.getUser().getEmail())
-                    .email(m.getUser().getEmail())
-                    .membershipRole(m.getMembershipRole().name())
-                    .globalRole(m.getUser().getGlobalRole().name())
-                    .avatarUrl(p != null ? p.getAvatarUrl() : null)
-                    .build();
-        }).collect(Collectors.toList());
-
-        return CompanyResponse.builder()
-                .id(company.getId().toString())
-                .kind(company.getKind().name())
-                .name(company.getName())
-                .industry(company.getIndustry())
-                .taxId(company.getTaxId())
-                .foundedYear(company.getFoundedYear())
-                .email(company.getEmail())
-                .phone(company.getPhone())
-                .address(company.getAddress())
-                .website(company.getWebsite())
-                .logoUrl(company.getLogoUrl())
-                .contractStatus(company.getContractStatus() != null ? company.getContractStatus().name() : null)
-                .notes(company.getNotes())
-                .socialInstagram(company.getSocialInstagram())
-                .socialFacebook(company.getSocialFacebook())
-                .socialTwitter(company.getSocialTwitter())
-                .socialLinkedin(company.getSocialLinkedin())
-                .socialYoutube(company.getSocialYoutube())
-                .socialTiktok(company.getSocialTiktok())
-                .hostingProvider(company.getHostingProvider())
-                .domainExpiry(company.getDomainExpiry())
-                .sslExpiry(company.getSslExpiry())
-                .cmsType(company.getCmsType())
-                .cmsVersion(company.getCmsVersion())
-                .themeName(company.getThemeName())
-                .createdAt(company.getCreatedAt())
-                .memberCount(memberInfos.size())
-                .employeeCount((int) memberships.stream().filter(m -> m.getMembershipRole().name().equals("OWNER") || m.getMembershipRole().name().equals("EMPLOYEE")).count())
-                .staffCount((int) memberships.stream().filter(m -> m.getMembershipRole().name().equals("AGENCY_STAFF")).count())
-                .taskCount((int) taskCount)
-                .members(memberInfos)
-                .build();
     }
 }
