@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AxiosError } from 'axios';
-import { getApiErrorMessage } from './apiError';
+import { getApiErrorMessage, parseApiError } from './apiError';
 
 describe('getApiErrorMessage', () => {
     it('returns axios response data message when available', () => {
@@ -64,5 +64,45 @@ describe('getApiErrorMessage', () => {
         };
 
         expect(getApiErrorMessage(error, 'fallback')).toBe('Request failed');
+    });
+
+    it('parses the standard backend error envelope', () => {
+        const error = new AxiosError('Request failed');
+        error.response = {
+            data: {
+                code: 'VALIDATION_ERROR',
+                message: 'İstek alanlarını kontrol edin',
+                fieldErrors: { email: 'Geçerli bir email girin' },
+                timestamp: '2026-06-13T16:00:00Z',
+                path: '/api/admin/staff',
+                requestId: 'request-123',
+            },
+            status: 400,
+            statusText: 'Bad Request',
+            headers: {},
+            config: {} as never,
+        };
+
+        expect(parseApiError(error, 'fallback')).toEqual({
+            code: 'VALIDATION_ERROR',
+            message: 'İstek alanlarını kontrol edin',
+            fieldErrors: { email: 'Geçerli bir email girin' },
+            status: 400,
+            path: '/api/admin/staff',
+            requestId: 'request-123',
+        });
+    });
+
+    it('normalizes network errors without a backend response', () => {
+        const error = new AxiosError('Network Error');
+
+        expect(parseApiError(error, 'Bağlantı kurulamadı')).toEqual({
+            code: 'NETWORK_ERROR',
+            message: 'Bağlantı kurulamadı',
+            fieldErrors: {},
+            status: undefined,
+            path: undefined,
+            requestId: undefined,
+        });
     });
 });
