@@ -2418,3 +2418,61 @@ Tüm 1-6 maddeleri tamamlandı:
 - Kritik bes E2E akisinin ekip tarafindan onaylanmasi gerekiyor.
 
 **Siradaki plan maddesi:** Ortak authorization ve API error altyapisinin kalan legacy controller/service kullanimlari.
+
+## 43. Ortak Authorization ve API Error Altyapısı - TAMAMLANDI
+
+**Tamamlanma tarihi:** 13 Haziran 2026
+
+### Ortak Kimlik ve Controller Sınırları
+
+- `CurrentUser` bileşeni ile `Authentication` principal doğrulaması ve UUID çözümü tek noktada toplandı.
+- Legacy controller'lardaki doğrudan `(UUID) authentication.getPrincipal()` kullanımları kaldırıldı.
+- Beş legacy controller'ın repository ve `EntityManager` bağımlılıkları application/infrastructure katmanlarına taşındı:
+  - `ClientActiveServicesController`
+  - `ClientSettingsController`
+  - `ClientSurveyController`
+  - `UserManagementController`
+  - `UserSettingsController`
+- ArchUnit kuralındaki frozen baseline kaldırıldı. `@RestController -> repository` bağımlılığı artık istisnasız yasak ve mevcut ihlal sayısı sıfır.
+
+### Application ve Infrastructure Ayrımı
+
+- Aktif hizmet görünürlüğü `ClientActiveServicesService` içinde rol ve şirket üyeliğine göre çözülüyor.
+- Staff/client profil ve şifre işlemleri ortak `UserSettingsService` üzerinden çalışıyor.
+- Anket gönderme OWNER kontrolü controller'dan `SurveyService` iş kuralına taşındı.
+- Admin kullanıcı listeleme, rol değiştirme ve silme akışları `UserManagementService` içine alındı.
+- Avatar dosya sistemi erişimi `AvatarStorage`, toplu kullanıcı FK temizliği `UserAccountCleanupRepository` içine ayrıldı.
+
+### Standart API Hata Sözleşmesi
+
+- `ApiException` ile HTTP durumu, sabit hata kodu ve kullanıcı mesajı birlikte taşınıyor.
+- `ApiErrorResponse` ortak gövdesi `code`, `message` ve opsiyonel `fieldErrors` alanlarını sağlıyor.
+- Validation, business rule, 401, 403 ve beklenmeyen 500 cevapları aynı JSON sözleşmesine geçirildi.
+- Beklenmeyen runtime hata ayrıntıları istemciye sızdırılmıyor.
+- Auth, refresh token, rate limit, time tracking, notification preference, company service ve survey legacy iş hataları tipli API hatalarına çevrildi.
+- Frontend `getApiErrorMessage` mevcut `message` önceliği sayesinde yeni sözleşmeyle geriye uyumlu çalışıyor.
+
+### Güvenlik ve Veri Bütünlüğü
+
+- Avatar yüklemede boyut, MIME türü ve dosya uzantısı birlikte doğrulanıyor; traversal koruması storage katmanında uygulanıyor.
+- Kullanıcı silme SQL'leri güncel şemayla eşleştirildi.
+- V29 sonrası geçersiz kalan `requester_id/approver_id` sorguları `requested_by/reviewed_by` olarak düzeltildi.
+- Sonradan eklenen content plan, task/pr phase note, routine, responsible, photographer ve phase assignment FK'leri temizleme kapsamına alındı.
+- V11'den beri `NOT NULL` olan `tasks.assigned_to` için hatalı `SET NULL` yerine ilişkili görev silme davranışı kullanılıyor.
+
+### Test ve Doğrulama
+
+- Backend: **214/214 test başarılı**.
+- Yeni testler: aktif hizmet görünürlüğü, kullanıcı ayarları, admin kullanıcı yönetimi, anket sahipliği, API hata gövdesi, `CurrentUser`, avatar storage ve kullanıcı FK cleanup kapsamı.
+- ArchUnit: controller-repository bağımlılığı sıfır.
+- Frontend lint: sıfır hata, sıfır uyarı.
+- Frontend: **239/239 test başarılı**.
+- Frontend production build: başarılı; tüm chunk'lar 500 KB sınırının altında.
+- `git diff --check`: temiz.
+
+### Kalan Harici Adımlar
+
+- GitHub branch protection ayarında `frontend` ve `backend` CI job'ları zorunlu status check yapılmalı.
+- Kritik beş E2E akışının ekip tarafından onaylanması gerekiyor.
+
+**Teknik refactor planındaki yerel kod maddeleri tamamlandı.**

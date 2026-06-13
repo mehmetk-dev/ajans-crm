@@ -5,6 +5,7 @@ import com.fogistanbul.crm.dto.LoginRequest;
 import com.fogistanbul.crm.entity.CompanyMembership;
 import com.fogistanbul.crm.entity.RefreshToken;
 import com.fogistanbul.crm.entity.UserProfile;
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.RefreshTokenRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
@@ -12,6 +13,7 @@ import com.fogistanbul.crm.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,10 +42,10 @@ public class AuthService {
         @Transactional
         public AuthResponse login(LoginRequest request) {
                 UserProfile user = userProfileRepository.findByEmail(request.getEmail())
-                                .orElseThrow(() -> new RuntimeException("Geçersiz email veya şifre"));
+                                .orElseThrow(this::invalidCredentials);
 
                 if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-                        throw new RuntimeException("Geçersiz email veya şifre");
+                        throw invalidCredentials();
                 }
 
                 String accessToken = jwtTokenProvider.generateAccessToken(
@@ -58,12 +60,12 @@ public class AuthService {
         @Transactional
         public AuthResponse refreshToken(String refreshTokenStr) {
                 if (!jwtTokenProvider.validateToken(refreshTokenStr)) {
-                        throw new RuntimeException("Geçersiz refresh token");
+                        throw invalidRefreshToken();
                 }
 
                 String tokenHash = hashToken(refreshTokenStr);
                 RefreshToken stored = refreshTokenRepository.findByTokenHashAndRevokedFalse(tokenHash)
-                                .orElseThrow(() -> new RuntimeException("Geçersiz refresh token"));
+                                .orElseThrow(this::invalidRefreshToken);
 
                 // Revoke old token (rotation)
                 stored.setRevoked(true);
@@ -71,7 +73,7 @@ public class AuthService {
 
                 UUID userId = jwtTokenProvider.getUserIdFromToken(refreshTokenStr);
                 UserProfile user = userProfileRepository.findById(userId)
-                                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+                                .orElseThrow(this::userNotFound);
 
                 String newAccessToken = jwtTokenProvider.generateAccessToken(
                                 user.getId(), user.getEmail(), user.getGlobalRole().name());
@@ -97,7 +99,7 @@ public class AuthService {
         @Transactional(readOnly = true)
         public AuthResponse.UserInfo getCurrentUser(UUID userId) {
                 UserProfile user = userProfileRepository.findById(userId)
-                                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+                                .orElseThrow(this::userNotFound);
                 return buildUserInfo(user);
         }
 
@@ -163,5 +165,25 @@ public class AuthService {
                 } catch (NoSuchAlgorithmException e) {
                         throw new RuntimeException("SHA-256 not available", e);
                 }
+        }
+
+        private ApiException invalidCredentials() {
+                return new ApiException(
+                                HttpStatus.UNAUTHORIZED,
+                                "INVALID_CREDENTIALS",
+                                "Geçersiz email veya şifre"
+                );
+        }
+
+        private ApiException invalidRefreshToken() {
+                return new ApiException(
+                                HttpStatus.UNAUTHORIZED,
+                                "INVALID_REFRESH_TOKEN",
+                                "Geçersiz refresh token"
+                );
+        }
+
+        private ApiException userNotFound() {
+                return new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Kullanıcı bulunamadı");
         }
 }

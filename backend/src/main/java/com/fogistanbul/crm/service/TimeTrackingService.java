@@ -6,6 +6,7 @@ import com.fogistanbul.crm.entity.Task;
 import com.fogistanbul.crm.entity.TimeEntry;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.TaskRepository;
 import com.fogistanbul.crm.repository.TimeEntryRepository;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,10 +45,18 @@ public class TimeTrackingService {
         });
 
         UserProfile user = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "Kullanıcı bulunamadı"
+                ));
 
         Task task = taskRepository.findById(request.getTaskId())
-                .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "TASK_NOT_FOUND",
+                        "Görev bulunamadı"
+                ));
         if (task.getCompany() != null) {
             ensureCompanyAccess(user, task.getCompany().getId());
         }
@@ -68,7 +78,11 @@ public class TimeTrackingService {
     @Transactional
     public TimeEntryResponse stopTimer(UUID userId) {
         TimeEntry entry = timeEntryRepository.findByUserIdAndIsRunningTrue(userId)
-                .orElseThrow(() -> new RuntimeException("Calisan zamanlayici bulunamadi"));
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "RUNNING_TIMER_NOT_FOUND",
+                        "Çalışan zamanlayıcı bulunamadı"
+                ));
 
         entry.setIsRunning(false);
         entry.setEndedAt(Instant.now());
@@ -105,9 +119,17 @@ public class TimeTrackingService {
     @Transactional
     public void deleteEntry(UUID entryId, UUID userId) {
         TimeEntry entry = timeEntryRepository.findById(entryId)
-                .orElseThrow(() -> new RuntimeException("Zaman kaydi bulunamadi"));
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "TIME_ENTRY_NOT_FOUND",
+                        "Zaman kaydı bulunamadı"
+                ));
         if (!entry.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Bu zaman kaydini silme yetkiniz yok");
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "TIME_ENTRY_DELETE_FORBIDDEN",
+                    "Bu zaman kaydını silme yetkiniz yok"
+            );
         }
         timeEntryRepository.delete(entry);
     }
@@ -137,7 +159,11 @@ public class TimeTrackingService {
             return;
         }
         if (!membershipRepository.existsByUserIdAndCompanyId(user.getId(), companyId)) {
-            throw new RuntimeException("Bu gorev icin zaman takibi yetkiniz yok");
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "TIME_TRACKING_FORBIDDEN",
+                    "Bu görev için zaman takibi yetkiniz yok"
+            );
         }
     }
 }

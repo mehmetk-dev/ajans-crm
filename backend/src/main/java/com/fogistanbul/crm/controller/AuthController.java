@@ -2,6 +2,8 @@ package com.fogistanbul.crm.controller;
 
 import com.fogistanbul.crm.dto.AuthResponse;
 import com.fogistanbul.crm.dto.LoginRequest;
+import com.fogistanbul.crm.exception.ApiException;
+import com.fogistanbul.crm.security.CurrentUser;
 import com.fogistanbul.crm.security.LoginRateLimiter;
 import com.fogistanbul.crm.service.AuthService;
 import jakarta.servlet.http.Cookie;
@@ -18,8 +20,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
-import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -28,6 +28,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final LoginRateLimiter rateLimiter;
+    private final CurrentUser currentUser;
 
     @Value("${app.cookie.secure:true}")
     private boolean cookieSecure;
@@ -46,16 +47,22 @@ public class AuthController {
 
         String clientIp = getClientIp(httpRequest);
         if (rateLimiter.isRateLimited(clientIp)) {
-            return ResponseEntity.status(429).build();
+            throw new ApiException(
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "LOGIN_RATE_LIMITED",
+                    "Çok fazla giriş denemesi yaptınız. Lütfen daha sonra tekrar deneyin"
+            );
         }
 
         try {
             AuthResponse authResponse = authService.login(request);
             addTokenCookies(httpResponse, authResponse.getAccessToken(), authResponse.getRefreshToken());
             return ResponseEntity.ok(authResponse.getUser());
-        } catch (RuntimeException e) {
-            rateLimiter.recordAttempt(clientIp);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        } catch (ApiException ex) {
+            if ("INVALID_CREDENTIALS".equals(ex.getCode())) {
+                rateLimiter.recordAttempt(clientIp);
+            }
+            throw ex;
         }
     }
 
@@ -65,7 +72,11 @@ public class AuthController {
             HttpServletResponse httpResponse) {
         String refreshToken = extractCookieValue(httpRequest, "refresh_token");
         if (refreshToken == null) {
-            return ResponseEntity.status(401).build();
+            throw new ApiException(
+                    HttpStatus.UNAUTHORIZED,
+                    "REFRESH_TOKEN_REQUIRED",
+                    "Refresh token bulunamadı"
+            );
         }
         AuthResponse authResponse = authService.refreshToken(refreshToken);
         addTokenCookies(httpResponse, authResponse.getAccessToken(), authResponse.getRefreshToken());
@@ -85,8 +96,7 @@ public class AuthController {
         if (authentication == null || authentication.getPrincipal() == null) {
             return ResponseEntity.ok().build();
         }
-        UUID userId = (UUID) authentication.getPrincipal();
-        return ResponseEntity.ok(authService.getCurrentUser(userId));
+        return ResponseEntity.ok(authService.getCurrentUser(currentUser.id(authentication)));
     }
 
     @GetMapping("/csrf")

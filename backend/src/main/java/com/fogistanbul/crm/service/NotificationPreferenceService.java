@@ -5,9 +5,11 @@ import com.fogistanbul.crm.dto.UpdateNotificationPreferenceRequest;
 import com.fogistanbul.crm.entity.NotificationPreference;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.NotificationType;
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.repository.NotificationPreferenceRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +47,11 @@ public class NotificationPreferenceService {
     @Transactional
     public NotificationPreferenceResponse updatePreference(UUID userId, UpdateNotificationPreferenceRequest request) {
         UserProfile user = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "Kullanıcı bulunamadı"
+                ));
 
         NotificationPreference pref = preferenceRepository
                 .findByUserIdAndNotificationType(userId, request.getNotificationType())

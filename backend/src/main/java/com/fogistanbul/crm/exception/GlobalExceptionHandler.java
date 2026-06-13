@@ -23,40 +23,41 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getFieldErrors()
                 .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
-        log.error("Validation error: {}", errors);
-        return ResponseEntity.badRequest().body(errors);
+        log.debug("Validation error: {}", errors);
+        return ResponseEntity.badRequest().body(
+                new ApiErrorResponse("VALIDATION_ERROR", "İstek alanlarını kontrol edin", errors)
+        );
+    }
+
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ApiErrorResponse> handleApiException(ApiException ex) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(new ApiErrorResponse(ex.getCode(), ex.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("message", ex.getMessage() != null ? ex.getMessage() : "Erisim yetkiniz yok");
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    public ResponseEntity<ApiErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ApiErrorResponse("FORBIDDEN", "Erişim yetkiniz yok"));
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, String>> handleRuntimeExceptions(RuntimeException ex) {
+    public ResponseEntity<ApiErrorResponse> handleRuntimeExceptions(RuntimeException ex) {
         log.error("Runtime error: {}", ex.getMessage(), ex);
-        Map<String, String> error = new HashMap<>();
-        // Only return messages from known business exceptions, not internal details
-        String message = ex.getMessage();
-        if (message != null && !message.contains("Exception") && !message.contains("null") && message.length() < 200) {
-            error.put("message", message);
-        } else {
-            error.put("message", "Bir hata oluştu. Lütfen tekrar deneyin.");
-        }
-        return ResponseEntity.internalServerError().body(error);
+        return ResponseEntity.internalServerError().body(
+                new ApiErrorResponse("INTERNAL_ERROR", "Bir hata oluştu. Lütfen tekrar deneyin.")
+        );
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleAllExceptions(Exception ex) {
+    public ResponseEntity<ApiErrorResponse> handleAllExceptions(Exception ex) {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
-        Map<String, String> error = new HashMap<>();
-        error.put("message", "Beklenmedik bir sunucu hatası oluştu");
-        return ResponseEntity.internalServerError().body(error);
+        return ResponseEntity.internalServerError().body(
+                new ApiErrorResponse("INTERNAL_ERROR", "Beklenmedik bir sunucu hatası oluştu")
+        );
     }
 }

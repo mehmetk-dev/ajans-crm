@@ -2,9 +2,11 @@ package com.fogistanbul.crm.service;
 
 import com.fogistanbul.crm.entity.Company;
 import com.fogistanbul.crm.entity.enums.ServiceCategory;
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.CompanyServiceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +29,7 @@ public class CompanyServicesManager {
     @Transactional
     public void initializeServicesForCompany(UUID companyId, List<String> selectedCategories) {
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı: " + companyId));
+                .orElseThrow(() -> companyNotFound());
 
         for (ServiceCategory category : ServiceCategory.values()) {
             boolean active = selectedCategories != null &&
@@ -59,7 +61,7 @@ public class CompanyServicesManager {
         for (ServiceCategory cat : ServiceCategory.values()) {
             if (!existingCategories.contains(cat)) {
                 Company company = companyRepository.findById(companyId)
-                        .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
+                        .orElseThrow(this::companyNotFound);
                 com.fogistanbul.crm.entity.CompanyService cs = com.fogistanbul.crm.entity.CompanyService.builder()
                         .company(company)
                         .serviceCategory(cat)
@@ -95,13 +97,22 @@ public class CompanyServicesManager {
      */
     @Transactional
     public ServiceItem toggleService(UUID companyId, String categoryName, boolean active) {
-        ServiceCategory category = ServiceCategory.valueOf(categoryName.toUpperCase());
+        ServiceCategory category;
+        try {
+            category = ServiceCategory.valueOf(categoryName.toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_SERVICE_CATEGORY",
+                    "Geçersiz hizmet kategorisi"
+            );
+        }
 
         com.fogistanbul.crm.entity.CompanyService cs =
                 companyServiceRepository.findByCompanyIdAndServiceCategory(companyId, category)
                         .orElseGet(() -> {
                             Company company = companyRepository.findById(companyId)
-                                    .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
+                                    .orElseThrow(this::companyNotFound);
                             return companyServiceRepository.save(
                                     com.fogistanbul.crm.entity.CompanyService.builder()
                                             .company(company)
@@ -116,6 +127,9 @@ public class CompanyServicesManager {
         return new ServiceItem(category.name(), active, cs.getId().toString());
     }
 
-    // ─── Inner DTO ──────────────────────────────────────────────────────────────
+    private ApiException companyNotFound() {
+        return new ApiException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND", "Şirket bulunamadı");
+    }
+
     public record ServiceItem(String category, boolean active, String id) {}
 }

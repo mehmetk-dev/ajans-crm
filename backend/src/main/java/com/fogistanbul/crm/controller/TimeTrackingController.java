@@ -2,6 +2,7 @@ package com.fogistanbul.crm.controller;
 
 import com.fogistanbul.crm.dto.StartTimerRequest;
 import com.fogistanbul.crm.dto.TimeEntryResponse;
+import com.fogistanbul.crm.security.CurrentUser;
 import com.fogistanbul.crm.service.TimeTrackingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,25 +21,23 @@ import java.util.UUID;
 public class TimeTrackingController {
 
     private final TimeTrackingService timeTrackingService;
+    private final CurrentUser currentUser;
 
     @PostMapping("/start")
     public ResponseEntity<TimeEntryResponse> start(
             @Valid @RequestBody StartTimerRequest request,
             Authentication auth) {
-        UUID userId = (UUID) auth.getPrincipal();
-        return ResponseEntity.ok(timeTrackingService.startTimer(request, userId));
+        return ResponseEntity.ok(timeTrackingService.startTimer(request, currentUser.id(auth)));
     }
 
     @PostMapping("/stop")
     public ResponseEntity<TimeEntryResponse> stop(Authentication auth) {
-        UUID userId = (UUID) auth.getPrincipal();
-        return ResponseEntity.ok(timeTrackingService.stopTimer(userId));
+        return ResponseEntity.ok(timeTrackingService.stopTimer(currentUser.id(auth)));
     }
 
     @GetMapping("/running")
     public ResponseEntity<TimeEntryResponse> getRunning(Authentication auth) {
-        UUID userId = (UUID) auth.getPrincipal();
-        TimeEntryResponse running = timeTrackingService.getRunningTimer(userId);
+        TimeEntryResponse running = timeTrackingService.getRunningTimer(currentUser.id(auth));
         return running != null ? ResponseEntity.ok(running) : ResponseEntity.noContent().build();
     }
 
@@ -46,14 +45,12 @@ public class TimeTrackingController {
     public Page<TimeEntryResponse> getMyEntries(
             Authentication auth,
             @PageableDefault(size = 20) Pageable pageable) {
-        UUID userId = (UUID) auth.getPrincipal();
-        return timeTrackingService.getMyEntries(userId, pageable);
+        return timeTrackingService.getMyEntries(currentUser.id(auth), pageable);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id, Authentication auth) {
-        UUID userId = (UUID) auth.getPrincipal();
-        timeTrackingService.deleteEntry(id, userId);
+        timeTrackingService.deleteEntry(id, currentUser.id(auth));
         return ResponseEntity.noContent().build();
     }
 }

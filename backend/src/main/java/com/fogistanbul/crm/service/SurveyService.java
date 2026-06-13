@@ -3,14 +3,18 @@ package com.fogistanbul.crm.service;
 import com.fogistanbul.crm.dto.CreateSurveyRequest;
 import com.fogistanbul.crm.dto.SurveyResponse;
 import com.fogistanbul.crm.entity.Company;
+import com.fogistanbul.crm.entity.CompanyMembership;
 import com.fogistanbul.crm.entity.SatisfactionSurvey;
 import com.fogistanbul.crm.entity.UserProfile;
-import com.fogistanbul.crm.entity.enums.GlobalRole;
+import com.fogistanbul.crm.entity.enums.CompanyKind;
+import com.fogistanbul.crm.entity.enums.MembershipRole;
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.SatisfactionSurveyRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,18 +34,40 @@ public class SurveyService {
 
     @Transactional
     public SurveyResponse submitSurvey(UUID userId, CreateSurveyRequest request) {
-        UserProfile user = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+        List<CompanyMembership> memberships = membershipRepository.findByUserId(userId);
+        boolean isOwner = memberships.stream()
+                .anyMatch(membership -> membership.getMembershipRole() == MembershipRole.OWNER);
+        if (!isOwner) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "SURVEY_OWNER_REQUIRED",
+                    "Anket göndermek için şirket sahibi olmalısınız"
+            );
+        }
 
-        // Find the company the user belongs to
-        UUID companyId = membershipRepository.findByUserId(userId).stream()
-                .filter(m -> !m.getCompany().getKind().name().equals("AGENCY"))
-                .map(m -> m.getCompany().getId())
+        UserProfile user = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "Kullanıcı bulunamadı"
+                ));
+
+        UUID companyId = memberships.stream()
+                .filter(membership -> membership.getCompany().getKind() == CompanyKind.CLIENT)
+                .map(membership -> membership.getCompany().getId())
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "COMPANY_NOT_FOUND",
+                        "Şirket bulunamadı"
+                ));
 
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "COMPANY_NOT_FOUND",
+                        "Şirket bulunamadı"
+                ));
 
         // Current month
         LocalDate surveyMonth = LocalDate.now().withDayOfMonth(1);
@@ -49,7 +75,11 @@ public class SurveyService {
         // Check if already submitted this month
         surveyRepository.findByCompanyIdAndSubmittedByIdAndSurveyMonth(companyId, userId, surveyMonth)
                 .ifPresent(s -> {
-                    throw new RuntimeException("Bu ay için zaten anket gönderdiniz");
+                    throw new ApiException(
+                            HttpStatus.CONFLICT,
+                            "SURVEY_ALREADY_SUBMITTED",
+                            "Bu ay için zaten anket gönderdiniz"
+                    );
                 });
 
         SatisfactionSurvey survey = SatisfactionSurvey.builder()
