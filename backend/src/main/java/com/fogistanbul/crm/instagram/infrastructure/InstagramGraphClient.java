@@ -1,8 +1,10 @@
 package com.fogistanbul.crm.instagram.infrastructure;
 
+import com.fogistanbul.crm.exception.ApiException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -56,11 +58,11 @@ public class InstagramGraphClient {
         ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new IllegalStateException("Facebook token exchange hatası: " + response.getStatusCode());
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Facebook token exchange hatası: " + response.getStatusCode());
         }
 
         String token = (String) response.getBody().get("access_token");
-        if (token == null) throw new IllegalStateException("access_token boş döndü");
+        if (token == null) throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "access_token boş döndü");
         return token;
     }
 
@@ -75,7 +77,7 @@ public class InstagramGraphClient {
 
         ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new IllegalStateException("Long-lived token exchange hatası");
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Long-lived token exchange hatası");
         }
         return response.getBody();
     }
@@ -86,12 +88,12 @@ public class InstagramGraphClient {
         ResponseEntity<Map> pagesResponse = restTemplate.getForEntity(pagesUrl, Map.class);
 
         if (pagesResponse.getBody() == null) {
-            throw new IllegalStateException("Facebook sayfaları alınamadı");
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Facebook sayfaları alınamadı");
         }
 
         List<Map<String, Object>> pages = (List<Map<String, Object>>) pagesResponse.getBody().get("data");
         if (pages == null || pages.isEmpty()) {
-            throw new IllegalStateException("Hiçbir Facebook sayfası bulunamadı. Lütfen bir Facebook sayfanız olduğundan emin olun.");
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Hiçbir Facebook sayfası bulunamadı");
         }
 
         for (Map<String, Object> page : pages) {
@@ -112,8 +114,7 @@ public class InstagramGraphClient {
             }
         }
 
-        throw new IllegalStateException("Hiçbir Facebook sayfasına bağlı Instagram Business hesabı bulunamadı. " +
-                "Instagram hesabınızın Business veya Creator hesap olduğundan ve bir Facebook sayfasına bağlı olduğundan emin olun.");
+        throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Instagram Business hesabı bulunamadı");
     }
 
     @SuppressWarnings("unchecked")
@@ -127,6 +128,6 @@ public class InstagramGraphClient {
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             return response.getBody();
         }
-        throw new IllegalStateException("Instagram token yenileme hatası");
+        throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Instagram token yenileme hatası");
     }
 }

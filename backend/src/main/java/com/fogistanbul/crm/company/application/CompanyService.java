@@ -18,9 +18,11 @@ import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.PersonRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.service.CompanyServicesManager;
 import com.fogistanbul.crm.messaging.application.GroupMessagingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,7 +51,7 @@ public class CompanyService {
     @Transactional
     public CompanyResponse createCompanyWithOwner(CreateCompanyRequest req) {
         if (userProfileRepository.existsByEmail(req.getOwnerEmail())) {
-            throw new RuntimeException("Bu email ile kayitli bir kullanici zaten var: " + req.getOwnerEmail());
+            throw new ApiException(HttpStatus.CONFLICT, "EMAIL_ALREADY_EXISTS", "Bu email ile kayıtlı bir kullanıcı zaten var");
         }
 
         Company company = new Company();
@@ -134,7 +136,7 @@ public class CompanyService {
     @Transactional(readOnly = true)
     public CompanyResponse getById(UUID id) {
         Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND", "Şirket bulunamadı"));
         return companyMapper.toDetailedResponse(company);
     }
 
@@ -147,7 +149,7 @@ public class CompanyService {
     @Transactional
     public CompanyResponse update(UUID id, UpdateCompanyRequest req) {
         Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND", "Şirket bulunamadı"));
 
         company.setName(req.getName());
         company.setIndustry(req.getIndustry());
@@ -181,7 +183,7 @@ public class CompanyService {
     @Transactional
     public CompanyResponse updateInfrastructure(UUID id, CompanyInfrastructureRequest req) {
         Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND", "Şirket bulunamadı"));
         company.setHostingProvider(req.getHostingProvider());
         company.setDomainExpiry(req.getDomainExpiry());
         company.setSslExpiry(req.getSslExpiry());
@@ -195,11 +197,11 @@ public class CompanyService {
     @Transactional
     public void addEmployeeToCompany(UUID companyId, AddEmployeeRequest req) {
         if (userProfileRepository.existsByEmail(req.getEmail())) {
-            throw new RuntimeException("Bu email ile kayitli bir kullanici zaten var: " + req.getEmail());
+            throw new ApiException(HttpStatus.CONFLICT, "EMAIL_ALREADY_EXISTS", "Bu email ile kayıtlı bir kullanıcı zaten var");
         }
 
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND", "Şirket bulunamadı"));
 
         Person person = new Person();
         person.setCompany(company);
@@ -232,7 +234,7 @@ public class CompanyService {
     @Transactional
     public void removeEmployeeFromCompany(UUID companyId, UUID userId) {
         CompanyMembership membership = membershipRepository.findByUserIdAndCompanyId(userId, companyId)
-                .orElseThrow(() -> new RuntimeException("Bu kullanici bu sirkette bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "MEMBERSHIP_NOT_FOUND", "Bu kullanıcı bu şirkette bulunamadı"));
         if (membership.getMembershipRole() != MembershipRole.EMPLOYEE) {
             throw new org.springframework.security.access.AccessDeniedException(
                     "Bu endpoint yalnizca sirket calisanlarini kaldirabilir"
@@ -247,7 +249,7 @@ public class CompanyService {
     @Transactional
     public void deleteCompany(UUID companyId) {
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND", "Şirket bulunamadı"));
 
         // Collect company-only users (not agency staff) to delete after cleanup
         List<CompanyMembership> memberships = membershipRepository.findByCompanyId(companyId);
@@ -271,6 +273,6 @@ public class CompanyService {
 
     private UserProfile getUser(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Kullanıcı bulunamadı"));
     }
 }

@@ -97,11 +97,16 @@ function fieldErrorMessage(fieldErrors?: Record<string, string>): string | undef
 }
 
 function fallbackCode(status?: number): string {
+    if (status === 400) return 'VALIDATION_ERROR';
     if (status === 401) return 'UNAUTHORIZED';
     if (status === 403) return 'FORBIDDEN';
     if (status === 404) return 'RESOURCE_NOT_FOUND';
+    if (status === 405) return 'METHOD_NOT_ALLOWED';
     if (status === 409) return 'CONFLICT';
+    if (status === 413) return 'PAYLOAD_TOO_LARGE';
+    if (status === 415) return 'UNSUPPORTED_MEDIA_TYPE';
     if (status === 429) return 'RATE_LIMITED';
+    if (status === 502) return 'BAD_GATEWAY';
     if (status && status >= 500) return 'INTERNAL_ERROR';
     return 'API_ERROR';
 }

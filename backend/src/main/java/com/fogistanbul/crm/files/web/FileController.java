@@ -1,5 +1,6 @@
 package com.fogistanbul.crm.files.web;
 
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.entity.FileAttachment;
 import com.fogistanbul.crm.files.application.FileService;
 import com.fogistanbul.crm.files.dto.FileAttachmentResponse;
@@ -9,6 +10,7 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -53,7 +55,7 @@ public class FileController {
         try {
             Resource resource = new UrlResource(filePath.toUri());
             if (!resource.exists()) {
-                throw new RuntimeException("Dosya bulunamadi");
+                throw new ApiException(HttpStatus.NOT_FOUND, "FILE_NOT_FOUND", "Dosya bulunamadı");
             }
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(
@@ -67,7 +69,7 @@ public class FileController {
                                     .toString())
                     .body(resource);
         } catch (MalformedURLException e) {
-            throw new RuntimeException("Dosya okunamadi", e);
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "FILE_READ_FAILED", "Dosya okunamadı");
         }
     }
 

@@ -8,8 +8,10 @@ import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.repository.TaskRepository;
 import com.fogistanbul.crm.repository.TaskReviewRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
+import com.fogistanbul.crm.exception.ApiException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,14 +32,14 @@ public class TaskReviewService {
     @Transactional
     public TaskReviewResponse createReview(CreateTaskReviewRequest req, UUID reviewerId) {
         Task task = taskRepository.findById(req.getTaskId())
-                .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "TASK_NOT_FOUND", "Görev bulunamadı"));
 
         UserProfile reviewer = userProfileRepository.findById(reviewerId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Kullanıcı bulunamadı"));
         accessPolicy.requireRead(task, reviewer);
 
         if (reviewRepository.existsByTaskIdAndReviewerId(req.getTaskId(), reviewerId)) {
-            throw new RuntimeException("Bu gorev icin zaten puanlama yapilmis");
+            throw new ApiException(HttpStatus.CONFLICT, "TASK_ALREADY_REVIEWED", "Bu görev için zaten puanlama yapılmış");
         }
 
         TaskReview review = TaskReview.builder()

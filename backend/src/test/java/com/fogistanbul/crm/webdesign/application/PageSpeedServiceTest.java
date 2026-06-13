@@ -67,7 +67,7 @@ class PageSpeedServiceTest {
     void updateWebsite_emptyUrl_throwsRuntimeException() {
         UUID companyId = UUID.randomUUID();
         assertThatThrownBy(() -> service.updateWebsite(companyId, ""))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("bos olamaz");
+                .isInstanceOf(com.fogistanbul.crm.exception.ApiException.class)
+                .hasMessageContaining("boş olamaz");
     }
 }

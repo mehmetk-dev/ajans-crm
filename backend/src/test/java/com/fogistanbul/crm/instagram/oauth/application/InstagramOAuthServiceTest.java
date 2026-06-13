@@ -6,6 +6,7 @@ import com.fogistanbul.crm.instagram.infrastructure.InstagramGraphClient;
 import com.fogistanbul.crm.instagram.oauth.domain.InstagramToken;
 import com.fogistanbul.crm.instagram.oauth.infrastructure.InstagramTokenRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
+import com.fogistanbul.crm.exception.ApiException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -159,7 +160,7 @@ class InstagramOAuthServiceTest {
         when(graphClient.exchangeForLongLivedToken("short")).thenReturn(Map.of("expires_in", 3600));
 
         assertThatThrownBy(() -> service.handleCallback("code", companyId.toString()))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Instagram long-lived token");
         verify(tokenRepository, never()).save(any());
     }

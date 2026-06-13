@@ -1,6 +1,7 @@
 package com.fogistanbul.crm.googleoauth.application;
 
 import com.fogistanbul.crm.entity.Company;
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.googleoauth.domain.GoogleOAuthToken;
 import com.fogistanbul.crm.googleoauth.infrastructure.GoogleOAuthTokenRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -79,7 +81,7 @@ public class GoogleOAuthService {
         String scope = (String) tokenResponse.get("scope");
 
         if (accessToken == null || refreshToken == null) {
-            throw new IllegalStateException("Google token exchange başarısız: access_token veya refresh_token eksik");
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Google token exchange başarısız");
         }
 
         Instant expiry = Instant.now().plusSeconds(expiresIn != null ? expiresIn : 3600);

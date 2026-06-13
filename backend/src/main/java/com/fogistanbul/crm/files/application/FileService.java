@@ -2,6 +2,7 @@ package com.fogistanbul.crm.files.application;
 
 import com.fogistanbul.crm.entity.FileAttachment;
 import com.fogistanbul.crm.entity.UserProfile;
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.files.dto.FileAttachmentResponse;
 import com.fogistanbul.crm.repository.FileAttachmentRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
@@ -10,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,10 +48,10 @@ public class FileService {
     @Transactional
     public FileAttachmentResponse upload(MultipartFile file, String entityType, UUID entityId, UUID userId) {
         if (file.isEmpty()) {
-            throw new RuntimeException("Bos dosya yuklenemez");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "FILE_EMPTY", "Boş dosya yüklenemez");
         }
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new RuntimeException("Dosya boyutu 50MB'i asamaz");
+            throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "FILE_TOO_LARGE", "Dosya boyutu 50MB'i aşamaz");
         }
 
         String normalizedEntityType = normalizeEntityType(entityType);
@@ -61,7 +63,7 @@ public class FileService {
             String lowerName = originalName.toLowerCase();
             for (String ext : BLOCKED_EXTENSIONS) {
                 if (lowerName.endsWith(ext)) {
-                    throw new RuntimeException("Bu dosya turu yuklenemez: " + ext);
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "FILE_TYPE_BLOCKED", "Bu dosya türü yüklenemez: " + ext);
                 }
             }
         }
@@ -76,7 +78,7 @@ public class FileService {
                 Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException e) {
-            throw new RuntimeException("Dosya kaydedilemedi", e);
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "FILE_SAVE_FAILED", "Dosya kaydedilemedi");
         }
 
         FileAttachment attachment = FileAttachment.builder()
@@ -110,7 +112,7 @@ public class FileService {
     @Transactional(readOnly = true)
     public FileAttachment getAttachment(UUID fileId, UUID userId) {
         FileAttachment attachment = fileAttachmentRepository.findById(fileId)
-                .orElseThrow(() -> new RuntimeException("Dosya bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "FILE_NOT_FOUND", "Dosya bulunamadı"));
         UserProfile user = getUserOrThrow(userId);
         accessPolicy.requireEntityAccess(attachment.getEntityType(), attachment.getEntityId(), user);
         return attachment;
@@ -119,7 +121,7 @@ public class FileService {
     @Transactional
     public void delete(UUID fileId, UUID userId) {
         FileAttachment attachment = fileAttachmentRepository.findById(fileId)
-                .orElseThrow(() -> new RuntimeException("Dosya bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "FILE_NOT_FOUND", "Dosya bulunamadı"));
         UserProfile user = getUserOrThrow(userId);
         UUID uploadedById = attachment.getUploadedBy() != null ? attachment.getUploadedBy().getId() : null;
         accessPolicy.requireDeleteAccess(user, uploadedById);
@@ -171,17 +173,17 @@ public class FileService {
 
     private String normalizeEntityType(String entityType) {
         if (entityType == null) {
-            throw new RuntimeException("Entity type zorunludur");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "ENTITY_TYPE_REQUIRED", "Entity type zorunludur");
         }
         String normalized = entityType.trim().toUpperCase();
         if (!ALLOWED_ENTITY_TYPES.contains(normalized)) {
-            throw new RuntimeException("Gecersiz entity type");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_ENTITY_TYPE", "Geçersiz entity type");
         }
         return normalized;
     }
 
     private UserProfile getUserOrThrow(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Kullanıcı bulunamadı"));
     }
 }

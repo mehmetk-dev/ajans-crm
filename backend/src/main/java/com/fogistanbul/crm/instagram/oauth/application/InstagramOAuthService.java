@@ -1,6 +1,7 @@
 package com.fogistanbul.crm.instagram.oauth.application;
 
 import com.fogistanbul.crm.entity.Company;
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.instagram.oauth.domain.InstagramToken;
 import com.fogistanbul.crm.instagram.infrastructure.InstagramGraphClient;
 import com.fogistanbul.crm.instagram.oauth.infrastructure.InstagramTokenRepository;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -70,7 +72,7 @@ public class InstagramOAuthService {
         Integer expiresIn = (Integer) longLived.get("expires_in");
 
         if (accessToken == null) {
-            throw new IllegalStateException("Instagram long-lived token alınamadı");
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Instagram long-lived token alınamadı");
         }
 
         Instant expiry = Instant.now().plusSeconds(expiresIn != null ? expiresIn : 5184000);

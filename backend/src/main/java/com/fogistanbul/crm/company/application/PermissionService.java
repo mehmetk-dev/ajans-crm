@@ -7,11 +7,13 @@ import com.fogistanbul.crm.entity.CompanyPermission;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.PermissionLevel;
 import com.fogistanbul.crm.entity.enums.MembershipRole;
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.CompanyPermissionRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,9 +74,9 @@ public class PermissionService {
         requireMembership(req.getUserId(), req.getCompanyId());
         requirePermissionKey(req.getPermissionKey());
         UserProfile user = userProfileRepository.findById(req.getUserId())
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Kullanıcı bulunamadı"));
         Company company = companyRepository.findById(req.getCompanyId())
-                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND", "Şirket bulunamadı"));
 
         PermissionLevel level = PermissionLevel.valueOf(req.getLevel());
 
@@ -108,20 +110,20 @@ public class PermissionService {
     @Transactional
     public void setDefaultPermissions(UUID userId, UUID companyId, String role) {
         var membership = membershipRepository.findByUserIdAndCompanyId(userId, companyId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bu sirketin uyesi degil"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "MEMBERSHIP_NOT_FOUND", "Kullanıcı bu şirketin üyesi değil"));
         MembershipRole membershipRole;
         try {
             membershipRole = MembershipRole.valueOf(role);
         } catch (IllegalArgumentException exception) {
-            throw new RuntimeException("Gecersiz uyelik rolu");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_MEMBERSHIP_ROLE", "Geçersiz üyelik rolü");
         }
         if (membership.getMembershipRole() != membershipRole) {
-            throw new RuntimeException("Uyelik rolu istek ile eslesmiyor");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "MEMBERSHIP_ROLE_MISMATCH", "Üyelik rolü istek ile eşleşmiyor");
         }
         UserProfile user = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Kullanıcı bulunamadı"));
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND", "Şirket bulunamadı"));
 
         Map<String, PermissionLevel> defaults;
 
@@ -158,13 +160,13 @@ public class PermissionService {
 
     private void requireMembership(UUID userId, UUID companyId) {
         if (!membershipRepository.existsByUserIdAndCompanyId(userId, companyId)) {
-            throw new RuntimeException("Kullanici bu sirketin uyesi degil");
+            throw new ApiException(HttpStatus.FORBIDDEN, "NOT_COMPANY_MEMBER", "Kullanıcı bu şirketin üyesi değil");
         }
     }
 
     private void requirePermissionKey(String permissionKey) {
         if (!ALL_PERMISSION_KEYS.contains(permissionKey)) {
-            throw new RuntimeException("Gecersiz izin anahtari");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PERMISSION_KEY", "Geçersiz izin anahtarı");
         }
     }
 }

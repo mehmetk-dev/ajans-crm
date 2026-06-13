@@ -1,9 +1,11 @@
 package com.fogistanbul.crm.messaging.web;
 
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.messaging.dto.SendMessageRequest;
 import com.fogistanbul.crm.messaging.application.MessagingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -45,6 +47,6 @@ public class WebSocketController {
         if (principal instanceof UsernamePasswordAuthenticationToken auth) {
             return (UUID) auth.getPrincipal();
         }
-        throw new RuntimeException("Kimlik doğrulama hatası");
+        throw new ApiException(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED", "Kimlik doğrulama hatası");
     }
 }

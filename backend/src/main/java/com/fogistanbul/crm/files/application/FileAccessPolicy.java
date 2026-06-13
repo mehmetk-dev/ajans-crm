@@ -1,5 +1,6 @@
 package com.fogistanbul.crm.files.application;
 
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.entity.Message;
 import com.fogistanbul.crm.entity.Task;
 import com.fogistanbul.crm.entity.UserProfile;
@@ -11,6 +12,7 @@ import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.MessageRepository;
 import com.fogistanbul.crm.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
@@ -34,12 +36,12 @@ public class FileAccessPolicy {
         switch (entityType) {
             case "TASK" -> {
                 Task task = taskRepository.findById(entityId)
-                        .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
+                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "TASK_NOT_FOUND", "Görev bulunamadı"));
                 requireMembership(user.getId(), task.getCompany().getId());
             }
             case "NOTE" -> {
                 Note note = noteRepository.findById(entityId)
-                        .orElseThrow(() -> new RuntimeException("Not bulunamadi"));
+                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOTE_NOT_FOUND", "Not bulunamadı"));
                 boolean ownNote = note.getUser() != null && note.getUser().getId().equals(user.getId());
                 boolean companyScoped = note.getCompany() != null
                         && membershipRepository.existsByUserIdAndCompanyId(user.getId(), note.getCompany().getId());
@@ -49,7 +51,7 @@ public class FileAccessPolicy {
             }
             case "MESSAGE" -> {
                 Message message = messageRepository.findById(entityId)
-                        .orElseThrow(() -> new RuntimeException("Mesaj bulunamadi"));
+                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "MESSAGE_NOT_FOUND", "Mesaj bulunamadı"));
                 boolean participant = message.getConversation().getUser1().getId().equals(user.getId())
                         || message.getConversation().getUser2().getId().equals(user.getId());
                 if (!participant) {
@@ -58,10 +60,10 @@ public class FileAccessPolicy {
             }
             case "COMPANY" -> {
                 companyRepository.findById(entityId)
-                        .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND", "Şirket bulunamadı"));
                 requireMembership(user.getId(), entityId);
             }
-            default -> throw new RuntimeException("Gecersiz entity type");
+            default -> throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_ENTITY_TYPE", "Geçersiz entity type");
         }
     }
 

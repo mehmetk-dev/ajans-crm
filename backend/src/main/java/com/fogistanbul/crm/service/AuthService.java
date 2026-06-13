@@ -163,7 +163,7 @@ public class AuthService {
                         }
                         return hexString.toString();
                 } catch (NoSuchAlgorithmException e) {
-                        throw new RuntimeException("SHA-256 not available", e);
+                        throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "CRYPTO_ERROR", "Şifreleme hatası");
                 }
         }
 

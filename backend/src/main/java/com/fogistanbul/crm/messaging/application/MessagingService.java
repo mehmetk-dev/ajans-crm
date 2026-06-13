@@ -1,5 +1,6 @@
 package com.fogistanbul.crm.messaging.application;
 
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.messaging.dto.*;
 import com.fogistanbul.crm.entity.*;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,13 +35,13 @@ public class MessagingService {
     @Transactional
     public ConversationResponse getOrStartConversation(UUID currentUserId, UUID targetUserId) {
         if (currentUserId.equals(targetUserId)) {
-            throw new RuntimeException("Kendinizle konusamazsiniz");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "SELF_MESSAGING_FORBIDDEN", "Kendinizle konuşamazsınız");
         }
 
         UserProfile currentUser = userProfileRepository.findById(currentUserId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Kullanıcı bulunamadı"));
         UserProfile targetUser = userProfileRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Kullanıcı bulunamadı"));
 
         accessPolicy.requireDirectMessageAccess(currentUser, targetUser);
 
@@ -102,7 +104,7 @@ public class MessagingService {
         accessPolicy.requireConversationAccess(conversation, senderId);
 
         UserProfile sender = userProfileRepository.findById(senderId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Kullanıcı bulunamadı"));
 
         Message message = Message.builder()
                 .conversation(conversation)
@@ -163,7 +165,7 @@ public class MessagingService {
     @Transactional(readOnly = true)
     public List<ContactResponse> getContacts(UUID userId) {
         UserProfile currentUser = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Kullanıcı bulunamadı"));
 
         List<UserProfile> contacts;
         if (currentUser.getGlobalRole() == GlobalRole.ADMIN) {

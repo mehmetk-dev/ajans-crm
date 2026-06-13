@@ -1,5 +1,6 @@
 package com.fogistanbul.crm.googleoauth.application;
 
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.googleoauth.domain.GoogleOAuthToken;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -52,7 +54,7 @@ public class GoogleTokenHttpClient {
         );
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new IllegalStateException("Google token exchange HTTP hatası: " + response.getStatusCode());
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Google token exchange HTTP hatası: " + response.getStatusCode());
         }
         return response.getBody();
     }

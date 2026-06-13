@@ -6,9 +6,11 @@ import com.fogistanbul.crm.company.infrastructure.CompanyDataCleanup;
 import com.fogistanbul.crm.entity.*;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
 import com.fogistanbul.crm.entity.enums.MembershipRole;
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.repository.*;
 import com.fogistanbul.crm.messaging.application.GroupMessagingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,11 +37,11 @@ public class StaffService {
     @Transactional
     public StaffResponse createStaff(CreateStaffRequest req) {
         if (userProfileRepository.existsByEmail(req.getEmail())) {
-            throw new RuntimeException("Bu email ile kayıtlı bir kullanıcı zaten var: " + req.getEmail());
+            throw new ApiException(HttpStatus.CONFLICT, "EMAIL_ALREADY_EXISTS", "Bu email ile kayıtlı bir kullanıcı zaten var");
         }
 
         Company agency = companyRepository.findById(AGENCY_ID)
-                .orElseThrow(() -> new RuntimeException("Ajans şirketi bulunamadı"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AGENCY_NOT_FOUND", "Ajans şirketi bulunamadı"));
 
         Person person = new Person();
         person.setCompany(agency);
@@ -80,9 +82,9 @@ public class StaffService {
     @Transactional(readOnly = true)
     public StaffResponse getStaffById(UUID id) {
         UserProfile user = userProfileRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Çalışan bulunamadı"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "STAFF_NOT_FOUND", "Çalışan bulunamadı"));
         if (user.getGlobalRole() != GlobalRole.AGENCY_STAFF) {
-            throw new RuntimeException("Bu kullanıcı bir ajans çalışanı değil");
+            throw new ApiException(HttpStatus.FORBIDDEN, "NOT_AGENCY_STAFF", "Bu kullanıcı bir ajans çalışanı değil");
         }
         return toResponse(user);
     }
@@ -90,17 +92,17 @@ public class StaffService {
     @Transactional
     public void assignToCompany(UUID staffUserId, UUID companyId) {
         UserProfile staff = userProfileRepository.findById(staffUserId)
-                .orElseThrow(() -> new RuntimeException("Çalışan bulunamadı"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "STAFF_NOT_FOUND", "Çalışan bulunamadı"));
 
         if (staff.getGlobalRole() != GlobalRole.AGENCY_STAFF) {
-            throw new RuntimeException("Sadece ajans çalışanları şirketlere atanabilir");
+            throw new ApiException(HttpStatus.FORBIDDEN, "ONLY_AGENCY_STAFF", "Sadece ajans çalışanları şirketlere atanabilir");
         }
 
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND", "Şirket bulunamadı"));
 
         if (membershipRepository.existsByUserIdAndCompanyId(staffUserId, companyId)) {
-            throw new RuntimeException("Bu çalışan zaten bu şirkete atanmış");
+            throw new ApiException(HttpStatus.CONFLICT, "STAFF_ALREADY_ASSIGNED", "Bu çalışan zaten bu şirkete atanmış");
         }
 
         CompanyMembership membership = new CompanyMembership();
@@ -115,7 +117,7 @@ public class StaffService {
     @Transactional
     public void unassignFromCompany(UUID membershipId) {
         CompanyMembership membership = membershipRepository.findById(membershipId)
-                .orElseThrow(() -> new RuntimeException("Üyelik bulunamadı"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "MEMBERSHIP_NOT_FOUND", "Üyelik bulunamadı"));
         if (membership.getMembershipRole() != MembershipRole.AGENCY_STAFF
                 || membership.getCompany().getId().equals(AGENCY_ID)) {
             throw new org.springframework.security.access.AccessDeniedException(
@@ -134,9 +136,9 @@ public class StaffService {
     @Transactional
     public void deleteStaff(UUID staffId) {
         UserProfile user = userProfileRepository.findById(staffId)
-                .orElseThrow(() -> new RuntimeException("Çalışan bulunamadı"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "STAFF_NOT_FOUND", "Çalışan bulunamadı"));
         if (user.getGlobalRole() != GlobalRole.AGENCY_STAFF) {
-            throw new RuntimeException("Bu kullanıcı bir ajans çalışanı değil");
+            throw new ApiException(HttpStatus.FORBIDDEN, "NOT_AGENCY_STAFF", "Bu kullanıcı bir ajans çalışanı değil");
         }
 
         // Remove all company memberships

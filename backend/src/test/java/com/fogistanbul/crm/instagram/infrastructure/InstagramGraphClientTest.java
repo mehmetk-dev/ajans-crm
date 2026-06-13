@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import com.fogistanbul.crm.exception.ApiException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -53,7 +54,7 @@ class InstagramGraphClientTest {
                 .thenReturn(ResponseEntity.ok(null));
 
         assertThatThrownBy(() -> client.exchangeCodeForToken("code", "https://redirect.uri"))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Facebook token exchange");
     }
 
@@ -63,7 +64,7 @@ class InstagramGraphClientTest {
                 .thenReturn(ResponseEntity.ok(Map.of("token_type", "bearer")));
 
         assertThatThrownBy(() -> client.exchangeCodeForToken("code", "https://redirect.uri"))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("access_token boş");
     }
 
@@ -73,7 +74,7 @@ class InstagramGraphClientTest {
                 .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of()));
 
         assertThatThrownBy(() -> client.exchangeCodeForToken("code", "https://redirect.uri"))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Facebook token exchange");
     }
 
@@ -94,7 +95,7 @@ class InstagramGraphClientTest {
                 .thenReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null));
 
         assertThatThrownBy(() -> client.exchangeForLongLivedToken("short-token"))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Long-lived token");
     }
 
@@ -122,7 +123,7 @@ class InstagramGraphClientTest {
                 .thenReturn(ResponseEntity.ok(Map.of("data", List.of())));
 
         assertThatThrownBy(() -> client.findInstagramAccount("token"))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Hiçbir Facebook sayfası bulunamadı");
     }
 
@@ -133,7 +134,7 @@ class InstagramGraphClientTest {
                 .thenReturn(ResponseEntity.ok(Map.of("data", List.of(page))));
 
         assertThatThrownBy(() -> client.findInstagramAccount("token"))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Instagram Business hesabı bulunamadı");
     }
 
@@ -143,7 +144,7 @@ class InstagramGraphClientTest {
                 .thenReturn(ResponseEntity.ok(null));
 
         assertThatThrownBy(() -> client.findInstagramAccount("token"))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Facebook sayfaları alınamadı");
     }
 
@@ -164,7 +165,7 @@ class InstagramGraphClientTest {
                 .thenReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null));
 
         assertThatThrownBy(() -> client.refreshLongLivedToken("old-token"))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Instagram token yenileme");
     }
 }

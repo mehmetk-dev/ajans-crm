@@ -1,5 +1,6 @@
 package com.fogistanbul.crm.webdesign.application;
 
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.entity.Company;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
@@ -9,6 +10,7 @@ import com.fogistanbul.crm.webdesign.dto.PageSpeedReportResponse;
 import com.fogistanbul.crm.webdesign.dto.PageSpeedScoreResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,7 +84,7 @@ public class PageSpeedService {
     public void updateWebsite(UUID companyId, String websiteUrl) {
         String normalized = normalizeUrl(websiteUrl);
         if (normalized == null) {
-            throw new RuntimeException("Website adresi bos olamaz");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "WEBSITE_URL_EMPTY", "Website adresi boş olamaz");
         }
 
         Company company = companyRepository.findById(companyId)
@@ -160,7 +162,7 @@ public class PageSpeedService {
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, (req, res) -> {
                     String body = new String(res.getBody().readAllBytes(), StandardCharsets.UTF_8);
-                    throw new RuntimeException(toPageSpeedErrorMessage(res.getStatusCode().toString(), body));
+                    throw new ApiException(HttpStatus.BAD_GATEWAY, "PAGESPEED_API_ERROR", toPageSpeedErrorMessage(res.getStatusCode().toString(), body));
                 })
                 .body(Map.class);
     }
