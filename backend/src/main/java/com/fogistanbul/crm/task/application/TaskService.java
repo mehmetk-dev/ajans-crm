@@ -1,21 +1,18 @@
 package com.fogistanbul.crm.task.application;
 
-import com.fogistanbul.crm.task.dto.CreateTaskRequest;
-import com.fogistanbul.crm.task.dto.TaskResponse;
-import com.fogistanbul.crm.task.dto.UpdateTaskRequest;
 import com.fogistanbul.crm.entity.Company;
 import com.fogistanbul.crm.entity.Task;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
-import com.fogistanbul.crm.entity.enums.NotificationType;
 import com.fogistanbul.crm.entity.enums.TaskCategory;
 import com.fogistanbul.crm.entity.enums.TaskStatus;
-import com.fogistanbul.crm.repository.CompanyMembershipRepository;
+import com.fogistanbul.crm.prproject.application.PrProjectProgressService;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.TaskRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
-import com.fogistanbul.crm.prproject.application.PrProjectProgressService;
-import com.fogistanbul.crm.service.NotificationService;
+import com.fogistanbul.crm.task.dto.CreateTaskRequest;
+import com.fogistanbul.crm.task.dto.TaskResponse;
+import com.fogistanbul.crm.task.dto.UpdateTaskRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,11 +32,10 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final CompanyRepository companyRepository;
     private final UserProfileRepository userProfileRepository;
-    private final CompanyMembershipRepository membershipRepository;
-    private final NotificationService notificationService;
     private final TaskAccessPolicy accessPolicy;
     private final TaskMapper mapper;
     private final PrProjectProgressService prProjectProgressService;
+    private final TaskNotificationPublisher notificationPublisher;
 
     @Transactional
     public TaskResponse createTask(CreateTaskRequest req, UUID createdById) {
@@ -53,7 +49,7 @@ public class TaskService {
         }
         accessPolicy.requireAssignable(creator, assignee, company != null ? company.getId() : null);
 
-        Task task = Task.builder()
+        Task task = taskRepository.save(Task.builder()
                 .company(company)
                 .createdBy(creator)
                 .assignedTo(assignee)
@@ -65,26 +61,11 @@ public class TaskService {
                 .startTime(req.getStartTime())
                 .endDate(req.getEndDate())
                 .endTime(req.getEndTime())
-                .build();
-
-        task = taskRepository.save(task);
+                .build());
         log.info("Task created: {} assigned to {}", task.getTitle(), assignee.getEmail());
 
-        // Notify assignee
-        if (!assignee.getId().equals(createdById)) {
-            notificationService.send(assignee.getId(), NotificationType.TASK_ASSIGNED,
-                    "Yeni görev atandı: " + task.getTitle(),
-                    creator.getPerson() != null ? creator.getPerson().getFullName() + " size bir görev atadı" : "Size bir görev atandı",
-                    "TASK", task.getId());
-        }
-
-        // Notify company owners
-        if (company != null) {
-            notifyCompanyMembers(company.getId(), createdById, NotificationType.TASK_ASSIGNED,
-                    "Yeni görev oluşturuldu: " + task.getTitle(),
-                    (assignee.getPerson() != null ? assignee.getPerson().getFullName() : "Bir kullanıcı") + " görevlendirildi",
-                    "TASK", task.getId());
-        }
+        notificationPublisher.notifyAssignee(task, creator);
+        notificationPublisher.notifyCompanyMembersAboutNew(task, assignee, createdById);
 
         return mapper.toResponse(task);
     }
@@ -112,7 +93,6 @@ public class TaskService {
         if (user.getGlobalRole() == GlobalRole.ADMIN) {
             return taskRepository.findAll(pageable).map(mapper::toResponse);
         }
-        // Non-admin users only see tasks assigned to them
         return taskRepository.findByAssignedToId(userId, pageable).map(mapper::toResponse);
     }
 
@@ -122,7 +102,6 @@ public class TaskService {
         if (user.getGlobalRole() == GlobalRole.ADMIN) {
             return taskRepository.findByStatus(status, pageable).map(mapper::toResponse);
         }
-        // Non-admin users only see their own tasks with given status
         return taskRepository.findByAssignedToIdAndStatus(userId, status, pageable).map(mapper::toResponse);
     }
 
@@ -148,8 +127,7 @@ public class TaskService {
     public TaskResponse getTaskById(UUID taskId, UUID userId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
-        UserProfile user = getUserOrThrow(userId);
-        accessPolicy.requireRead(task, user);
+        accessPolicy.requireRead(task, getUserOrThrow(userId));
         return mapper.toResponse(task);
     }
 
@@ -168,50 +146,35 @@ public class TaskService {
         UserProfile user = getUserOrThrow(userId);
         accessPolicy.requireUpdate(task, user);
 
-        if (req.getTitle() != null) {
-            task.setTitle(req.getTitle());
+        applyUpdates(task, req, user);
+
+        if (req.getStatus() != null && task.getStatus() == TaskStatus.DONE) {
+            task.setCompletedAt(Instant.now());
+            prProjectProgressService.completeFromTask(task);
+        } else if (req.getStatus() != null) {
+            task.setCompletedAt(null);
         }
-        if (req.getDescription() != null) {
-            task.setDescription(req.getDescription());
-        }
+
         if (req.getStatus() != null) {
-            TaskStatus oldStatus = task.getStatus();
-            task.setStatus(req.getStatus());
-            if (req.getStatus() == TaskStatus.DONE) {
-                task.setCompletedAt(Instant.now());
-                // Auto-complete linked PR project phase
-                prProjectProgressService.completeFromTask(task);
-            } else {
-                task.setCompletedAt(null);
-            }
+            notificationPublisher.notifyStatusChange(task, userId);
+        }
 
-            // Notify on status change
-            if (oldStatus != req.getStatus() && task.getCompany() != null) {
-                String statusLabel = switch (req.getStatus()) {
-                    case DONE -> "tamamlandı";
-                    case IN_PROGRESS -> "başladı";
-                    case OVERDUE -> "gecikti";
-                    default -> req.getStatus().name();
-                };
-                NotificationType nType = req.getStatus() == TaskStatus.DONE ? NotificationType.TASK_COMPLETED : NotificationType.TASK_STATUS_CHANGED;
-                notifyCompanyMembers(task.getCompany().getId(), userId, nType,
-                        "Görev " + statusLabel + ": " + task.getTitle(), null,
-                        "TASK", task.getId());
+        task = taskRepository.save(task);
+        log.info("Task updated: {}", task.getTitle());
+        return mapper.toResponse(task);
+    }
 
-                // Also notify task creator if different
-                if (!task.getCreatedBy().getId().equals(userId)) {
-                    notificationService.send(task.getCreatedBy().getId(), nType,
-                            "Görev " + statusLabel + ": " + task.getTitle(), null,
-                            "TASK", task.getId());
-                }
-            }
-        }
-        if (req.getCategory() != null) {
-            task.setCategory(req.getCategory());
-        }
-        if (req.getPriority() != null) {
-            task.setPriority(req.getPriority());
-        }
+    private void applyUpdates(Task task, UpdateTaskRequest req, UserProfile user) {
+        if (req.getTitle() != null) task.setTitle(req.getTitle());
+        if (req.getDescription() != null) task.setDescription(req.getDescription());
+        if (req.getStatus() != null) task.setStatus(req.getStatus());
+        if (req.getCategory() != null) task.setCategory(req.getCategory());
+        if (req.getPriority() != null) task.setPriority(req.getPriority());
+        if (req.getStartDate() != null) task.setStartDate(req.getStartDate());
+        if (req.getStartTime() != null) task.setStartTime(req.getStartTime());
+        if (req.getEndDate() != null) task.setEndDate(req.getEndDate());
+        if (req.getEndTime() != null) task.setEndTime(req.getEndTime());
+
         if (req.getAssignedToId() != null) {
             UserProfile assignee = getUserOrThrow(req.getAssignedToId());
             UUID companyId = req.getCompanyId() != null
@@ -227,46 +190,18 @@ public class TaskService {
             accessPolicy.requireAssignable(user, task.getAssignedTo(), company.getId());
             task.setCompany(company);
         }
-        if (req.getStartDate() != null) {
-            task.setStartDate(req.getStartDate());
-        }
-        if (req.getStartTime() != null) {
-            task.setStartTime(req.getStartTime());
-        }
-        if (req.getEndDate() != null) {
-            task.setEndDate(req.getEndDate());
-        }
-        if (req.getEndTime() != null) {
-            task.setEndTime(req.getEndTime());
-        }
-
-        task = taskRepository.save(task);
-        log.info("Task updated: {}", task.getTitle());
-        return mapper.toResponse(task);
     }
 
     @Transactional
     public void deleteTask(UUID taskId, UUID userId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
-        UserProfile user = getUserOrThrow(userId);
-        accessPolicy.requireDelete(task, user);
+        accessPolicy.requireDelete(task, getUserOrThrow(userId));
         taskRepository.delete(task);
-    }
-
-    private void notifyCompanyMembers(UUID companyId, UUID excludeUserId, NotificationType type,
-                                       String title, String message, String refType, UUID refId) {
-        List<UUID> memberIds = membershipRepository.findCompanyUserIdsByCompanyId(companyId);
-        for (UUID memberId : memberIds) {
-            if (!memberId.equals(excludeUserId)) {
-                notificationService.send(memberId, type, title, message, refType, refId);
-            }
-        }
     }
 
     private UserProfile getUserOrThrow(UUID userId) {
         return userProfileRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
     }
-
 }

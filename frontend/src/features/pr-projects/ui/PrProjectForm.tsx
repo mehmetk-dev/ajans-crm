@@ -206,9 +206,9 @@ export function PrProjectForm({ onSuccess }: PrProjectFormProps) {
                 onChange={memberIds => setForm(current => ({ ...current, memberIds }))}
             />
 
-            <div className="border-t border-white/[0.06] pt-4 space-y-3">
+            <div className="border-t border-white/[0.06] pt-4 space-y-3" role="group" aria-labelledby="phases-heading">
                 <div className="flex items-center justify-between">
-                    <label className={labelClass}>Proje Fazları ({form.phases.length})</label>
+                    <h3 id="phases-heading" className={labelClass}>Proje Fazları ({form.phases.length})</h3>
                     <button
                         type="button"
                         onClick={() => setForm(current => ({

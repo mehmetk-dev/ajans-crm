@@ -312,8 +312,8 @@ export default function UsersPage() {
                                 </div>
 
                                 {/* Role Select */}
-                                <div>
-                                    <label className="text-xs font-medium text-zinc-400 mb-2 block">Global Rol</label>
+                                <div role="group" aria-labelledby="global-role-heading">
+                                    <h3 id="global-role-heading" className="text-xs font-medium text-zinc-400 mb-2 block">Global Rol</h3>
                                     <div className="space-y-2">
                                         {Object.entries(ROLE_LABELS).map(([key, label]) => (
                                             <button
@@ -342,8 +342,8 @@ export default function UsersPage() {
 
                                 {/* Companies Info */}
                                 {editingUser.companies.length > 0 && (
-                                    <div>
-                                        <label className="text-xs font-medium text-zinc-400 mb-2 block">Bağlı Şirketler</label>
+                                    <div role="group" aria-labelledby="affiliated-companies-heading">
+                                        <h3 id="affiliated-companies-heading" className="text-xs font-medium text-zinc-400 mb-2 block">Bağlı Şirketler</h3>
                                         <div className="flex flex-wrap gap-1.5">
                                             {editingUser.companies.map(c => (
                                                 <span key={c.companyId} className="inline-flex items-center gap-1 text-[11px] bg-[#18181b] text-zinc-300 px-2.5 py-1.5 rounded-lg border border-white/[0.04]">

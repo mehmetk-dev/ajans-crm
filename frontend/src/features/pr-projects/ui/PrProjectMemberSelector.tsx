@@ -12,10 +12,10 @@ export function PrProjectMemberSelector({
     onChange,
 }: PrProjectMemberSelectorProps) {
     return (
-        <div>
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+        <div role="group" aria-labelledby="project-team-heading">
+            <h3 id="project-team-heading" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                 Proje Ekibi
-            </label>
+            </h3>
             <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {users.map(user => (
                     <label

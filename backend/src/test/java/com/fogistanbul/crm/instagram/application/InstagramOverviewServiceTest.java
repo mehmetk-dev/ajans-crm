@@ -32,11 +32,15 @@ class InstagramOverviewServiceTest {
 
     @BeforeEach
     void setUp() {
+        InstagramDateRangeResolver dateRangeResolver = new InstagramDateRangeResolver();
+        InstagramInsightFetcher insightFetcher = new InstagramInsightFetcher(client, new InstagramInsightParser(), dateRangeResolver);
+        InstagramDailyTrendBuilder trendBuilder = new InstagramDailyTrendBuilder(new InstagramInsightParser());
         service = new InstagramOverviewService(
                 oAuthService,
                 client,
                 new InstagramInsightParser(),
-                new InstagramDateRangeResolver(),
+                insightFetcher,
+                trendBuilder,
                 mediaService);
     }
 

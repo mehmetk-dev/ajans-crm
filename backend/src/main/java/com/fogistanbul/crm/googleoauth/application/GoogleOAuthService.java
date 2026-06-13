@@ -8,12 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Instant;
@@ -26,31 +22,14 @@ import java.util.UUID;
 public class GoogleOAuthService {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleOAuthService.class);
+    private static final String AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 
-    private static final String AUTH_URL  = "https://accounts.google.com/o/oauth2/v2/auth";
-    private static final String TOKEN_URL = "https://oauth2.googleapis.com/token";
-
-    public static final String SVC_ANALYTICS      = "ANALYTICS";
-    public static final String SVC_SEARCH_CONSOLE  = "SEARCH_CONSOLE";
-    public static final String SVC_GOOGLE_ADS      = "GOOGLE_ADS";
-
-    private static final Map<String, String> SCOPE_MAP = Map.of(
-            SVC_ANALYTICS,      "https://www.googleapis.com/auth/analytics.readonly",
-            SVC_SEARCH_CONSOLE, "https://www.googleapis.com/auth/webmasters.readonly",
-            SVC_GOOGLE_ADS,     "https://www.googleapis.com/auth/adwords"
-    );
-
-    private static final Map<String, String> REDIRECT_MAP = Map.of(
-            SVC_ANALYTICS,      "/client/google-analytics?connected=true",
-            SVC_SEARCH_CONSOLE, "/client/search-console?connected=true",
-            SVC_GOOGLE_ADS,     "/client/google-ads?connected=true"
-    );
+    public static final String SVC_ANALYTICS = GoogleServiceRegistry.SVC_ANALYTICS;
+    public static final String SVC_SEARCH_CONSOLE = GoogleServiceRegistry.SVC_SEARCH_CONSOLE;
+    public static final String SVC_GOOGLE_ADS = GoogleServiceRegistry.SVC_GOOGLE_ADS;
 
     @Value("${app.google-oauth.client-id}")
     private String clientId;
-
-    @Value("${app.google-oauth.client-secret}")
-    private String clientSecret;
 
     @Value("${app.google-oauth.redirect-uri}")
     private String redirectUri;
@@ -60,12 +39,10 @@ public class GoogleOAuthService {
 
     private final GoogleOAuthTokenRepository tokenRepository;
     private final CompanyRepository companyRepository;
-    private final RestTemplate restTemplate;
-
-    // ─── Authorization URL (servis bazlı) ────────────────────────────────────
+    private final GoogleTokenHttpClient tokenHttpClient;
 
     public String buildAuthorizationUrl(UUID companyId, String serviceType) {
-        String scope = SCOPE_MAP.getOrDefault(serviceType, SCOPE_MAP.get(SVC_ANALYTICS));
+        String scope = GoogleServiceRegistry.scopeFor(serviceType);
         String state = companyId.toString() + ":" + serviceType;
         return UriComponentsBuilder.fromHttpUrl(AUTH_URL)
                 .queryParam("client_id", clientId)
@@ -79,16 +56,12 @@ public class GoogleOAuthService {
                 .toUriString();
     }
 
-    /** Eski tek-scope buildAuthorizationUrl — geriye uyumluluk */
     public String buildAuthorizationUrl(UUID companyId) {
         return buildAuthorizationUrl(companyId, SVC_ANALYTICS);
     }
 
-    // ─── Callback: code → token exchange ─────────────────────────────────────
-
     @Transactional
     public String handleCallback(String code, String state) {
-        // state = "companyId:SERVICE_TYPE" veya sadece "companyId"
         String serviceType = SVC_ANALYTICS;
         UUID companyId;
         if (state.contains(":")) {
@@ -99,23 +72,20 @@ public class GoogleOAuthService {
             companyId = UUID.fromString(state);
         }
 
-        Map<String, Object> tokenResponse = exchangeCodeForTokens(code);
-
-        String accessToken  = (String) tokenResponse.get("access_token");
+        Map<String, Object> tokenResponse = tokenHttpClient.exchangeCodeForTokens(code);
+        String accessToken = (String) tokenResponse.get("access_token");
         String refreshToken = (String) tokenResponse.get("refresh_token");
-        Integer expiresIn   = (Integer) tokenResponse.get("expires_in");
-        String scope        = (String) tokenResponse.get("scope");
+        Integer expiresIn = (Integer) tokenResponse.get("expires_in");
+        String scope = (String) tokenResponse.get("scope");
 
         if (accessToken == null || refreshToken == null) {
             throw new IllegalStateException("Google token exchange başarısız: access_token veya refresh_token eksik");
         }
 
         Instant expiry = Instant.now().plusSeconds(expiresIn != null ? expiresIn : 3600);
-
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new IllegalArgumentException("Şirket bulunamadı: " + companyId));
 
-        // Upsert — servis bazlı
         GoogleOAuthToken token = tokenRepository.findByCompanyIdAndServiceType(companyId, serviceType)
                 .orElse(GoogleOAuthToken.builder().company(company).serviceType(serviceType).build());
 
@@ -127,28 +97,23 @@ public class GoogleOAuthService {
         tokenRepository.save(token);
         log.info("Google OAuth token kaydedildi, company={}, serviceType={}", companyId, serviceType);
 
-        return REDIRECT_MAP.getOrDefault(serviceType, "/client/analytics");
+        return GoogleServiceRegistry.redirectFor(serviceType);
     }
-
-    // ─── Token erişimi (servis bazlı, refresh gerekirse otomatik yenile) ─────
 
     @Transactional
     public Optional<String> getValidAccessToken(UUID companyId, String serviceType) {
         return tokenRepository.findByCompanyIdAndServiceType(companyId, serviceType).map(token -> {
             if (Instant.now().isAfter(token.getTokenExpiry().minusSeconds(60))) {
-                return refreshAccessToken(token);
+                return refreshAndSave(token);
             }
             return token.getAccessToken();
         });
     }
 
-    /** Eski — geriye uyumluluk (ANALYTICS varsayılan) */
     @Transactional
     public Optional<String> getValidAccessToken(UUID companyId) {
         return getValidAccessToken(companyId, SVC_ANALYTICS);
     }
-
-    // ─── GA Property ID ──────────────────────────────────────────────────────
 
     @Transactional
     public void savePropertyId(UUID companyId, String propertyId) {
@@ -163,8 +128,6 @@ public class GoogleOAuthService {
                 .map(GoogleOAuthToken::getGaPropertyId);
     }
 
-    // ─── Search Console Site URL ─────────────────────────────────────────────
-
     @Transactional
     public void saveSiteUrl(UUID companyId, String siteUrl) {
         tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_SEARCH_CONSOLE).ifPresent(token -> {
@@ -177,8 +140,6 @@ public class GoogleOAuthService {
         return tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_SEARCH_CONSOLE)
                 .map(GoogleOAuthToken::getScSiteUrl);
     }
-
-    // ─── Google Ads Customer ID ──────────────────────────────────────────────
 
     @Transactional
     public void saveAdsCustomerId(UUID companyId, String customerId) {
@@ -193,8 +154,6 @@ public class GoogleOAuthService {
                 .map(GoogleOAuthToken::getAdsCustomerId);
     }
 
-    // ─── Bağlantı durumu (servis bazlı) ──────────────────────────────────────
-
     public boolean isConnected(UUID companyId, String serviceType) {
         return tokenRepository.existsByCompanyIdAndServiceType(companyId, serviceType);
     }
@@ -202,8 +161,6 @@ public class GoogleOAuthService {
     public boolean isConnected(UUID companyId) {
         return isConnected(companyId, SVC_ANALYTICS);
     }
-
-    // ─── Bağlantıyı kes (servis bazlı) ──────────────────────────────────────
 
     @Transactional
     public void disconnect(UUID companyId, String serviceType) {
@@ -216,8 +173,6 @@ public class GoogleOAuthService {
         disconnect(companyId, SVC_ANALYTICS);
     }
 
-    // ── Geriye uyumluluk metodları (eski kodun kırılmaması için) ──────────────
-
     public boolean hasScScope(UUID companyId) {
         return tokenRepository.existsByCompanyIdAndServiceType(companyId, SVC_SEARCH_CONSOLE);
     }
@@ -226,69 +181,15 @@ public class GoogleOAuthService {
         return tokenRepository.existsByCompanyIdAndServiceType(companyId, SVC_GOOGLE_ADS);
     }
 
-    // ─── Yardımcı: token exchange ─────────────────────────────────────────────
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> exchangeCodeForTokens(String code) {
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("code", code);
-        params.add("client_id", clientId);
-        params.add("client_secret", clientSecret);
-        params.add("redirect_uri", redirectUri);
-        params.add("grant_type", "authorization_code");
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        ResponseEntity<Map> response = restTemplate.exchange(
-                TOKEN_URL, HttpMethod.POST,
-                new HttpEntity<>(params, headers),
-                Map.class
-        );
-
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new IllegalStateException("Google token exchange HTTP hatası: " + response.getStatusCode());
-        }
-        return response.getBody();
-    }
-
-    // ─── Yardımcı: access token yenile ───────────────────────────────────────
-
-    @SuppressWarnings("unchecked")
-    private String refreshAccessToken(GoogleOAuthToken token) {
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("refresh_token", token.getRefreshToken());
-        params.add("client_id", clientId);
-        params.add("client_secret", clientSecret);
-        params.add("grant_type", "refresh_token");
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        try {
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    TOKEN_URL, HttpMethod.POST,
-                    new HttpEntity<>(params, headers),
-                    Map.class
-            );
-
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                Map<String, Object> body = response.getBody();
-                String newAccessToken = (String) body.get("access_token");
-                Integer expiresIn = (Integer) body.get("expires_in");
-
-                token.setAccessToken(newAccessToken);
-                token.setTokenExpiry(Instant.now().plusSeconds(expiresIn != null ? expiresIn : 3600));
-                tokenRepository.save(token);
-                return newAccessToken;
-            }
-        } catch (Exception e) {
-            log.error("Access token yenileme hatası, companyId={}: {}", token.getCompany().getId(), e.getMessage());
-        }
-        return token.getAccessToken();
-    }
-
     public String getFrontendUrl() {
         return frontendUrl;
+    }
+
+    private String refreshAndSave(GoogleOAuthToken token) {
+        String refreshed = tokenHttpClient.refreshAccessToken(token);
+        if (refreshed != null && !refreshed.equals(token.getAccessToken())) {
+            tokenRepository.save(token);
+        }
+        return refreshed;
     }
 }

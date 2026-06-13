@@ -81,8 +81,8 @@ export default function SurveyPage() {
                 ) : (
                     <div className="space-y-5">
                         {/* Star Rating */}
-                        <div>
-                            <label className="text-xs text-zinc-500 block mb-3">Puanınız (1-10)</label>
+                        <div role="group" aria-labelledby="score-heading">
+                            <h3 id="score-heading" className="text-xs text-zinc-500 block mb-3">Puanınız (1-10)</h3>
                             <div className="flex items-center gap-1">
                                 {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
                                     <button

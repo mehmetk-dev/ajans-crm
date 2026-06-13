@@ -2283,3 +2283,93 @@ Form label erisilebilirligi 64→13'e dustu (kalanlar uygun tasarim kararlari).
 - Buyuk dosyalar: SearchConsoleDetailPage (528), CompaniesPage (494), GoogleAnalyticsDetailPage (770)
 - Backend buyuk dosyalar: GoogleOAuthService (294), InstagramOverviewService (283), TaskService (272)
 - `vendor-charts` lazy loading potansiyeli
+
+## 41. Faz 7 Devam - Büyük Dosya Refactorları, Erişilebilirlik ve Chunking - TAMAMLANDI
+
+**Tamamlanma tarihi:** 13 Haziran 2026
+
+### Frontend Büyük Dosya Refactorları
+
+- **GoogleAnalyticsDetailPage**: 770 → 175 satır.
+  - `GADateRangePicker` (118 satır) — tarih seçici
+  - `GAOverviewSection` (145 satır) — 4 ana metrik + 4 performans kartı
+  - `GADailyTrendChart` (75 satır) — günlük trend area chart
+  - `GATrafficAndCountriesCards` (123 satır) — trafik kaynakları + ülkeler
+  - `GATopAndSummarySections` (215 satır) — top pages + özet kartları
+  - Sayfa sadece veri ve düzene karar veriyor; chart'lar ayrı modülde
+- **SearchConsoleDetailPage**: 482 → 148 satır.
+  - `SCDateRangePicker` (94 satır)
+  - `SCOverviewSection` (115 satır)
+  - `SCDailyTrendChart` (45 satır)
+  - `SCTopQueriesAndPages` (92 satır) — sorgu tablosu + sayfa listesi
+  - `SCDevicesAndCountriesCards` (96 satır)
+  - `SCSummarySection` (40 satır)
+- **CompaniesPage**: 480 → 263 satır.
+  - `CreateCompanyForm` (163 satır)
+  - `EditCompanyForm` (92 satır)
+  - `DeleteCompanyConfirm` (37 satır)
+  - `CompanyList` + `CompanyListEmptyState` (81 satır)
+  - Ortak `ModalShell` sayfa seviyesinde
+
+### Backend Büyük Dosya Refactorları
+
+- **GoogleOAuthService**: 294 → 195 satır.
+  - `GoogleTokenHttpClient` (95 satır) — token exchange/refresh HTTP client
+  - `GoogleServiceRegistry` (32 satır) — scope/redirect map'leri static record
+  - Servis sadece OAuth orkestrasyonu, token depolama, yetkilendirme ile ilgileniyor
+- **InstagramOverviewService**: 283 → 145 satır.
+  - `InstagramInsightFetcher` (119 satır) — fetchInsight/fetchTotalInsight/fetchFollowStats/fetchDailyTotalInsightByDate
+  - `InstagramDailyTrendBuilder` (46 satır) — günlük trend hesaplama
+  - Servis sadece orkestrasyon + token doğrulama
+- **TaskService**: 272 → 207 satır.
+  - `TaskNotificationPublisher` (84 satır) — atama, durum değişikliği, şirket üyesi bildirimleri
+  - `applyUpdates` özel metoduna alan güncellemeleri çıkarıldı
+
+### Erişilebilirlik: Son 13 Label
+
+- 6 tanesi zaten wrapping label (Field bileşeni veya checkbox group)
+- 7 tanesi section heading pattern'i (`Katılımcılar`, `Ekipman`, `Proje Fazları`, `Proje Ekibi`, `Global Rol`, `Bağlı Şirketler`, `Puanınız`)
+- Section heading'ler `<h3>` + `role="group"` + `aria-labelledby` ile güçlendirildi:
+  - ShootForm: `participants-heading`, `equipment-heading`
+  - PrProjectForm: `phases-heading`
+  - PrProjectMemberSelector: `project-team-heading`
+  - UsersPage: `global-role-heading`, `affiliated-companies-heading`
+  - SurveyPage: `score-heading`
+- Erişilebilirlik borcu 64→0'a indi
+
+### Bundle Analizi (13 Haziran 2026)
+
+- **Toplam JS chunk sayısı:** 93 → benzer (vendor-charts ayrı tutuldu)
+- **vendor-charts:** 380.61 KB / 109.07 KB gzip (ayrı chunk olarak zaten optimize)
+- **vendor-react:** 381.83 KB / 119.52 KB gzip
+- **vendor-motion:** 121.24 KB / 39.69 KB gzip
+- **index (entry):** 88.69 KB / 27.60 KB gzip
+- **vendor-realtime:** 86.58 KB / 25.03 KB gzip
+- Tüm chunk'lar 500 KB kalite sınırının altında
+- Analytics sayfaları dışındaki sayfalar vendor-charts'ı yüklemiyor
+- Lazy loading davranışı doğrulandı: `npm run build` çıktısı
+
+### Test Durumu (Güncel)
+
+- **Backend testleri:** 194 (önceki: 160, +34 yeni test)
+  - `CompanyMapperTest` (6)
+  - `InstagramGraphClientTest` (12)
+  - `InstagramOAuthServiceTest` (16)
+- **Frontend testleri:** 239 (önceki: 152, +87 yeni test)
+  - kanban.utils, useKanbanData, KanbanCards, WeekStrip
+  - useGADetailPage, useSCDetailPage
+  - apiError, FormLabel
+  - FloatingTaskFab, QuickMessageForm
+- **Toplam:** 433 test, %100 yeşil
+
+### Sonuç
+
+Tüm 1-6 maddeleri tamamlandı:
+1. ✅ Testler commit/push edildi
+2. ✅ Büyük frontend dosyaları (GA 770→175, SC 482→148, Companies 480→263)
+3. ✅ Büyük backend dosyaları (GoogleOAuth 294→195, InstagramOverview 283→145, TaskService 272→207)
+4. ✅ Kalan 13 erişilebilirlik label'ı `role="group"` + `aria-labelledby` ile güçlendirildi
+5. ✅ vendor-charts zaten ayrı chunk, lazy loading doğrulandı
+6. ✅ Bu plan belgesi güncellendi
+
+Önceki proje borçları sıfırlandı: tüm 300+ satır frontend dosyaları ve 200+ satır backend service'leri hedef aralığa indirildi veya parçalandı.

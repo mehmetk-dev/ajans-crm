@@ -103,9 +103,9 @@ function ParticipantFields({
 }) {
     const add = () => update('participants', [...form.participants, { userId: '', roleInShoot: '' }]);
     return (
-        <div className="border-t border-white/[0.06] pt-4">
+        <div className="border-t border-white/[0.06] pt-4" role="group" aria-labelledby="participants-heading">
             <div className="flex justify-between mb-2">
-                <label className={labelClass}>Katılımcılar</label>
+                <h3 id="participants-heading" className={labelClass}>Katılımcılar</h3>
                 <button type="button" onClick={add} className="text-[10px] text-violet-400">+ Ekle</button>
             </div>
             <div className="space-y-2">
@@ -138,9 +138,9 @@ function EquipmentFields({
 }) {
     const add = () => update('equipment', [...form.equipment, { name: '', quantity: 1, notes: '' }]);
     return (
-        <div className="border-t border-white/[0.06] pt-4">
+        <div className="border-t border-white/[0.06] pt-4" role="group" aria-labelledby="equipment-heading">
             <div className="flex justify-between mb-2">
-                <label className={labelClass}>Ekipman</label>
+                <h3 id="equipment-heading" className={labelClass}>Ekipman</h3>
                 <button type="button" onClick={add} className="text-[10px] text-violet-400">+ Ekle</button>
             </div>
             <div className="space-y-2">

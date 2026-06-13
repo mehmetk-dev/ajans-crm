@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AxiosError, AxiosHeaders } from 'axios';
+import { AxiosError } from 'axios';
 import { getApiErrorMessage } from './apiError';
 
 describe('getApiErrorMessage', () => {

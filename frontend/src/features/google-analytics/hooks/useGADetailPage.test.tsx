@@ -19,7 +19,6 @@ vi.mock('../../../store/AuthContext', () => ({
     }),
 }));
 
-import type { UserInfo } from '../../../api/auth';
 import type { GaOverviewResponse, GaStatusResponse } from '../googleAnalytics.types';
 import { googleAnalyticsApi } from '../api/googleAnalyticsApi';
 import { useGADetailPage } from './useGADetailPage';
