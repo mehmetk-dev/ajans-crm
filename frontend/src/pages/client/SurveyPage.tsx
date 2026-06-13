@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { clientApi } from '../../api/clientPanel';
@@ -7,6 +7,7 @@ import { Star, Send, MessageSquareText, CheckCircle2, AlertCircle, BarChart3 } f
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SurveyPage() {
+    const fid = useId();
     const queryClient = useQueryClient();
     const [score, setScore] = useState(0);
     const [hoverScore, setHoverScore] = useState(0);
@@ -109,11 +110,12 @@ export default function SurveyPage() {
 
                         {/* Comment */}
                         <div>
-                            <label className="text-xs text-zinc-500 block mb-1">
+                            <label htmlFor={`${fid}-comment`} className="text-xs text-zinc-500 block mb-1">
                                 <MessageSquareText className="w-3 h-3 inline mr-1" />
                                 Yorumunuz (isteğe bağlı)
                             </label>
                             <textarea
+                                id={`${fid}-comment`}
                                 value={comment}
                                 onChange={e => setComment(e.target.value)}
                                 rows={3}

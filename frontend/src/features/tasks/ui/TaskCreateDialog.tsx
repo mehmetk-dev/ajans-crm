@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { CompanyResponse } from '../../company';
@@ -23,6 +23,7 @@ const emptyForm = (): CreateTaskInput => ({
 const inputClass = 'w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors';
 
 export function TaskCreateDialog({ open, companies, onClose, onCreated }: Props) {
+    const fid = useId();
     const [form, setForm] = useState<CreateTaskInput>(emptyForm);
     const { data: users = [] } = useAssignableUsers(form.companyId);
     const createTask = useCreateTask();
@@ -67,8 +68,9 @@ export function TaskCreateDialog({ open, companies, onClose, onCreated }: Props)
                             </button>
                         </div>
                         <form onSubmit={submit} className="p-6 space-y-4">
-                            <Field label="Görev Başlığı *">
+                            <Field label="Görev Başlığı *" fieldId={`${fid}-title`}>
                                 <input
+                                    id={`${fid}-title`}
                                     value={form.title}
                                     onChange={event => setForm(current => ({ ...current, title: event.target.value }))}
                                     className={inputClass}
@@ -76,8 +78,9 @@ export function TaskCreateDialog({ open, companies, onClose, onCreated }: Props)
                                     required
                                 />
                             </Field>
-                            <Field label="Atanan Kişi *">
+                            <Field label="Atanan Kişi *" fieldId={`${fid}-assignee`}>
                                 <select
+                                    id={`${fid}-assignee`}
                                     value={form.assignedToId}
                                     onChange={event => setForm(current => ({ ...current, assignedToId: event.target.value }))}
                                     className={inputClass}
@@ -89,8 +92,9 @@ export function TaskCreateDialog({ open, companies, onClose, onCreated }: Props)
                                     ))}
                                 </select>
                             </Field>
-                            <Field label="Şirket">
+                            <Field label="Şirket" fieldId={`${fid}-company`}>
                                 <select
+                                    id={`${fid}-company`}
                                     value={form.companyId ?? ''}
                                     onChange={event => setForm(current => ({
                                         ...current,
@@ -105,16 +109,18 @@ export function TaskCreateDialog({ open, companies, onClose, onCreated }: Props)
                                     ))}
                                 </select>
                             </Field>
-                            <Field label="Açıklama">
+                            <Field label="Açıklama" fieldId={`${fid}-desc`}>
                                 <textarea
+                                    id={`${fid}-desc`}
                                     value={form.description ?? ''}
                                     onChange={event => setForm(current => ({ ...current, description: event.target.value }))}
                                     className={`${inputClass} resize-none`}
                                     rows={3}
                                 />
                             </Field>
-                            <Field label="Kategori">
+                            <Field label="Kategori" fieldId={`${fid}-cat`}>
                                 <select
+                                    id={`${fid}-cat`}
                                     value={form.category ?? 'OTHER'}
                                     onChange={event => setForm(current => ({
                                         ...current,
@@ -128,13 +134,13 @@ export function TaskCreateDialog({ open, companies, onClose, onCreated }: Props)
                                 </select>
                             </Field>
                             <div className="grid grid-cols-2 gap-4">
-                                <DateField label="Başlangıç Tarihi" value={form.startDate}
+                                <DateField label="Başlangıç Tarihi" fieldId={`${fid}-start`} value={form.startDate}
                                     onChange={value => setForm(current => ({ ...current, startDate: value }))} />
-                                <TimeField label="Başlangıç Saati" value={form.startTime}
+                                <TimeField label="Başlangıç Saati" fieldId={`${fid}-starttime`} value={form.startTime}
                                     onChange={value => setForm(current => ({ ...current, startTime: value }))} />
-                                <DateField label="Bitiş Tarihi" value={form.endDate}
+                                <DateField label="Bitiş Tarihi" fieldId={`${fid}-end`} value={form.endDate}
                                     onChange={value => setForm(current => ({ ...current, endDate: value }))} />
-                                <TimeField label="Bitiş Saati" value={form.endTime}
+                                <TimeField label="Bitiş Saati" fieldId={`${fid}-endtime`} value={form.endTime}
                                     onChange={value => setForm(current => ({ ...current, endTime: value }))} />
                             </div>
                             <button
@@ -152,19 +158,20 @@ export function TaskCreateDialog({ open, companies, onClose, onCreated }: Props)
     );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, fieldId, children }: { label: string; fieldId?: string; children: React.ReactNode }) {
     return (
         <div>
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{label}</label>
+            <label htmlFor={fieldId} className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{label}</label>
             {children}
         </div>
     );
 }
 
-function DateField({ label, value, onChange }: { label: string; value?: string; onChange: (value?: string) => void }) {
+function DateField({ label, fieldId, value, onChange }: { label: string; fieldId?: string; value?: string; onChange: (value?: string) => void }) {
     return (
-        <Field label={label}>
+        <Field label={label} fieldId={fieldId}>
             <input
+                id={fieldId}
                 type="date"
                 value={value?.slice(0, 10) ?? ''}
                 onChange={event => onChange(event.target.value
@@ -176,10 +183,11 @@ function DateField({ label, value, onChange }: { label: string; value?: string; 
     );
 }
 
-function TimeField({ label, value, onChange }: { label: string; value?: string; onChange: (value?: string) => void }) {
+function TimeField({ label, fieldId, value, onChange }: { label: string; fieldId?: string; value?: string; onChange: (value?: string) => void }) {
     return (
-        <Field label={label}>
+        <Field label={label} fieldId={fieldId}>
             <input
+                id={fieldId}
                 type="time"
                 value={value ?? ''}
                 onChange={event => onChange(event.target.value || undefined)}

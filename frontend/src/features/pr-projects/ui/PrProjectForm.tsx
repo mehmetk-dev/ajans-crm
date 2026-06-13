@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useId, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
 import { companyApi, companyKeys } from '../../company';
@@ -42,6 +42,7 @@ const initialForm: PrProjectFormValues = {
 };
 
 export function PrProjectForm({ onSuccess }: PrProjectFormProps) {
+    const id = useId();
     const [form, setForm] = useState<PrProjectFormValues>(initialForm);
     const [error, setError] = useState<string | null>(null);
     const createMutation = useCreatePrProject();
@@ -90,8 +91,9 @@ export function PrProjectForm({ onSuccess }: PrProjectFormProps) {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-                <label className={labelClass}>Proje Adı *</label>
+                <label htmlFor={`${id}-name`} className={labelClass}>Proje Adı *</label>
                 <input
+                    id={`${id}-name`}
                     value={form.name}
                     onChange={event => setForm(current => ({
                         ...current,
@@ -104,8 +106,9 @@ export function PrProjectForm({ onSuccess }: PrProjectFormProps) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label className={labelClass}>Şirket</label>
+                    <label htmlFor={`${id}-company`} className={labelClass}>Şirket</label>
                     <select
+                        id={`${id}-company`}
                         value={form.companyId}
                         onChange={event => setForm(current => ({
                             ...current,
@@ -126,8 +129,9 @@ export function PrProjectForm({ onSuccess }: PrProjectFormProps) {
                     </select>
                 </div>
                 <div>
-                    <label className={labelClass}>Sorumlu Kişi</label>
+                    <label htmlFor={`${id}-responsible`} className={labelClass}>Sorumlu Kişi</label>
                     <select
+                        id={`${id}-responsible`}
                         value={form.responsibleId}
                         onChange={event => setForm(current => ({
                             ...current,
@@ -155,27 +159,37 @@ export function PrProjectForm({ onSuccess }: PrProjectFormProps) {
             />
 
             <div className="grid grid-cols-2 gap-3">
-                <input
-                    type="date"
-                    value={form.startDate}
-                    onChange={event => setForm(current => ({
-                        ...current,
-                        startDate: event.target.value,
-                    }))}
-                    className={inputClass}
-                />
-                <input
-                    type="date"
-                    value={form.endDate}
-                    onChange={event => setForm(current => ({
-                        ...current,
-                        endDate: event.target.value,
-                    }))}
-                    className={inputClass}
-                />
+                <div>
+                    <label htmlFor={`${id}-startdate`} className="sr-only">Başlangıç tarihi</label>
+                    <input
+                        id={`${id}-startdate`}
+                        type="date"
+                        value={form.startDate}
+                        onChange={event => setForm(current => ({
+                            ...current,
+                            startDate: event.target.value,
+                        }))}
+                        className={inputClass}
+                    />
+                </div>
+                <div>
+                    <label htmlFor={`${id}-enddate`} className="sr-only">Bitiş tarihi</label>
+                    <input
+                        id={`${id}-enddate`}
+                        type="date"
+                        value={form.endDate}
+                        onChange={event => setForm(current => ({
+                            ...current,
+                            endDate: event.target.value,
+                        }))}
+                        className={inputClass}
+                    />
+                </div>
             </div>
 
+            <label htmlFor={`${id}-notes`} className="sr-only">Proje notları</label>
             <textarea
+                id={`${id}-notes`}
                 value={form.notes}
                 onChange={event => setForm(current => ({
                     ...current,
@@ -262,7 +276,9 @@ export function PrProjectForm({ onSuccess }: PrProjectFormProps) {
                                 className={inputClass}
                             />
                         </div>
-                        <textarea
+<label htmlFor={`${id}-purpose`} className="sr-only">Amaç / açıklama</label>
+            <textarea
+                id={`${id}-purpose`}
                             value={phase.notes}
                             onChange={event => updatePhase(index, 'notes', event.target.value)}
                             className={`${inputClass} resize-none`}

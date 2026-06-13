@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { Loader2, Save, X } from 'lucide-react';
 import type { MaintenanceLogInput } from '../api/maintenanceLog.types';
 import { MAINTENANCE_CATEGORY_OPTIONS } from '../model/maintenanceLog.constants';
@@ -28,12 +29,14 @@ export function MaintenanceLogForm({
     onCancel,
     onSubmit,
 }: Props) {
+    const id = useId();
     return (
         <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="sm:col-span-2">
-                    <label className={labelClass}>Başlık *</label>
+                    <label htmlFor={`${id}-title`} className={labelClass}>Başlık *</label>
                     <input
+                        id={`${id}-title`}
                         className={inputClass}
                         placeholder="Örn: Ana sayfa banner güncellendi"
                         value={form.title}
@@ -41,8 +44,9 @@ export function MaintenanceLogForm({
                     />
                 </div>
                 <div>
-                    <label className={labelClass}>Kategori</label>
+                    <label htmlFor={`${id}-category`} className={labelClass}>Kategori</label>
                     <select
+                        id={`${id}-category`}
                         className={inputClass}
                         value={form.category}
                         onChange={event => onChange({
@@ -56,8 +60,9 @@ export function MaintenanceLogForm({
                     </select>
                 </div>
                 <div>
-                    <label className={labelClass}>Tarih *</label>
+                    <label htmlFor={`${id}-date`} className={labelClass}>Tarih *</label>
                     <input
+                        id={`${id}-date`}
                         type="datetime-local"
                         className={inputClass}
                         value={dateLocal}
@@ -65,8 +70,9 @@ export function MaintenanceLogForm({
                     />
                 </div>
                 <div className="sm:col-span-2">
-                    <label className={labelClass}>Açıklama</label>
+                    <label htmlFor={`${id}-desc`} className={labelClass}>Açıklama</label>
                     <textarea
+                        id={`${id}-desc`}
                         className={`${inputClass} min-h-[72px] resize-none`}
                         placeholder="Ne yapıldığını kısaca açıklayın..."
                         value={form.description ?? ''}

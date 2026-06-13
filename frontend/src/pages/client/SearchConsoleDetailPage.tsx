@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -29,6 +29,7 @@ import {
 import { useAuth } from '../../store/AuthContext';
 
 export default function SearchConsoleDetailPage() {
+    const fid = useId();
     const navigate = useNavigate();
     const { user } = useAuth();
     const companyId = user?.companyId;
@@ -174,14 +175,14 @@ export default function SearchConsoleDetailPage() {
                                         <p className="text-[10px] text-zinc-500 uppercase tracking-wider px-2 py-1">Özel Tarih Aralığı</p>
                                         <div className="px-2 space-y-2 mt-1">
                                             <div>
-                                                <label className="text-[10px] text-zinc-500">Başlangıç</label>
-                                                <input type="date" value={customStart}
+                                                <label htmlFor={`${fid}-scstart`} className="text-[10px] text-zinc-500">Başlangıç</label>
+                                                <input id={`${fid}-scstart`} type="date" value={customStart}
                                                     onChange={e => setCustomStart(e.target.value)}
                                                     className="w-full bg-[#0C0C0E] border border-white/[0.08] rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-pink-500/50" />
                                             </div>
                                             <div>
-                                                <label className="text-[10px] text-zinc-500">Bitiş</label>
-                                                <input type="date" value={customEnd}
+                                                <label htmlFor={`${fid}-scend`} className="text-[10px] text-zinc-500">Bitiş</label>
+                                                <input id={`${fid}-scend`} type="date" value={customEnd}
                                                     onChange={e => setCustomEnd(e.target.value)}
                                                     className="w-full bg-[#0C0C0E] border border-white/[0.08] rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-pink-500/50" />
                                             </div>

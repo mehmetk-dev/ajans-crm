@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -46,6 +47,7 @@ import {
 
 export default function GoogleAnalyticsDetailPage() {
   const navigate = useNavigate();
+  const fid = useId();
   const {
     status, data, loading, error, refreshing,
     activePreset, showDateMenu, customStart, customEnd, isCustomRange,
@@ -176,10 +178,11 @@ export default function GoogleAnalyticsDetailPage() {
                     </p>
                     <div className="px-2 space-y-2 mt-1">
                       <div>
-                        <label className="text-[10px] text-zinc-500">
-                          Başlangıç
-                        </label>
-                        <input
+<label htmlFor={`${fid}-start`} className="text-[10px] text-zinc-500">
+                           Başlangıç
+                         </label>
+                         <input
+                           id={`${fid}-start`}
                           type="date"
                           value={customStart}
                           onChange={(e) => setCustomStart(e.target.value)}
@@ -187,10 +190,11 @@ export default function GoogleAnalyticsDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] text-zinc-500">
-                          Bitiş
-                        </label>
-                        <input
+<label htmlFor={`${fid}-end`} className="text-[10px] text-zinc-500">
+                           Bitiş
+                         </label>
+                         <input
+                           id={`${fid}-end`}
                           type="date"
                           value={customEnd}
                           onChange={(e) => setCustomEnd(e.target.value)}

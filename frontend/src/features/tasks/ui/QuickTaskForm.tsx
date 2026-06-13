@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import type { CompanyResponse } from '../../company';
 import { taskApi } from '../api/taskApi';
 import type { AssignableUser, TaskCategory } from '../api/task.types';
@@ -26,6 +26,7 @@ export function QuickTaskForm({
     setLoading,
     onDone,
 }: Props) {
+    const fid = useId();
     const [form, setForm] = useState({
         assignedToId: '',
         title: '',
@@ -61,32 +62,32 @@ export function QuickTaskForm({
 
     return (
         <form onSubmit={submit} className="space-y-4">
-            <Field label="Görev Başlığı *">
-                <input value={form.title}
+            <Field label="Görev Başlığı *" fieldId={`${fid}-qtitle`}>
+                <input id={`${fid}-qtitle`} value={form.title}
                     onChange={event => setForm(current => ({ ...current, title: event.target.value }))}
                     className={inputClass} required />
             </Field>
-            <Field label="Atanan Kişi *">
-                <select value={form.assignedToId}
+            <Field label="Atanan Kişi *" fieldId={`${fid}-qassignee`}>
+                <select id={`${fid}-qassignee`} value={form.assignedToId}
                     onChange={event => setForm(current => ({ ...current, assignedToId: event.target.value }))}
                     className={inputClass} required>
                     <option value="">Kişi seçiniz</option>
                     {users.map(user => <option key={user.id} value={user.id}>{user.fullName}</option>)}
                 </select>
             </Field>
-            <Field label="Şirket">
-                <select value={companyId} onChange={event => setCompanyId(event.target.value)} className={inputClass}>
+            <Field label="Şirket" fieldId={`${fid}-qcompany`}>
+                <select id={`${fid}-qcompany`} value={companyId} onChange={event => setCompanyId(event.target.value)} className={inputClass}>
                     <option value="">Ajans İçi</option>
                     {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
                 </select>
             </Field>
-            <Field label="Açıklama">
-                <textarea value={form.description}
+            <Field label="Açıklama" fieldId={`${fid}-qdesc`}>
+                <textarea id={`${fid}-qdesc`} value={form.description}
                     onChange={event => setForm(current => ({ ...current, description: event.target.value }))}
                     className={`${inputClass} resize-none`} rows={3} />
             </Field>
-            <Field label="Kategori">
-                <select value={form.category}
+            <Field label="Kategori" fieldId={`${fid}-qcat`}>
+                <select id={`${fid}-qcat`} value={form.category}
                     onChange={event => setForm(current => ({
                         ...current,
                         category: event.target.value as TaskCategory,
@@ -97,13 +98,13 @@ export function QuickTaskForm({
                 </select>
             </Field>
             <div className="grid grid-cols-2 gap-4">
-                <Input type="date" label="Başlangıç Tarihi" value={form.startDate}
+                <Input type="date" label="Başlangıç Tarihi" fieldId={`${fid}-qsdate`} value={form.startDate}
                     onChange={value => setForm(current => ({ ...current, startDate: value }))} />
-                <Input type="time" label="Başlangıç Saati" value={form.startTime}
+                <Input type="time" label="Başlangıç Saati" fieldId={`${fid}-qstime`} value={form.startTime}
                     onChange={value => setForm(current => ({ ...current, startTime: value }))} />
-                <Input type="date" label="Bitiş Tarihi" value={form.endDate}
+                <Input type="date" label="Bitiş Tarihi" fieldId={`${fid}-qedate`} value={form.endDate}
                     onChange={value => setForm(current => ({ ...current, endDate: value }))} />
-                <Input type="time" label="Bitiş Saati" value={form.endTime}
+                <Input type="time" label="Bitiş Saati" fieldId={`${fid}-qetime`} value={form.endTime}
                     onChange={value => setForm(current => ({ ...current, endTime: value }))} />
             </div>
             <button type="submit" disabled={loading}
@@ -114,10 +115,10 @@ export function QuickTaskForm({
     );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, fieldId, children }: { label: string; fieldId?: string; children: React.ReactNode }) {
     return (
         <div>
-            <label className={labelClass}>{label}</label>
+            <label htmlFor={fieldId} className={labelClass}>{label}</label>
             {children}
         </div>
     );
@@ -126,17 +127,19 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Input({
     type,
     label,
+    fieldId,
     value,
     onChange,
 }: {
     type: 'date' | 'time';
     label: string;
+    fieldId?: string;
     value: string;
     onChange: (value: string) => void;
 }) {
     return (
-        <Field label={label}>
-            <input type={type} value={value}
+        <Field label={label} fieldId={fieldId}>
+            <input id={fieldId} type={type} value={value}
                 onChange={event => onChange(event.target.value)} className={inputClass} />
         </Field>
     );

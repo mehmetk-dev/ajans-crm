@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../api/admin';
 import type { AdminRoutineResponse, CreateRoutineRequest, PageResponse } from '../../api/admin';
@@ -37,6 +37,7 @@ function getScheduleLabel(r: AdminRoutineResponse): string {
 }
 
 export default function RoutineManagementPage() {
+    const id = useId();
     const queryClient = useQueryClient();
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -157,8 +158,9 @@ export default function RoutineManagementPage() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             {/* Title */}
                             <div>
-                                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Başlık*</label>
+                                <label htmlFor={`${id}-title`} className="block text-xs font-medium text-zinc-400 mb-1.5">Başlık*</label>
                                 <input
+                                    id={`${id}-title`}
                                     value={form.title}
                                     onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                                     placeholder="Örn: Sosyal medya paylaşımları"
@@ -169,8 +171,9 @@ export default function RoutineManagementPage() {
 
                             {/* Description */}
                             <div>
-                                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Açıklama</label>
+                                <label htmlFor={`${id}-desc`} className="block text-xs font-medium text-zinc-400 mb-1.5">Açıklama</label>
                                 <textarea
+                                    id={`${id}-desc`}
                                     value={form.description ?? ''}
                                     onChange={e => setForm(f => ({ ...f, description: e.target.value || undefined }))}
                                     placeholder="Rutin hakkında detay..."
@@ -183,8 +186,9 @@ export default function RoutineManagementPage() {
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 {/* Frequency */}
                                 <div>
-                                    <label className="block text-xs font-medium text-zinc-400 mb-1.5">Sıklık*</label>
+                                    <label htmlFor={`${id}-freq`} className="block text-xs font-medium text-zinc-400 mb-1.5">Sıklık*</label>
                                     <select
+                                        id={`${id}-freq`}
                                         value={form.frequency}
                                         onChange={e => setForm(f => ({ ...f, frequency: e.target.value as 'DAILY' | 'WEEKLY' | 'MONTHLY', dayOfWeek: undefined, dayOfMonth: undefined }))}
                                         className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/30"
@@ -198,8 +202,9 @@ export default function RoutineManagementPage() {
                                 {/* Day of week (weekly) */}
                                 {form.frequency === 'WEEKLY' && (
                                     <div>
-                                        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Gün</label>
+                                        <label htmlFor={`${id}-day`} className="block text-xs font-medium text-zinc-400 mb-1.5">Gün</label>
                                         <select
+                                            id={`${id}-day`}
                                             value={form.dayOfWeek ?? ''}
                                             onChange={e => setForm(f => ({ ...f, dayOfWeek: e.target.value ? parseInt(e.target.value) : undefined }))}
                                             className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/30"
@@ -215,8 +220,9 @@ export default function RoutineManagementPage() {
                                 {/* Day of month (monthly) */}
                                 {form.frequency === 'MONTHLY' && (
                                     <div>
-                                        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Ayın Günü</label>
+                                        <label htmlFor={`${id}-dayOfMonth`} className="block text-xs font-medium text-zinc-400 mb-1.5">Ayın Günü</label>
                                         <select
+                                            id={`${id}-dayOfMonth`}
                                             value={form.dayOfMonth ?? ''}
                                             onChange={e => setForm(f => ({ ...f, dayOfMonth: e.target.value !== '' ? parseInt(e.target.value) : undefined }))}
                                             className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/30"
@@ -232,8 +238,9 @@ export default function RoutineManagementPage() {
 
                                 {/* Execution Time */}
                                 <div>
-                                    <label className="block text-xs font-medium text-zinc-400 mb-1.5">Saat</label>
+                                    <label htmlFor={`${id}-time`} className="block text-xs font-medium text-zinc-400 mb-1.5">Saat</label>
                                     <input
+                                        id={`${id}-time`}
                                         type="time"
                                         value={form.executionTime ?? ''}
                                         onChange={e => setForm(f => ({ ...f, executionTime: e.target.value || undefined }))}
@@ -246,8 +253,9 @@ export default function RoutineManagementPage() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* Assigned To */}
                                 <div>
-                                    <label className="block text-xs font-medium text-zinc-400 mb-1.5">Atanan Kişi</label>
+                                    <label htmlFor={`${id}-assignee`} className="block text-xs font-medium text-zinc-400 mb-1.5">Atanan Kişi</label>
                                     <select
+                                        id={`${id}-assignee`}
                                         value={form.assignedToId ?? ''}
                                         onChange={e => setForm(f => ({ ...f, assignedToId: e.target.value || undefined }))}
                                         className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/30"
@@ -261,8 +269,9 @@ export default function RoutineManagementPage() {
 
                                 {/* Category */}
                                 <div>
-                                    <label className="block text-xs font-medium text-zinc-400 mb-1.5">Kategori</label>
+                                    <label htmlFor={`${id}-cat`} className="block text-xs font-medium text-zinc-400 mb-1.5">Kategori</label>
                                     <select
+                                        id={`${id}-cat`}
                                         value={form.category ?? 'OTHER'}
                                         onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                                         className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500/30"

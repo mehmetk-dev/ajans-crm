@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { settingsApi } from '../api/settings';
@@ -9,6 +9,7 @@ interface Props {
 }
 
 export default function SettingsPage({ accentColor = 'blue' }: Props) {
+    const id = useId();
     const { user } = useAuth();
     const [fullName, setFullName] = useState(user?.fullName || '');
     const [currentPassword, setCurrentPassword] = useState('');
@@ -79,13 +80,13 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="text-xs text-zinc-500 block mb-1">Ad Soyad</label>
-                        <input value={fullName} onChange={e => setFullName(e.target.value)}
+                        <label htmlFor={`${id}-fullname`} className="text-xs text-zinc-500 block mb-1">Ad Soyad</label>
+                        <input id={`${id}-fullname`} value={fullName} onChange={e => setFullName(e.target.value)}
                             className={`w-full bg-[#18181b]/60 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-white focus:outline-none ${accent.focus}`} />
                     </div>
                     <div>
-                        <label className="text-xs text-zinc-500 block mb-1">Email</label>
-                        <input defaultValue={user?.email || ''} disabled
+                        <label htmlFor={`${id}-email`} className="text-xs text-zinc-500 block mb-1">Email</label>
+                        <input id={`${id}-email`} defaultValue={user?.email || ''} disabled
                             className="w-full bg-[#18181b]/40 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-500 cursor-not-allowed" />
                     </div>
                 </div>
@@ -108,13 +109,13 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="text-xs text-zinc-500 block mb-1">Mevcut Şifre</label>
-                        <input type="password" placeholder="••••••••" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
+                        <label htmlFor={`${id}-currentpwd`} className="text-xs text-zinc-500 block mb-1">Mevcut Şifre</label>
+                        <input id={`${id}-currentpwd`} type="password" placeholder="••••••••" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
                             className={`w-full bg-[#18181b]/60 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-white focus:outline-none ${accent.focus}`} />
                     </div>
                     <div>
-                        <label className="text-xs text-zinc-500 block mb-1">Yeni Şifre</label>
-                        <input type="password" placeholder="••••••••" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                        <label htmlFor={`${id}-newpwd`} className="text-xs text-zinc-500 block mb-1">Yeni Şifre</label>
+                        <input id={`${id}-newpwd`} type="password" placeholder="••••••••" value={newPassword} onChange={e => setNewPassword(e.target.value)}
                             className={`w-full bg-[#18181b]/60 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-white focus:outline-none ${accent.focus}`} />
                     </div>
                 </div>

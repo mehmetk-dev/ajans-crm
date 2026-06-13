@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LayoutTemplate, Loader2, Save } from 'lucide-react';
 import { companyApi, type CompanyResponse } from '../../company';
@@ -32,6 +32,7 @@ const inputClass = 'bg-[#0C0C0E] border border-white/[0.06] rounded-lg px-3 py-2
 const labelClass = 'text-[11px] uppercase tracking-wider text-zinc-500 mb-1 block';
 
 export default function WebDesignAdminSection({ company }: Props) {
+    const id = useId();
     const queryClient = useQueryClient();
     const [infraForm, setInfraForm] = useState<InfraForm>(() => infraFormFromCompany(company));
     const [infraDirty, setInfraDirty] = useState(false);
@@ -74,34 +75,34 @@ export default function WebDesignAdminSection({ company }: Props) {
                     <h4 className="text-xs font-semibold text-zinc-400 mb-3">Altyapı Bilgileri</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         <div>
-                            <label className={labelClass}>Hosting</label>
-                            <input className={inputClass} placeholder="Örn. Hetzner, Cloudways"
+                            <label htmlFor={`${id}-hosting`} className={labelClass}>Hosting</label>
+                            <input id={`${id}-hosting`} className={inputClass} placeholder="Örn. Hetzner, Cloudways"
                                 value={infraForm.hostingProvider}
                                 onChange={event => updateInfrastructure('hostingProvider', event.target.value)} />
                         </div>
                         <div>
-                            <label className={labelClass}>Domain Bitiş</label>
-                            <input type="date" className={inputClass} value={infraForm.domainExpiry}
+                            <label htmlFor={`${id}-domain`} className={labelClass}>Domain Bitiş</label>
+                            <input id={`${id}-domain`} type="date" className={inputClass} value={infraForm.domainExpiry}
                                 onChange={event => updateInfrastructure('domainExpiry', event.target.value)} />
                         </div>
                         <div>
-                            <label className={labelClass}>SSL Bitiş</label>
-                            <input type="date" className={inputClass} value={infraForm.sslExpiry}
+                            <label htmlFor={`${id}-ssl`} className={labelClass}>SSL Bitiş</label>
+                            <input id={`${id}-ssl`} type="date" className={inputClass} value={infraForm.sslExpiry}
                                 onChange={event => updateInfrastructure('sslExpiry', event.target.value)} />
                         </div>
                         <div>
-                            <label className={labelClass}>CMS</label>
-                            <input className={inputClass} placeholder="Örn. WordPress" value={infraForm.cmsType}
+                            <label htmlFor={`${id}-cms`} className={labelClass}>CMS</label>
+                            <input id={`${id}-cms`} className={inputClass} placeholder="Örn. WordPress" value={infraForm.cmsType}
                                 onChange={event => updateInfrastructure('cmsType', event.target.value)} />
                         </div>
                         <div>
-                            <label className={labelClass}>CMS Versiyonu</label>
-                            <input className={inputClass} placeholder="Örn. 6.4" value={infraForm.cmsVersion}
+                            <label htmlFor={`${id}-cmsver`} className={labelClass}>CMS Versiyonu</label>
+                            <input id={`${id}-cmsver`} className={inputClass} placeholder="Örn. 6.4" value={infraForm.cmsVersion}
                                 onChange={event => updateInfrastructure('cmsVersion', event.target.value)} />
                         </div>
                         <div>
-                            <label className={labelClass}>Tema</label>
-                            <input className={inputClass} placeholder="Örn. Astra Pro" value={infraForm.themeName}
+                            <label htmlFor={`${id}-theme`} className={labelClass}>Tema</label>
+                            <input id={`${id}-theme`} className={inputClass} placeholder="Örn. Astra Pro" value={infraForm.themeName}
                                 onChange={event => updateInfrastructure('themeName', event.target.value)} />
                         </div>
                     </div>

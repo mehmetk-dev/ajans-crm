@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useId } from 'react';
 import { isAxiosError } from 'axios';
 import { useAuth } from '../../store/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LogIn, User, Zap, Mail, Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 export default function LoginPage() {
+    const fid = useId();
     const { login } = useAuth();
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
@@ -105,10 +106,11 @@ export default function LoginPage() {
                                 </AnimatePresence>
 
                                 <div className="space-y-1.5">
-                                    <label className="text-[11px] font-medium text-zinc-400 ml-0.5">E-Posta</label>
+                                    <label htmlFor={`${fid}-email`} className="text-[11px] font-medium text-zinc-400 ml-0.5">E-Posta</label>
                                     <div className="relative group">
                                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-pink-400 transition-colors" />
                                         <input
+                                            id={`${fid}-email`}
                                             type="email"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
@@ -120,10 +122,11 @@ export default function LoginPage() {
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="text-[11px] font-medium text-zinc-400 ml-0.5">Sifre</label>
+                                    <label htmlFor={`${fid}-password`} className="text-[11px] font-medium text-zinc-400 ml-0.5">Sifre</label>
                                     <div className="relative group">
                                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-pink-400 transition-colors" />
                                         <input
+                                            id={`${fid}-password`}
                                             type={showPassword ? 'text' : 'password'}
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
