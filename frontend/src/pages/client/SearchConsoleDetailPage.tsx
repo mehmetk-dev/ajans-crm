@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useId } from 'react';
+import { useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -17,70 +17,23 @@ import {
     ChartTooltip,
     DATE_PRESETS,
     SectionHeader,
-    buildCountryBarData,
-    buildDevicePieData,
-    computeClickThroughRate,
     formatNum,
     getPositionLabel,
-    searchConsoleApi,
-    type ScOverviewResponse,
-    type ScStatusResponse,
 } from '../../features/search-console';
-import { useAuth } from '../../store/AuthContext';
+import { useSCDetailPage } from '../../features/search-console/hooks/useSCDetailPage';
 
 export default function SearchConsoleDetailPage() {
     const fid = useId();
     const navigate = useNavigate();
-    const { user } = useAuth();
-    const companyId = user?.companyId;
-
-    const [status, setStatus] = useState<ScStatusResponse | null>(null);
-    const [data, setData] = useState<ScOverviewResponse | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [refreshing, setRefreshing] = useState(false);
-    const [activePreset, setActivePreset] = useState(2);
-    const [showDateMenu, setShowDateMenu] = useState(false);
-    const [customStart, setCustomStart] = useState('');
-    const [customEnd, setCustomEnd] = useState('');
-    const [isCustomRange, setIsCustomRange] = useState(false);
-
-    const currentRange = isCustomRange
-        ? { start: customStart, end: customEnd, desc: `${customStart} — ${customEnd}` }
-        : DATE_PRESETS[activePreset];
-
-    const load = (showRefresh = false) => {
-        if (!companyId) return;
-        if (showRefresh) setRefreshing(true);
-        else setLoading(true);
-        setError(null);
-
-        const startDate = isCustomRange ? customStart : DATE_PRESETS[activePreset].start;
-        const endDate = isCustomRange ? customEnd : DATE_PRESETS[activePreset].end;
-
-        searchConsoleApi.getStatus(companyId)
-            .then((s: ScStatusResponse) => {
-                setStatus(s);
-                if (s.connected && s.siteUrl) {
-                    return searchConsoleApi.getOverview(companyId, startDate, endDate).then(d => setData(d));
-                }
-            })
-            .catch((err: { response?: { data?: { message?: string } } }) =>
-                setError(err?.response?.data?.message || 'Search Console verileri yüklenirken hata oluştu')
-            )
-            .finally(() => {
-                setLoading(false);
-                setRefreshing(false);
-            });
-    };
-
-    useEffect(() => { load(); }, [companyId, activePreset, isCustomRange, customStart, customEnd]);
-
-    const devicePieData = useMemo(() =>
-        buildDevicePieData(data?.devices ?? []), [data?.devices]);
-
-    const countryBarData = useMemo(() =>
-        buildCountryBarData(data?.countries ?? []), [data?.countries]);
+    const {
+        status, data, loading, error, refreshing,
+        activePreset, showDateMenu, customStart, customEnd, isCustomRange,
+        currentRange, devicePieData, countryBarData,
+        clickThroughRate,
+        setActivePreset, setShowDateMenu,
+        setCustomStart, setCustomEnd, setIsCustomRange,
+        refresh,
+    } = useSCDetailPage();
 
     if (loading) {
         return (
@@ -144,7 +97,7 @@ export default function SearchConsoleDetailPage() {
                     {/* Tarih aralığı seçici */}
                     <div className="relative">
                         <button
-                            onClick={() => setShowDateMenu(v => !v)}
+                            onClick={() => setShowDateMenu(!showDateMenu)}
                             className="flex items-center gap-1.5 bg-[#0C0C0E] border border-white/[0.06] hover:border-white/[0.12] rounded-full px-3 py-1.5 transition-colors"
                         >
                             <Calendar className="w-3.5 h-3.5 text-zinc-500" />
@@ -205,7 +158,7 @@ export default function SearchConsoleDetailPage() {
                         )}
                     </div>
                     <button
-                        onClick={() => load(true)}
+                        onClick={() => refresh()}
                         disabled={refreshing}
                         className="h-8 w-8 rounded-lg bg-[#0C0C0E] border border-white/[0.06] flex items-center justify-center text-zinc-400 hover:text-white hover:border-white/[0.12] transition-all disabled:opacity-50"
                         title="Verileri Yenile"
@@ -287,7 +240,7 @@ export default function SearchConsoleDetailPage() {
                             <span className="text-xs text-zinc-500">Tıklama / Gösterim</span>
                         </div>
                         <p className="text-2xl font-bold text-white">
-                            {computeClickThroughRate(data.totalClicks, data.totalImpressions)}
+                            {clickThroughRate}
                         </p>
                         <p className="text-[11px] text-zinc-600 mt-2">Gerçek tıklama oranı</p>
                     </motion.div>
