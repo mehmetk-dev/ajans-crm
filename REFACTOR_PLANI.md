@@ -2228,8 +2228,58 @@ Mevcut production bundle istatistikleri:
 
 Tip guvenligi ve erisilebilirlik duzeltmeleri tamamlandi. `any` kullanimi sifira indirildi; form label `htmlFor` borcu 47 label'e dustu. GA detail page data hook'a cikarildi.
 
+## 40. KanbanPage Feature Module ve Backend Instagram Refactor - TAMAMLANDI
+
+**Tammlanma tarihi:** 13 Haziran 2026
+
+### KanbanPage Feature Module (696→401 lines)
+
+- `useKanbanData` hook'u `features/kanban/hooks/` altina cikarildi (112 satir)
+  - Tum query logic, derived data, state management hook'a tasindi
+  - `selectedTask`, `selectedDay`, `avatarInputRef` state'leri hook'ta
+- Utils ve constants `features/kanban/model/kanban.utils.ts` altina cikarildi (68 satir)
+  - `getGreeting`, `STATUS_BADGE`, `MOTIVATIONAL`, date helpers
+  - `getGreeting` artik `iconType` enum donuyor, JSX icermiyor
+- UI bilesenleri `features/kanban/ui/` altina cikarildi
+  - `KanbanCards.tsx`: TaskMiniCard, ShootMiniCard, QuickStat (73 satir)
+  - `WeekStrip.tsx`: haftalik takvim gorunumu (85 satir)
+- KanbanPage.tsx artik yalnizca render composition iceriyor (401 satir)
+- `GreetingIcon` bileseni type-safe icon rendering icin eklendi
+
+### Erisilebilirlik: Form Label htmlFor (64→13 kaldi)
+
+- RoutineManagementPage: 8 label (title, desc, freq, day, dayOfMonth, time, assignee, category)
+- SettingsPage: 4 label (fullname, email, currentPassword, newPassword)
+- LoginPage: 2 label (email, password)
+- MaintenanceLogForm: 4 label (title, category, date, description)
+- PrProjectForm: 5 label + 3 sr-only (name, company, responsible, purpose, notes, dates)
+- WebDesignAdminSection: 6 label (hosting, domain, SSL, CMS, version, theme)
+- GoogleAnalyticsDetailPage: 2 label (date start/end)
+- SearchConsoleDetailPage: 2 label (date start/end)
+- SurveyPage: 1 label (comment textarea)
+- TaskCreateDialog: Field/DateField/TimeField fieldId prop'lari
+- QuickTaskForm: Field/Input fieldId prop'lari
+- Kalan 13 label: ya section heading (Proje Fazlari, Global Rol) ya wrapping label (checkbox group) - bunlar erisilebilir tasarim geregi uygun
+
+### Backend: InstagramOAuthService Refactor (471→141 lines)
+
+- Facebook Graph API cagrilari mevcut `InstagramGraphClient`'a tasindi
+  - `exchangeCodeForToken`, `exchangeForLongLivedToken`, `findInstagramAccount`, `refreshLongLivedToken`
+  - InstagramGraphClient: 37→132 satir
+- InstagramOAuthService: yalnizca OAuth orkestrasyonu, token lifecycle ve configuration
+- Bean isim cakismasi cozuldu; `instagram.oauth.infrastructure` paketindeki yenisilindi, mevcut `instagram.infrastructure` genisletildi
+
+### Test ve Dogrulama
+
+- Frontend: 152 test basarili, Build: basarili
+- Backend: 160 test basarili, Build: basarili
+
+### Sonuc ve Siradaki Adimlar
+
+KanbanPage 696→401 satira, InstagramOAuthService 471→141 satira indirildi.
+Form label erisilebilirligi 64→13'e dustu (kalanlar uygun tasarim kararlari).
+
 **Kalan iyilestirme maddeleri (dusuk oncelik):**
-- 47 form label `htmlFor` eslestirmesi (admin sayfalari ve client detay sayfalari)
-- Buyuk sayfa dosyalari: KanbanPage (696), SearchConsoleDetailPage (528), CompaniesPage (494)
-- Backend buyuk dosyalar: InstagramOAuthService (471), CompanyService (352)
+- Buyuk dosyalar: SearchConsoleDetailPage (528), CompaniesPage (494), GoogleAnalyticsDetailPage (770)
+- Backend buyuk dosyalar: GoogleOAuthService (294), InstagramOverviewService (283), TaskService (272)
 - `vendor-charts` lazy loading potansiyeli
