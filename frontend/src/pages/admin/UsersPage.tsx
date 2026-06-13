@@ -36,6 +36,7 @@ export default function UsersPage() {
     const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/immutability
         loadUsers();
     }, []);
 

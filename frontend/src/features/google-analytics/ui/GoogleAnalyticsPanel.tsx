@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -34,7 +34,7 @@ export default function GoogleAnalyticsPanel({ companyId }: Props) {
     const [customEnd, setCustomEnd] = useState('');
     const [isCustom, setIsCustom] = useState(false);
 
-    const load = () => {
+    const load = useCallback(() => {
         setLoading(true);
         setError(null);
         const startDate = isCustom ? customStart : PANEL_PRESETS[datePreset].start;
@@ -54,9 +54,9 @@ export default function GoogleAnalyticsPanel({ companyId }: Props) {
                 setError(err?.response?.data?.message || 'Bağlantı hatası')
             )
             .finally(() => setLoading(false));
-    };
+    }, [companyId, customEnd, customStart, datePreset, isCustom]);
 
-    useEffect(() => { load(); }, [companyId, datePreset, isCustom, customStart, customEnd]);
+    useEffect(() => { load(); }, [load]);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -64,7 +64,7 @@ export default function GoogleAnalyticsPanel({ companyId }: Props) {
             load();
             window.history.replaceState({}, '', window.location.pathname);
         }
-    }, [companyId]);
+    }, [load]);
 
     const handleSaveProperty = async () => {
         if (!propertyInput.trim()) return;

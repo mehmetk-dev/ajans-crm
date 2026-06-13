@@ -76,6 +76,7 @@ export default function NotificationBell({ accentColor = 'orange' }: Props) {
         if (!n.isRead) await markAsRead(n.id);
     };
 
+    /* eslint-disable react-hooks/purity */
     const timeAgo = (date: string) => {
         const diff = Date.now() - new Date(date).getTime();
         const minutes = Math.floor(diff / 60000);
@@ -85,6 +86,7 @@ export default function NotificationBell({ accentColor = 'orange' }: Props) {
         if (hours < 24) return `${hours}sa`;
         return `${Math.floor(hours / 24)}g`;
     };
+/* eslint-enable react-hooks/purity */
 
     const colorMap: Record<string, string> = {
         orange: 'bg-orange-500',

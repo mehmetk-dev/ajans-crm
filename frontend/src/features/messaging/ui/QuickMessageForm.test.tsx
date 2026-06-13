@@ -37,7 +37,7 @@ describe('QuickMessageForm', () => {
     it('renders the user dropdown with localized role labels', () => {
         render(<QuickMessageForm {...defaultProps} />);
 
-        const select = screen.getByRole('combobox') as HTMLSelectElement;
+        const select = screen.getByRole('combobox');
         expect(select).toBeInTheDocument();
         expect(screen.getByText(/Ali Yılmaz \(Ajans\)/)).toBeInTheDocument();
         expect(screen.getByText(/Ayşe Demir \(Müşteri\)/)).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('QuickMessageForm', () => {
             />,
         );
 
-        const select = screen.getByRole('combobox') as HTMLSelectElement;
+        const select = screen.getByRole('combobox');
         fireEvent.change(select, { target: { value: 'u-1' } });
         fireEvent.change(screen.getByRole('textbox'), { target: { value: '  Merhaba  ' } });
 
@@ -113,7 +113,7 @@ describe('QuickMessageForm', () => {
             />,
         );
 
-        const select = screen.getByRole('combobox') as HTMLSelectElement;
+        const select = screen.getByRole('combobox');
         fireEvent.change(select, { target: { value: 'u-1' } });
         fireEvent.change(screen.getByRole('textbox'), { target: { value: 'test' } });
         fireEvent.click(screen.getByRole('button', { name: 'Mesaj Gönder' }));

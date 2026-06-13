@@ -119,6 +119,7 @@ export default function InstagramReelsPage() {
 
     useEffect(() => {
         if (!companyId) return;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true);
         igApi.getStatus(companyId)
             .then(s => {

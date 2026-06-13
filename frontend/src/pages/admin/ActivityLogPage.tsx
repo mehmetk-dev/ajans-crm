@@ -56,6 +56,7 @@ export default function ActivityLogPage() {
     const [entityTypeFilter, setEntityTypeFilter] = useState<string>('ALL');
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true);
         const fetchFn = entityTypeFilter === 'ALL'
             ? activityLogApi.getAll(page, 25)

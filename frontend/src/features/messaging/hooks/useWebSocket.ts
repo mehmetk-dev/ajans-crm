@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs */
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Client, type IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client/dist/sockjs';

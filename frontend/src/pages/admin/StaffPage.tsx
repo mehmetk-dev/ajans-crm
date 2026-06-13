@@ -44,7 +44,7 @@ export default function StaffPage() {
             const [s, c] = await Promise.all([companyApi.listStaff(), companyApi.listAdmin()]);
             setStaff(s);
             setCompanies(c);
-        } catch { }
+        } catch { /* intentionally empty */ }
         setLoading(false);
     };
 
@@ -54,11 +54,11 @@ export default function StaffPage() {
         setError('');
         try {
             // Clean empty strings to undefined
-            const payload: Record<string, any> = {};
+            const payload: Record<string, unknown> = {};
             for (const [key, value] of Object.entries(form)) {
                 payload[key] = typeof value === 'string' && value.trim() === '' ? undefined : value;
             }
-            await companyApi.createStaff(payload as CreateStaffInput);
+            await companyApi.createStaff(payload as unknown as CreateStaffInput);
             setShowForm(false);
             setForm({ fullName: '', email: '', password: '', phone: '', position: '', department: '', initialCompanyId: '' });
             loadData();

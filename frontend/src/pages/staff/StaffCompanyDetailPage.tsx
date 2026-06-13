@@ -6,7 +6,7 @@ import {
     Instagram, Facebook, Twitter, Linkedin, Youtube
 } from 'lucide-react';
 import { useState } from 'react';
-import { ContentPlanPanel } from '../../components/analytics';
+import { ContentPlanPanel } from '../../features/content-plans';
 import { FileText, Wrench } from 'lucide-react';
 import { MaintenanceLogPanel } from '../../features/maintenance-log';
 

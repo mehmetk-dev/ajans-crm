@@ -22,23 +22,21 @@ import type {
   PageSpeedReport,
   PageSpeedScore,
   Strategy,
-} from "../../features/web-design/webDesign.types";
-import { webDesignApi } from "../../features/web-design/api/webDesignApi";
+} from "../../features/web-design";
 import {
   averageScore,
+  ConnectionCard,
+  DeviceCompareCard,
   formatCls,
   formatDate,
   formatMs,
-  normalizeInputUrl,
-} from "../../features/web-design/model/webDesign.utils";
-import {
-  ConnectionCard,
-  DeviceCompareCard,
   HealthSummary,
+  normalizeInputUrl,
   ReadinessRow,
   ScoreInsightCard,
   VitalCard,
-} from "../../features/web-design/ui/PageSpeedCards";
+  webDesignApi,
+} from "../../features/web-design";
 
 export default function PageSpeedDetailPage() {
   const navigate = useNavigate();

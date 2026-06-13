@@ -70,7 +70,7 @@ export default defineConfig({
       },
     },
   },
-  // @ts-ignore - Vitest types for Vite config
+  // @ts-expect-error - Vitest types for Vite config
   test: {
     globals: true,
     environment: 'jsdom',

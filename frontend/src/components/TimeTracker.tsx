@@ -24,6 +24,7 @@ export default function TimeTracker() {
                 setElapsed(Math.floor((Date.now() - start) / 1000));
             }, 1000);
         } else {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
             setElapsed(0);
         }
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };

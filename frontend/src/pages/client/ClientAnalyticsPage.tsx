@@ -8,9 +8,12 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { GoogleAnalyticsPanel, SearchConsolePanel, ContentPlanPanel, WebDesignPanel } from '../../components/analytics';
+import { GoogleAnalyticsPanel } from '../../features/google-analytics';
+import { SearchConsolePanel } from '../../features/search-console';
+import { ContentPlanPanel } from '../../features/content-plans';
+import { WebDesignPanel } from '../../features/web-design';
+import { GoogleAdsPanel } from '../../features/google-ads';
 import { PostsColumn, ReelsColumn, StatsColumn } from '../../features/instagram';
-import GoogleAdsPanel from '../../components/analytics/GoogleAdsPanel';
 import { MetaAdsPanel } from '../../features/meta-ads';
 import type { PageResponse } from '../../api/staff';
 import { shootApi, shootKeys, type ShootResponse } from '../../features/shoots';

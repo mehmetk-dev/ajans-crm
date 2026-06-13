@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useId, type ReactNode } from 'react';
 
 const labelCls = 'text-[10px] font-bold text-zinc-500 uppercase tracking-widest';

@@ -11,6 +11,7 @@ import {
     indexTasks,
     collectAgenda,
 } from '../model/calendar.index';
+import type { TaskResponse } from '../../tasks';
 
 describe('formatDateKey', () => {
     it('formats a date to YYYY-MM-DD', () => {
@@ -97,14 +98,14 @@ describe('selectionLabel', () => {
 describe('indexTasks', () => {
     it('indexes tasks by start date', () => {
         const result = indexTasks([
-            { id: '1', startDate: '2026-06-10', endDate: '2026-06-10', title: 'Test' } as any,
+            { id: '1', startDate: '2026-06-10', endDate: '2026-06-10', title: 'Test' } as TaskResponse,
         ]);
         expect(result['2026-06-10']).toHaveLength(1);
     });
 
     it('indexes tasks across date range', () => {
         const result = indexTasks([
-            { id: '1', startDate: '2026-06-10', endDate: '2026-06-12', title: 'Test' } as any,
+            { id: '1', startDate: '2026-06-10', endDate: '2026-06-12', title: 'Test' } as TaskResponse,
         ]);
         expect(result['2026-06-10']).toHaveLength(1);
         expect(result['2026-06-11']).toHaveLength(1);
@@ -113,7 +114,7 @@ describe('indexTasks', () => {
 
     it('skips tasks without dates', () => {
         const result = indexTasks([
-            { id: '1', startDate: null, endDate: null } as any,
+            { id: '1', startDate: null, endDate: null } as TaskResponse,
         ]);
         expect(Object.keys(result)).toHaveLength(0);
     });

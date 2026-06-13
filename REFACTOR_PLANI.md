@@ -868,7 +868,7 @@ Her PR:
 
 ### 9.1 Ilk uygulama sirasi
 
-- [ ] Toolchain, CI ve depo hijyeni.
+- [x] Toolchain, CI ve depo hijyeni (branch protection repository ayari haric).
 - [ ] Ortak authorization ve API error altyapisi.
 - [x] Notes pilot modulu, frontend ve backend birlikte.
 - [x] Maintenance log pilot modulu, frontend ve backend birlikte.
@@ -1012,17 +1012,17 @@ Su durumlardan biri varsa modul tamamlanmis sayilmaz:
 Refactor koduna baslamadan once:
 
 - [x] Java hedef surumu kesinlestirildi: Java 17.
-- [ ] Node surumu kesinlestirildi.
+- [x] Node surumu kesinlestirildi: Node.js 22.
 - [x] `npm ci` temiz ortamda calisiyor.
-- [ ] Frontend lint/build/test calisiyor.
+- [x] Frontend lint/build/test calisiyor.
 - [x] Backend testleri Java 17 ve izole Maven deposuyla calisiyor.
 - [ ] CI branch protection aktif.
-- [ ] `src_backup` icin saklama karari verildi.
-- [ ] Runtime upload stratejisi belirlendi.
+- [x] `src_backup` Git gecmisinde birakilip canli agactan kaldirildi.
+- [x] Runtime upload'lar Git takibinden cikarilip ignore edildi.
 - [ ] Kritik 5 E2E akisi ekip tarafindan onaylandi.
 - [x] Ilk pilot feature secildi: Notes.
 - [x] Pilot modulun backend, frontend ve ilgili component listesi cikarildi.
-- [ ] Mimari kurallar kod review checklist'ine eklendi.
+- [x] Mimari kurallar kod review checklist'ine eklendi.
 
 ## 15. Inceleme Notu ve Mevcut Dogrulama Durumu
 
@@ -2373,3 +2373,48 @@ Tüm 1-6 maddeleri tamamlandı:
 6. ✅ Bu plan belgesi güncellendi
 
 Önceki proje borçları sıfırlandı: tüm 300+ satır frontend dosyaları ve 200+ satır backend service'leri hedef aralığa indirildi veya parçalandı.
+
+## 42. Faz 0/1 - Toolchain, CI ve Depo Hijyeni
+
+**Tamamlanma tarihi:** 13 Haziran 2026
+
+### Toolchain ve CI
+
+- Node.js 22 `.nvmrc`, `.tool-versions` ve frontend `engines` alaniyla sabitlendi.
+- Java 17 `.tool-versions`, Maven compiler ayari ve GitHub Actions ile sabitlendi.
+- Maven Wrapper 3.3.4, Maven 3.9.16 dagitimi icin `backend/mvnw` ve `backend/mvnw.cmd` olarak eklendi.
+- GitHub Actions frontend icin `npm ci`, sifir lint uyarisi, 239 test ve production build calistiriyor.
+- Backend CI Java 17 ile Maven Wrapper uzerinden tum testleri calistiriyor.
+- Pull request sablonuna davranis, mimari, boyut, test ve depo hijyeni checklist'i eklendi.
+
+### Otomatik Mimari Korumalar
+
+- ESLint type-aware parser servisi acildi.
+- Yeni `any` kullanimi ve gereksiz type assertion'lar error seviyesine alindi.
+- Page, component, layout, app ve store kodunun feature `api/hooks/model/ui` ic klasorlerine dogrudan import yapmasi engellendi; public `index.ts` API zorunlu hale getirildi.
+- ArchUnit 1.4.2 eklendi.
+- `@RestController -> repository` bagimliliklari icin frozen baseline olusturuldu. Mevcut bes legacy controller borcu kayitli; yeni bir controller-repository bagimliligi testi kirmadan eklenemez.
+
+### Depo Hijyeni ve Dokumantasyon
+
+- `frontend/src_backup` altindaki 93 takipli yedek kaynak dosyasi canli agactan kaldirildi ve ignore edildi.
+- `backend/uploads` altindaki takipli runtime kullanici dosyalari Git'ten cikarildi ve ignore edildi.
+- Eski global entegrasyon API/component facade'lari kaldirildi; canli tuketiciler feature public API'lerine tasindi.
+- Kok README temiz kurulum, kalite komutlari, Docker calistirma ve repository kurallarini dokumante ediyor.
+- Frontend Vite sablon README'si proje kurulum ve mimari dokumaniyla degistirildi.
+- `proje-plani.md` Java 21 yerine gercek hedef olan Java 17 ile uyumlu hale getirildi.
+
+### Dogrulama
+
+- Frontend lint: sifir hata, sifir uyari.
+- Frontend test: 239/239 basarili.
+- Frontend production build: basarili; tum chunk'lar 500 KB sinirinin altinda.
+- Backend test: 195/195 basarili (194 davranis testi + 1 ArchUnit testi).
+- ArchUnit baseline testi: basarili.
+
+### Kalan Harici Adimlar
+
+- GitHub branch protection ayarinda `frontend` ve `backend` CI job'lari zorunlu status check yapilmali.
+- Kritik bes E2E akisinin ekip tarafindan onaylanmasi gerekiyor.
+
+**Siradaki plan maddesi:** Ortak authorization ve API error altyapisinin kalan legacy controller/service kullanimlari.

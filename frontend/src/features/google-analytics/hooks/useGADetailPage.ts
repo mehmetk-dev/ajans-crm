@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../../store/AuthContext';
 import { googleAnalyticsApi } from '../api/googleAnalyticsApi';
 import { DATE_PRESETS, buildSourcePieData, buildCountryBarData, computeEngagementRate, computeSessionsPerUser } from '../model/googleAnalytics.utils';
@@ -38,7 +38,7 @@ export function useGADetailPage() {
         ? { start: state.customStart, end: state.customEnd, desc: `${state.customStart} — ${state.customEnd}` }
         : DATE_PRESETS[state.activePreset];
 
-    const load = (showRefresh = false) => {
+    const load = useCallback((showRefresh = false) => {
         if (!companyId) return;
         if (showRefresh) setState(s => ({ ...s, refreshing: true, error: null }));
         else setState(s => ({ ...s, loading: true, error: null }));
@@ -47,11 +47,11 @@ export function useGADetailPage() {
         const endDate = state.isCustomRange ? state.customEnd : DATE_PRESETS[state.activePreset].end;
 
         googleAnalyticsApi
-            .getStatus(companyId!)
+            .getStatus(companyId)
             .then(s => {
                 setState(prev => ({ ...prev, status: s }));
                 if (s.connected && s.propertyId) {
-                    return googleAnalyticsApi.getOverview(companyId!, startDate, endDate).then(d => setState(prev => ({ ...prev, data: d })));
+                    return googleAnalyticsApi.getOverview(companyId, startDate, endDate).then(d => setState(prev => ({ ...prev, data: d })));
                 }
             })
             .catch(err => setState(prev => ({
@@ -59,9 +59,11 @@ export function useGADetailPage() {
                 error: err?.response?.data?.message || 'Google Analytics verileri yüklenirken hata oluştu',
             })))
             .finally(() => setState(prev => ({ ...prev, loading: false, refreshing: false })));
-    };
+    }, [companyId, state.activePreset, state.customEnd, state.customStart, state.isCustomRange]);
 
-    useEffect(() => { load(); }, [companyId, state.activePreset, state.isCustomRange, state.customStart, state.customEnd]);
+    // Loading is synchronized with the selected company and date range.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => { load(); }, [load]);
 
     const sourcePieData = useMemo(() => buildSourcePieData(state.data?.trafficSources ?? []), [state.data?.trafficSources]);
     const countryBarData = useMemo(() => buildCountryBarData(state.data?.topCountries ?? []), [state.data?.topCountries]);

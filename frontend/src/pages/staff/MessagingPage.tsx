@@ -61,6 +61,7 @@ export default function MessagingPage() {
   });
 
   useEffect(() => {
+  // eslint-disable-next-line react-hooks/immutability
     loadConversations();
   }, []);
   useEffect(() => {

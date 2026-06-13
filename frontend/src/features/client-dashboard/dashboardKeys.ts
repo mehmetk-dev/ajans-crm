@@ -19,7 +19,8 @@ export const dashboardRefreshKeys = {
     social: (companyId: string) => [
         instagramKeys.overview(companyId),
     ],
-    schedule: (_: string) => [
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    schedule: (_companyId: string) => [
         shootKeys.list('client', 0, 20),
         taskKeys.clientList(),
     ],

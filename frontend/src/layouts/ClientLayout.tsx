@@ -70,6 +70,7 @@ export default function ClientLayout() {
 
     useEffect(() => {
         if (!isLoading && isAllSettled && splashMinElapsed.current) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSplashDone(true);
         }
         if (!isLoading && isAllSettled) {

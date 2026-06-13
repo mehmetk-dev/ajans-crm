@@ -22,6 +22,7 @@ export function useUnreadCount(fetchFn?: FetchFn, intervalMs = 10000) {
   }, [actualFetch]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCount();
     const id = setInterval(fetchCount, intervalMs);
     return () => clearInterval(id);

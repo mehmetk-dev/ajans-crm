@@ -87,17 +87,17 @@ export default function InstagramDetailPage() {
 
     useEffect(() => {
         if (!companyId) return;
+        // The request lifecycle owns the page-level loading state.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true); setError(null);
         igApi.getStatus(companyId)
             .then(s => {
                 setStatus(s);
                 if (s.connected) {
                     return Promise.all([
-                        igApi.getOverview(companyId, dateRange.start, dateRange.end),
                         igApi.getReels(companyId, 100),
                         igApi.getPosts(companyId, 100),
-                    ]).then(([overview, r, p]) => {
-                        setData(overview);
+                    ]).then(([r, p]) => {
                         setReels(r);
                         setPosts(p);
                     });
@@ -113,7 +113,7 @@ export default function InstagramDetailPage() {
         if (!status?.connected || !companyId) return;
         igApi.getOverview(companyId, dateRange.start, dateRange.end)
             .then(d => setData(d)).catch(() => {});
-    }, [dateRange.start, dateRange.end]);
+    }, [companyId, dateRange.start, dateRange.end, status?.connected]);
 
     const handleDisconnect = async () => {
         if (!companyId) return;

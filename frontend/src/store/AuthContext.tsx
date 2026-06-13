@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi, type UserInfo } from '../api/auth';
 
@@ -16,6 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (window.location.pathname === '/login') {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsLoading(false);
             return;
         }

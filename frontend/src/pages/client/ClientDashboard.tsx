@@ -1,1 +1,1 @@
-export { default } from '../../features/client-dashboard/ui/ClientDashboardPage';
+export { ClientDashboardPage as default } from '../../features/client-dashboard';

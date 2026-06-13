@@ -21,6 +21,7 @@
         <java.version>17</java.version>
         <lombok.version>1.18.46</lombok.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <archunit.version>1.4.2</archunit.version>
     </properties>
 
     <dependencies>
@@ -136,6 +137,12 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

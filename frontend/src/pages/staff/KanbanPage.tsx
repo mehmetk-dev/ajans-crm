@@ -7,9 +7,20 @@ import {
 import { Link } from 'react-router-dom';
 import { TaskDetailPanel } from '../../features/tasks';
 import { QuickNotes } from '../../features/notes';
-import { useKanbanData } from '../../features/kanban/hooks/useKanbanData';
-import { TaskMiniCard, ShootMiniCard, QuickStat, WeekStrip } from '../../features/kanban/ui';
-import { getGreeting, MOTIVATIONAL, dateToKey, toLocalDateKey, parseLocalDateKey, formatTime, formatDateShort } from '../../features/kanban/model/kanban.utils';
+import {
+    useKanbanData,
+    TaskMiniCard,
+    ShootMiniCard,
+    QuickStat,
+    WeekStrip,
+    getGreeting,
+    MOTIVATIONAL,
+    dateToKey,
+    toLocalDateKey,
+    parseLocalDateKey,
+    formatTime,
+    formatDateShort,
+} from '../../features/kanban';
 
 /* ─── Greeting Icon ─── */
 function GreetingIcon({ type }: { type: 'moon' | 'sunrise' | 'sun' | 'coffee' }) {

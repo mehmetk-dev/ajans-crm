@@ -1,6 +1,6 @@
 import api from './client';
 import type { PageResponse } from './staff';
-import type { ConversationResponse, MessageResponse, SendMessageRequest, ContactResponse, GroupConversationResponse, GroupMessageResponse } from './messaging';
+import type { ConversationResponse, MessageResponse, SendMessageRequest, ContactResponse, GroupConversationResponse, GroupMessageResponse } from '../features/messaging';
 
 // Client panel API — uses /api/client/* endpoints accessible to COMPANY_USER role
 export const clientApi = {

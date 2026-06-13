@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStaffCompanies } from '../../features/company';
-import { ContentPlanPanel } from '../../components/analytics';
+import { ContentPlanPanel } from '../../features/content-plans';
 import {
     PenLine, Building2, Search
 } from 'lucide-react';

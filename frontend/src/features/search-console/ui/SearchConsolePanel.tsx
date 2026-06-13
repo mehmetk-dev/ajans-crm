@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -41,7 +41,7 @@ export default function SearchConsolePanel({ companyId }: Props) {
     const [customEnd, setCustomEnd] = useState('');
     const [isCustom, setIsCustom] = useState(false);
 
-    const loadSites = () => {
+    const loadSites = useCallback(() => {
         setLoadingSites(true);
         searchConsoleApi.listSites(companyId)
             .then(s => {
@@ -50,9 +50,9 @@ export default function SearchConsolePanel({ companyId }: Props) {
             })
             .catch(() => setSites([]))
             .finally(() => setLoadingSites(false));
-    };
+    }, [companyId]);
 
-    const load = () => {
+    const load = useCallback(() => {
         setLoading(true);
         setError(null);
         const startDate = isCustom ? customStart : PANEL_PRESETS[datePreset].start;
@@ -76,18 +76,16 @@ export default function SearchConsolePanel({ companyId }: Props) {
                 setError(err?.response?.data?.message || 'Bağlantı hatası')
             )
             .finally(() => setLoading(false));
-    };
+    }, [companyId, customEnd, customStart, datePreset, isCustom, loadSites]);
 
-    useEffect(() => {
-        load();
-    }, [companyId, datePreset, isCustom, customStart, customEnd]);
+    useEffect(() => { load(); }, [load]);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         if (params.get('connected') === 'true' || params.get('ga') === 'connected') {
             load();
         }
-    }, [companyId]);
+    }, [load]);
 
     const handleSaveSiteUrl = async (url?: string) => {
         const siteUrl = url || selectedSite;

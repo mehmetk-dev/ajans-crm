@@ -1,7 +1,7 @@
 # 🏢 FOG İstanbul — Ajans CRM Projesi: Sıfırdan Kapsamlı Plan
 
 > Bu doküman, `konusma.md` dosyasındaki tüm gereksinimleri, önceki hataların kök neden analizlerini ve sıfırdan doğru bir şekilde nasıl inşa edileceğinin detaylı planını içerir.
-> **Revizyon:** Backend → Spring Boot (Java 21), Veritabanı → PostgreSQL, Frontend → React (Vite)
+> **Revizyon:** Backend → Spring Boot (Java 17), Veritabanı → PostgreSQL, Frontend → React (Vite)
 
 ---
 
@@ -96,7 +96,7 @@ Kök Neden: Tek bir "role" alanı yetersiz kalıyor
 
 | Katman | Teknoloji | Neden |
 |--------|-----------|-------|
-| **Framework** | Spring Boot 3.x (Java 21) | Production-grade, güçlü ekosistem |
+| **Framework** | Spring Boot 3.x (Java 17) | Production-grade, güçlü ekosistem |
 | **ORM** | Spring Data JPA (Hibernate) | Entity mapping, repository pattern |
 | **Veritabanı** | PostgreSQL 16 | Güçlü, açık kaynak, JSON desteği |
 | **Auth** | Spring Security + JWT | Stateless auth, role-based access |

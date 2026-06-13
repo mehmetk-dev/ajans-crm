@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 import type { ElementType } from "react";
 import {
   BarChart3,

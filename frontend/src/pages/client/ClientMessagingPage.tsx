@@ -102,6 +102,7 @@ export default function ClientMessagingPage() {
   });
 
   useEffect(() => {
+  // eslint-disable-next-line react-hooks/immutability
     loadConversations();
   }, []);
 

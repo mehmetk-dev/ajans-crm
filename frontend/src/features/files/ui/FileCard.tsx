@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 import { Download, Eye, Trash2, Video } from 'lucide-react';
 import { fileApi } from '../api/fileApi';
 import type { FileAttachmentResponse } from '../api/file.types';

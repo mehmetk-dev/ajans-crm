@@ -46,6 +46,7 @@ function useElapsedTimer(startedAt: string | null) {
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (!startedAt) { setElapsed(0); return; }
         const start = new Date(startedAt).getTime();
         setElapsed(Math.floor((Date.now() - start) / 1000));

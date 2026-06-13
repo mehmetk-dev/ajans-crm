@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../../store/AuthContext';
 import { searchConsoleApi } from '../api/searchConsoleApi';
 import { DATE_PRESETS, buildCountryBarData, buildDevicePieData, computeClickThroughRate } from '../model/searchConsole.utils';
@@ -38,7 +38,7 @@ export function useSCDetailPage() {
         ? { start: state.customStart, end: state.customEnd, desc: `${state.customStart} — ${state.customEnd}` }
         : DATE_PRESETS[state.activePreset];
 
-    const load = (showRefresh = false) => {
+    const load = useCallback((showRefresh = false) => {
         if (!companyId) return;
         if (showRefresh) setState(s => ({ ...s, refreshing: true, error: null }));
         else setState(s => ({ ...s, loading: true, error: null }));
@@ -47,11 +47,11 @@ export function useSCDetailPage() {
         const endDate = state.isCustomRange ? state.customEnd : DATE_PRESETS[state.activePreset].end;
 
         searchConsoleApi
-            .getStatus(companyId!)
+            .getStatus(companyId)
             .then(s => {
                 setState(prev => ({ ...prev, status: s }));
                 if (s.connected && s.siteUrl) {
-                    return searchConsoleApi.getOverview(companyId!, startDate, endDate).then(d => setState(prev => ({ ...prev, data: d })));
+                    return searchConsoleApi.getOverview(companyId, startDate, endDate).then(d => setState(prev => ({ ...prev, data: d })));
                 }
             })
             .catch(err => setState(prev => ({
@@ -59,9 +59,11 @@ export function useSCDetailPage() {
                 error: err?.response?.data?.message || 'Search Console verileri yüklenirken hata oluştu',
             })))
             .finally(() => setState(prev => ({ ...prev, loading: false, refreshing: false })));
-    };
+    }, [companyId, state.activePreset, state.customEnd, state.customStart, state.isCustomRange]);
 
-    useEffect(() => { load(); }, [companyId, state.activePreset, state.isCustomRange, state.customStart, state.customEnd]);
+    // Loading is synchronized with the selected company and date range.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => { load(); }, [load]);
 
     const devicePieData = useMemo(() => buildDevicePieData(state.data?.devices ?? []), [state.data?.devices]);
     const countryBarData = useMemo(() => buildCountryBarData(state.data?.countries ?? []), [state.data?.countries]);

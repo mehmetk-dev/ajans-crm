@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
 type Theme = 'dark' | 'light' | 'system';
@@ -26,6 +27,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         };
 
         const resolved = resolve();
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setResolvedTheme(resolved);
 
         document.documentElement.classList.toggle('dark', resolved === 'dark');

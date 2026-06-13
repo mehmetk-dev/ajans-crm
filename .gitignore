@@ -22,6 +22,7 @@ desktop.ini
 backend/target/
 backend/.mvn/wrapper/maven-wrapper.jar
 backend/*.jar
+backend/uploads/
 
 # ─── Frontend (Node / Vite) ─────────────────────────────────────────────────
 frontend/node_modules/
@@ -29,6 +30,7 @@ frontend/dist/
 frontend/dist-ssr/
 frontend/*.local
 frontend/.cache/
+frontend/src_backup/
 
 # Logs
 *.log
