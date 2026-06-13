@@ -2,17 +2,24 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client, type IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client/dist/sockjs';
 import { notificationApi, type NotificationResponse } from '../api/features';
+import { getApiErrorMessage } from '../lib/apiError';
 import { useAuth } from '../store/AuthContext';
 
 export function useNotifications() {
     const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [error, setError] = useState('');
     const { user } = useAuth();
     const clientRef = useRef<Client | null>(null);
 
     const refresh = useCallback(() => {
-        notificationApi.getUnreadCount().then(setUnreadCount).catch(() => { });
-        notificationApi.getAll(0, 10).then(d => setNotifications(d.content)).catch(() => { });
+        Promise.all([notificationApi.getUnreadCount(), notificationApi.getAll(0, 10)])
+            .then(([count, data]) => {
+                setUnreadCount(count);
+                setNotifications(data.content);
+                setError('');
+            })
+            .catch((err: unknown) => setError(getApiErrorMessage(err, 'Bildirimler yüklenemedi')));
     }, []);
 
     useEffect(() => {
@@ -65,5 +72,5 @@ export function useNotifications() {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     }, []);
 
-    return { notifications, unreadCount, markAsRead, markAllAsRead, refresh };
+    return { notifications, unreadCount, error, markAsRead, markAllAsRead, refresh };
 }

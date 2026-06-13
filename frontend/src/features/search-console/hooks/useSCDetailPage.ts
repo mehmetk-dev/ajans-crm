@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../../store/AuthContext';
+import { getApiErrorMessage } from '../../../lib/apiError';
 import { searchConsoleApi } from '../api/searchConsoleApi';
 import { DATE_PRESETS, buildCountryBarData, buildDevicePieData, computeClickThroughRate } from '../model/searchConsole.utils';
 import type { ScOverviewResponse, ScStatusResponse } from '../searchConsole.types';
@@ -54,9 +55,9 @@ export function useSCDetailPage() {
                     return searchConsoleApi.getOverview(companyId, startDate, endDate).then(d => setState(prev => ({ ...prev, data: d })));
                 }
             })
-            .catch(err => setState(prev => ({
+            .catch((err: unknown) => setState(prev => ({
                 ...prev,
-                error: err?.response?.data?.message || 'Search Console verileri yüklenirken hata oluştu',
+                error: getApiErrorMessage(err, 'Search Console verileri yüklenirken hata oluştu'),
             })))
             .finally(() => setState(prev => ({ ...prev, loading: false, refreshing: false })));
     }, [companyId, state.activePreset, state.customEnd, state.customStart, state.isCustomRange]);

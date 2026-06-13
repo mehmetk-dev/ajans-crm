@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Square, Timer } from 'lucide-react';
 import { timeTrackingApi, type TimeEntryResponse } from '../api/features';
+import { getApiErrorMessage } from '../lib/apiError';
 
 export default function TimeTracker() {
     const [running, setRunning] = useState<TimeEntryResponse | null>(null);
     const [elapsed, setElapsed] = useState(0);
+    const [error, setError] = useState('');
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
@@ -14,7 +16,7 @@ export default function TimeTracker() {
                 const start = new Date(entry.startedAt).getTime();
                 setElapsed(Math.floor((Date.now() - start) / 1000));
             }
-        }).catch(() => { });
+        }).catch((err: unknown) => setError(getApiErrorMessage(err, 'Zamanlayıcı durumu alınamadı')));
     }, []);
 
     useEffect(() => {
@@ -36,7 +38,7 @@ export default function TimeTracker() {
             await timeTrackingApi.stop();
             setRunning(null);
         } catch (err) {
-            console.error('Timer stop error:', err);
+            setError(getApiErrorMessage(err, 'Zamanlayıcı durdurulamadı'));
         }
     };
 
@@ -47,10 +49,12 @@ export default function TimeTracker() {
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    if (!running) return null;
+    if (!running) {
+        return error ? <span className="text-xs text-red-300" title={error}>Zamanlayıcı hatası</span> : null;
+    }
 
     return (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-pink-500/10 border border-pink-500/20 rounded-xl">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-pink-500/10 border border-pink-500/20 rounded-xl" title={error || undefined}>
             <div className="relative flex items-center justify-center w-5 h-5">
                 <Timer className="w-4 h-4 text-pink-400" />
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-pink-500 rounded-full animate-pulse" />

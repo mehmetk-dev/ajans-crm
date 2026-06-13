@@ -11,6 +11,7 @@ import {
     igApi,
     type IgReelRow,
 } from '../../features/instagram';
+import { getApiErrorMessage } from '../../lib/apiError';
 import { useAuth } from '../../store/AuthContext';
 
 const fmtNum = formatInstagramMetric;
@@ -116,18 +117,21 @@ export default function InstagramReelsPage() {
     const [connected, setConnected] = useState(false);
     const [username, setUsername] = useState('');
     const [authUrl, setAuthUrl] = useState('');
+    const [error, setError] = useState('');
 
     useEffect(() => {
         if (!companyId) return;
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true);
+        setError('');
         igApi.getStatus(companyId)
-            .then(s => {
+            .then(async s => {
                 setConnected(s.connected);
                 setUsername(s.username || '');
                 setAuthUrl(s.authUrl || '');
-                if (s.connected) return igApi.getReels(companyId, 50).then(r => setReels(r)).catch(() => {});
+                if (s.connected) setReels(await igApi.getReels(companyId, 50));
             })
+            .catch((err: unknown) => setError(getApiErrorMessage(err, 'Instagram Reels verileri yüklenemedi')))
             .finally(() => setLoading(false));
     }, [companyId]);
 
@@ -161,7 +165,9 @@ export default function InstagramReelsPage() {
                     {connected && <div className="ml-auto flex items-center gap-1.5 bg-pink-500/10 border border-pink-500/20 rounded-xl px-3 py-2.5"><CheckCircle2 className="w-4 h-4 text-pink-400" /><span className="text-xs text-pink-400 font-medium">Canlı</span></div>}
                 </div>
 
-                {!connected ? (
+                {error ? (
+                    <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-300">{error}</div>
+                ) : !connected ? (
                     <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-12 text-center">
                         <Instagram className="w-8 h-8 text-pink-400 mx-auto mb-4" />
                         <h3 className="text-white font-semibold text-lg mb-2">Instagram Bağlı Değil</h3>

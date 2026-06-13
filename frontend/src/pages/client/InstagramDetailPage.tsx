@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getApiErrorMessage } from '../../lib/apiError';
 import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import {
@@ -103,8 +104,8 @@ export default function InstagramDetailPage() {
                     });
                 }
             })
-            .catch((err: { response?: { data?: { message?: string } } }) =>
-                setError(err?.response?.data?.message || 'Baglanti hatasi'))
+            .catch((err: unknown) =>
+                setError(getApiErrorMessage(err, 'Baglanti hatasi')))
             .finally(() => setLoading(false));
     }, [companyId]);
 
@@ -112,7 +113,8 @@ export default function InstagramDetailPage() {
     useEffect(() => {
         if (!status?.connected || !companyId) return;
         igApi.getOverview(companyId, dateRange.start, dateRange.end)
-            .then(d => setData(d)).catch(() => {});
+            .then(d => setData(d))
+            .catch((err: unknown) => setError(getApiErrorMessage(err, 'Instagram verileri yüklenemedi')));
     }, [companyId, dateRange.start, dateRange.end, status?.connected]);
 
     const handleDisconnect = async () => {

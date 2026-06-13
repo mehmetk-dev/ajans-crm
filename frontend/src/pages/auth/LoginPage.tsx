@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useId } from 'react';
-import { isAxiosError } from 'axios';
 import { useAuth } from '../../store/AuthContext';
+import { parseApiError } from '../../lib/apiError';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogIn, User, Zap, Mail, Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react';
@@ -29,21 +29,17 @@ export default function LoginPage() {
             await login(email, password);
             setTimeout(() => navigate('/'), 600);
         } catch (err: unknown) {
-            if (isAxiosError(err)) {
-                const status = err.response?.status;
-                if (!err.response) {
-                    setError('Sunucuya ulasilamiyor. Lutfen birkas saniye sonra tekrar deneyin.');
-                } else if (status === 429) {
-                    setError('Cok fazla deneme yapildi. Lutfen biraz bekleyip tekrar deneyin.');
-                } else if (status === 401) {
-                    setError('Gecersiz email veya sifre.');
-                } else if ((status ?? 0) >= 500) {
-                    setError('Sunucu gecici olarak hazir degil. Lutfen tekrar deneyin.');
-                } else {
-                    setError(err.response?.data?.message || 'Erisim reddedildi. Bilgilerinizi dogrulayin.');
-                }
+            const apiError = parseApiError(err, 'Beklenmeyen bir hata olustu.');
+            if (apiError.code === 'NETWORK_ERROR') {
+                setError('Sunucuya ulasilamiyor. Lutfen birkas saniye sonra tekrar deneyin.');
+            } else if (apiError.status === 429) {
+                setError('Cok fazla deneme yapildi. Lutfen biraz bekleyip tekrar deneyin.');
+            } else if (apiError.code === 'INVALID_CREDENTIALS' || apiError.status === 401) {
+                setError('Gecersiz email veya sifre.');
+            } else if ((apiError.status ?? 0) >= 500) {
+                setError('Sunucu gecici olarak hazir degil. Lutfen tekrar deneyin.');
             } else {
-                setError('Beklenmeyen bir hata olustu.');
+                setError(apiError.message);
             }
             setLoading(false);
         }

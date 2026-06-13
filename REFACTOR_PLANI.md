@@ -2476,3 +2476,46 @@ Tüm 1-6 maddeleri tamamlandı:
 - Kritik beş E2E akışının ekip tarafından onaylanması gerekiyor.
 
 **Teknik refactor planındaki yerel kod maddeleri tamamlandı.**
+
+## 44. Merkezi HTTP Hata Yönetimi - TAMAMLANDI
+
+**Tamamlanma tarihi:** 13 Haziran 2026
+
+### Backend Hata Sözleşmesi
+
+- Tüm REST hata cevapları `code`, `message`, `fieldErrors`, `timestamp`, `path` ve `requestId` alanlarını taşıyan ortak `ApiErrorResponse` zarfına bağlandı.
+- `ApiErrorCode` enum'u validation, authentication, authorization, not found, conflict, payload, media type ve beklenmeyen sunucu hatalarının HTTP durumlarını tek noktada tanımlıyor.
+- `ApiErrorResponseFactory`, MVC exception handler ve Spring Security katmanlarının aynı cevabı üretmesini sağlıyor.
+- Eksik parametre, tip uyuşmazlığı, bozuk JSON, validation, 404, 405, 409, 413, 415, multipart ve veri bütünlüğü hataları merkezi olarak ele alınıyor.
+- Beklenmeyen exception ayrıntıları istemciye sızdırılmıyor; güvenli genel mesaj dönülürken tam hata yalnızca sunucu loguna yazılıyor.
+
+### Request Korelasyonu ve Security
+
+- `RequestCorrelationFilter` her isteğe güvenli bir `X-Request-ID` atıyor veya geçerli istemci değerini koruyor.
+- Request ID response header, hata gövdesi ve MDC log bağlamında aynı değerle taşınıyor.
+- Spring Security authentication entry point ve access denied handler artık 401/403 cevaplarını aynı hata fabrikasıyla üretiyor.
+- Security hata cevaplarına `Cache-Control: no-store` uygulanıyor.
+
+### Frontend Hata İşleme
+
+- `parseApiError` backend hata zarfını tipli `ParsedApiError` modeline dönüştürüyor.
+- Axios, Axios benzeri adapter cevapları, ağ hataları ve bilinmeyen istemci hataları tek parser üzerinden normalize ediliyor.
+- Teknik `Error.message` değerleri doğrudan kullanıcıya gösterilmiyor.
+- Login, anket, Instagram, Google Analytics, Search Console, admin ekranları, bildirimler, zamanlayıcı ve hızlı işlem formundaki doğrudan veya sessiz hata yolları merkezi yardımcıya geçirildi.
+- Frontend kaynaklarında sessiz boş `catch` ve doğrudan `response.data.message` erişimi bırakılmadı.
+
+### Test ve Doğrulama
+
+- Backend: **225/225 test başarılı**.
+- Frontend: **242/242 test başarılı**.
+- Güvenlik 401, MVC 404, bozuk JSON, request ID üretimi/koruması ve hassas ayrıntı sızdırmama entegrasyon ve birim testleriyle doğrulandı.
+- Frontend lint: sıfır hata, sıfır uyarı.
+- Frontend production build: başarılı; tüm chunk'lar 500 KB sınırının altında.
+- `git diff --check`: temiz.
+
+### Kalan Harici Adımlar
+
+- GitHub branch protection ayarında `frontend` ve `backend` CI job'ları zorunlu status check yapılmalı.
+- Kritik beş E2E akışının ekip tarafından onaylanması gerekiyor.
+
+**Teknik refactor planındaki yerel kod maddeleri tamamlandı.**

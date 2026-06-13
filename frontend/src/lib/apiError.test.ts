@@ -30,8 +30,18 @@ describe('getApiErrorMessage', () => {
         expect(getApiErrorMessage(error, 'fallback')).toContain('Description is required');
     });
 
-    it('falls back to Error.message for non-axios errors', () => {
-        expect(getApiErrorMessage(new Error('boom'), 'fallback')).toBe('boom');
+    it('does not expose technical messages from non-axios errors', () => {
+        expect(getApiErrorMessage(new Error('boom'), 'fallback')).toBe('fallback');
+    });
+
+    it('supports axios-like response objects from API adapters and tests', () => {
+        const error = { response: { status: 403, data: { message: 'Bu işlem için yetkiniz yok' } } };
+
+        expect(parseApiError(error, 'fallback')).toMatchObject({
+            code: 'FORBIDDEN',
+            message: 'Bu işlem için yetkiniz yok',
+            status: 403,
+        });
     });
 
     it('returns fallback when error is a string or unknown', () => {

@@ -53,7 +53,7 @@ export default function NotificationBell({ accentColor = 'orange' }: Props) {
     const ref = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
     const location = useLocation();
-    const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+    const { notifications, unreadCount, error, markAsRead, markAllAsRead } = useNotifications();
 
     const panel = location.pathname.startsWith('/admin') ? 'admin'
         : location.pathname.startsWith('/staff') ? 'staff' : 'client';
@@ -124,7 +124,9 @@ export default function NotificationBell({ accentColor = 'orange' }: Props) {
                     </div>
 
                     <div className="max-h-[400px] overflow-y-auto">
-                        {notifications.length === 0 ? (
+                        {error ? (
+                            <div className="px-4 py-8 text-center text-[13px] text-red-300">{error}</div>
+                        ) : notifications.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-zinc-600">
                                 <Bell className="w-8 h-8 mb-2 opacity-50" />
                                 <p className="text-[13px]">Bildirim yok</p>

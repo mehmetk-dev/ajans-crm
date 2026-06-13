@@ -3,15 +3,17 @@ import { adminApi } from '../../api/admin';
 import type { DashboardStats } from '../../api/admin';
 import { motion } from 'framer-motion';
 import { Building2, Users, ListTodo, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { getApiErrorMessage } from '../../lib/apiError';
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         adminApi.getStats()
             .then(setStats)
-            .catch(() => { })
+            .catch((err: unknown) => setError(getApiErrorMessage(err, 'Kontrol paneli verileri yüklenemedi')))
             .finally(() => setLoading(false));
     }, []);
 
@@ -21,6 +23,10 @@ export default function AdminDashboard() {
                 <div className="h-8 w-8 border-2 border-zinc-800 border-t-orange-500 rounded-full animate-spin" />
             </div>
         );
+    }
+
+    if (error) {
+        return <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>;
     }
 
     const cards = [

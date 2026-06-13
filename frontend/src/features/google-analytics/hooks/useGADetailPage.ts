@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../../store/AuthContext';
+import { getApiErrorMessage } from '../../../lib/apiError';
 import { googleAnalyticsApi } from '../api/googleAnalyticsApi';
 import { DATE_PRESETS, buildSourcePieData, buildCountryBarData, computeEngagementRate, computeSessionsPerUser } from '../model/googleAnalytics.utils';
 import type { GaOverviewResponse, GaStatusResponse } from '../googleAnalytics.types';
@@ -54,9 +55,9 @@ export function useGADetailPage() {
                     return googleAnalyticsApi.getOverview(companyId, startDate, endDate).then(d => setState(prev => ({ ...prev, data: d })));
                 }
             })
-            .catch(err => setState(prev => ({
+            .catch((err: unknown) => setState(prev => ({
                 ...prev,
-                error: err?.response?.data?.message || 'Google Analytics verileri yüklenirken hata oluştu',
+                error: getApiErrorMessage(err, 'Google Analytics verileri yüklenirken hata oluştu'),
             })))
             .finally(() => setState(prev => ({ ...prev, loading: false, refreshing: false })));
     }, [companyId, state.activePreset, state.customEnd, state.customStart, state.isCustomRange]);

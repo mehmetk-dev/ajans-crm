@@ -1,7 +1,9 @@
 package com.fogistanbul.crm.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fogistanbul.crm.exception.ApiErrorCode;
 import com.fogistanbul.crm.exception.ApiErrorResponse;
+import com.fogistanbul.crm.exception.ApiErrorResponseFactory;
 import com.fogistanbul.crm.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,8 +22,8 @@ import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
@@ -40,6 +42,7 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final CsrfCookieFilter csrfCookieFilter;
     private final ObjectMapper objectMapper;
+    private final ApiErrorResponseFactory apiErrorResponseFactory;
 
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
@@ -59,17 +62,15 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) ->
                                 writeSecurityError(
+                                        request,
                                         response,
-                                        HttpStatus.UNAUTHORIZED,
-                                        "UNAUTHORIZED",
-                                        "Kimlik doğrulaması gerekli"
+                                        ApiErrorCode.UNAUTHORIZED
                                 ))
                         .accessDeniedHandler((request, response, accessDeniedException) ->
                                 writeSecurityError(
+                                        request,
                                         response,
-                                        HttpStatus.FORBIDDEN,
-                                        "FORBIDDEN",
-                                        "Erişim yetkiniz yok"
+                                        ApiErrorCode.FORBIDDEN
                                 )))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout", "/api/auth/csrf", "/api/auth/me").permitAll()
@@ -125,13 +126,15 @@ public class SecurityConfig {
     }
 
     private void writeSecurityError(
+            jakarta.servlet.http.HttpServletRequest request,
             jakarta.servlet.http.HttpServletResponse response,
-            HttpStatus status,
-            String code,
-            String message
+            ApiErrorCode errorCode
     ) throws java.io.IOException {
-        response.setStatus(status.value());
+        response.setStatus(errorCode.getStatus().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        objectMapper.writeValue(response.getOutputStream(), new ApiErrorResponse(code, message));
+        response.setCharacterEncoding(java.nio.charset.StandardCharsets.UTF_8.name());
+        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+        ApiErrorResponse body = apiErrorResponseFactory.create(errorCode, request);
+        objectMapper.writeValue(response.getOutputStream(), body);
     }
 }

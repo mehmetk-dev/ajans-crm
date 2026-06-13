@@ -59,7 +59,7 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("MISSING_PARAMETER", response.getBody().code());
-        assertEquals("companyId", response.getBody().fieldErrors().get("companyId"));
+        assertEquals("Zorunlu parametre", response.getBody().fieldErrors().get("companyId"));
     }
 
     @Test

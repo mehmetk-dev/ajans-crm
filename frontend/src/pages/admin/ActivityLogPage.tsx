@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { activityLogApi, type ActivityLogResponse } from '../../api/features';
 import { motion } from 'framer-motion';
 import { Activity, Filter, User, ClipboardList, FileText, LogIn, LogOut, Trash2, Upload, Edit, Plus, Shield, Loader2 } from 'lucide-react';
+import { getApiErrorMessage } from '../../lib/apiError';
 
 const actionIcons: Record<string, typeof Activity> = {
     CREATE: Plus,
@@ -54,10 +55,12 @@ export default function ActivityLogPage() {
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [entityTypeFilter, setEntityTypeFilter] = useState<string>('ALL');
+    const [error, setError] = useState('');
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true);
+        setError('');
         const fetchFn = entityTypeFilter === 'ALL'
             ? activityLogApi.getAll(page, 25)
             : activityLogApi.getByEntityType(entityTypeFilter, page, 25);
@@ -67,7 +70,7 @@ export default function ActivityLogPage() {
                 setLogs(data.content);
                 setTotalPages(data.page?.totalPages ?? data.totalPages ?? 0);
             })
-            .catch(() => { })
+            .catch((err: unknown) => setError(getApiErrorMessage(err, 'Aktivite kayıtları yüklenemedi')))
             .finally(() => setLoading(false));
     }, [page, entityTypeFilter]);
 
@@ -112,7 +115,9 @@ export default function ActivityLogPage() {
             </div>
 
             {/* Timeline */}
-            {loading ? (
+            {error ? (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
+            ) : loading ? (
                 <div className="flex items-center justify-center py-20">
                     <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
                 </div>

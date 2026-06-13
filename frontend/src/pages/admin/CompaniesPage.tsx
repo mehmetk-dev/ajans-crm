@@ -38,6 +38,7 @@ export default function CompaniesPage() {
     const [showForm, setShowForm] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [loadError, setLoadError] = useState('');
 
     const [editingCompany, setEditingCompany] = useState<CompanyResponse | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<CompanyResponse | null>(null);
@@ -53,9 +54,10 @@ export default function CompaniesPage() {
 
     const loadCompanies = () => {
         setLoading(true);
+        setLoadError('');
         companyApi.listAdmin()
             .then(setCompanies)
-            .catch(() => { })
+            .catch((err: unknown) => setLoadError(getApiErrorMessage(err, 'Şirketler yüklenemedi')))
             .finally(() => setLoading(false));
     };
 
@@ -169,7 +171,9 @@ export default function CompaniesPage() {
                 </button>
             </div>
 
-            {loading ? (
+            {loadError ? (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{loadError}</div>
+            ) : loading ? (
                 <div className="flex items-center justify-center h-40">
                     <div className="h-8 w-8 border-2 border-zinc-800 border-t-orange-500 rounded-full animate-spin" />
                 </div>

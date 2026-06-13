@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, X, ListTodo, Users, Camera, Rocket, MessageSquare } from 'lucide-react';
+import { Plus, X, ListTodo, Users, Camera, Rocket, MessageSquare, AlertCircle } from 'lucide-react';
 import { QuickTaskForm, taskApi, type AssignableUser } from '../features/tasks';
 import { MeetingForm } from '../features/meetings';
 import { ShootForm } from '../features/shoots';
@@ -8,6 +8,7 @@ import { PrProjectForm } from '../features/pr-projects';
 import { QuickMessageForm } from '../features/messaging';
 import { companyApi, type CompanyResponse } from '../features/company';
 import { useNavigate } from 'react-router-dom';
+import { getApiErrorMessage } from '../lib/apiError';
 
 type ActionType = 'task' | 'meeting' | 'shoot' | 'project' | 'message';
 
@@ -27,15 +28,33 @@ export default function FloatingTaskFab() {
     const [users, setUsers] = useState<AssignableUser[]>([]);
     const [loading, setLoading] = useState(false);
     const [companyId, setCompanyId] = useState<string>('');
+    const [loadError, setLoadError] = useState('');
 
     useEffect(() => {
-        if (menuOpen || action) {
-            companyApi.listStaffAccessible().then(setCompanies).catch(() => {});
-            taskApi.listAssignableUsers(companyId || undefined).then(setUsers).catch(() => {});
-        }
+        if (!menuOpen && !action) return;
+
+        let active = true;
+        Promise.allSettled([
+            companyApi.listStaffAccessible(),
+            taskApi.listAssignableUsers(companyId || undefined),
+        ]).then(([companyResult, userResult]) => {
+            if (!active) return;
+
+            if (companyResult.status === 'fulfilled') setCompanies(companyResult.value);
+            if (userResult.status === 'fulfilled') setUsers(userResult.value);
+
+            const failure = companyResult.status === 'rejected'
+                ? companyResult.reason
+                : userResult.status === 'rejected'
+                    ? userResult.reason
+                    : null;
+            setLoadError(failure ? getApiErrorMessage(failure, 'Form verileri yüklenemedi') : '');
+        });
+
+        return () => { active = false; };
     }, [menuOpen, action, companyId]);
 
-    const closeAll = () => { setMenuOpen(false); setAction(null); setCompanyId(''); };
+    const closeAll = () => { setMenuOpen(false); setAction(null); setCompanyId(''); setLoadError(''); };
     const openForm = (t: ActionType) => { setMenuOpen(false); setAction(t); };
 
     return (
@@ -97,6 +116,12 @@ export default function FloatingTaskFab() {
                                 </button>
                             </div>
                             <div className="p-5">
+                                {loadError && (
+                                    <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2.5 text-sm text-red-300">
+                                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                                        <span>{loadError}</span>
+                                    </div>
+                                )}
                                 {action === 'task' && <QuickTaskForm companies={companies} users={users} companyId={companyId} setCompanyId={setCompanyId} loading={loading} setLoading={setLoading} onDone={closeAll} />}
                                 {action === 'meeting' && <MeetingForm onSuccess={closeAll} />}
                                 {action === 'shoot' && <ShootForm onSuccess={closeAll} />}

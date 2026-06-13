@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getApiErrorMessage } from '../../../lib/apiError';
 import { motion } from 'framer-motion';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -50,8 +51,8 @@ export default function GoogleAnalyticsPanel({ companyId }: Props) {
                     });
                 }
             })
-            .catch((err: { response?: { data?: { message?: string } } }) =>
-                setError(err?.response?.data?.message || 'Bağlantı hatası')
+            .catch((err: unknown) =>
+                setError(getApiErrorMessage(err, 'Bağlantı hatası'))
             )
             .finally(() => setLoading(false));
     }, [companyId, customEnd, customStart, datePreset, isCustom]);
