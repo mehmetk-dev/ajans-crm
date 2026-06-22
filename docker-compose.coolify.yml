@@ -13,8 +13,6 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
-    networks:
-      - crm-network
 
   backend:
     build:
@@ -64,8 +62,6 @@ services:
       retries: 20
       start_period: 45s
     restart: unless-stopped
-    networks:
-      - crm-network
 
   frontend:
     build:
@@ -82,12 +78,6 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
-    networks:
-      - crm-network
-
-networks:
-  crm-network:
-    driver: bridge
 
 volumes:
   pgdata:
