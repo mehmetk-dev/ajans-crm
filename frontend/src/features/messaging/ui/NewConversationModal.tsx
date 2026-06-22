@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import type { ContactResponse } from '../api/messaging.types';
 import { getRoleLabel } from '../model/messaging.utils';
 import { UserAvatar } from '../../../components/UserAvatar';
@@ -7,11 +7,12 @@ import { UserAvatar } from '../../../components/UserAvatar';
 interface Props {
     open: boolean;
     contacts: ContactResponse[];
+    loading?: boolean;
     onClose: () => void;
     onSelect: (userId: string) => void;
 }
 
-export function NewConversationModal({ open, contacts, onClose, onSelect }: Props) {
+export function NewConversationModal({ open, contacts, loading = false, onClose, onSelect }: Props) {
     return (
         <AnimatePresence>
             {open && (
@@ -37,7 +38,12 @@ export function NewConversationModal({ open, contacts, onClose, onSelect }: Prop
                         </div>
 
                         <div className="p-2 flex-1 overflow-y-auto">
-                            {contacts.length === 0 ? (
+                            {loading ? (
+                                <div className="flex items-center justify-center gap-3 p-8 text-sm text-zinc-500">
+                                    <Loader2 className="h-4 w-4 animate-spin text-[#C8697A]" />
+                                    Kişiler yükleniyor...
+                                </div>
+                            ) : contacts.length === 0 ? (
                                 <div className="p-8 text-center text-zinc-500 text-sm">
                                     Rehberde kişi bulunamadı.
                                 </div>

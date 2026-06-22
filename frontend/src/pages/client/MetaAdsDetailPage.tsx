@@ -13,6 +13,7 @@ import {
     sortMetaAdsCampaigns,
     type MetaAdsSortColumn,
 } from '../../features/meta-ads';
+import { MissingCompanyState } from '../../components/client/MissingCompanyState';
 import { useAuth } from '../../store/AuthContext';
 
 const currency = formatMetaAdsCurrency;
@@ -47,7 +48,11 @@ export default function MetaAdsDetailPage() {
         },
     });
 
-    if (!user?.companyId) return null;
+    if (!user?.companyId) {
+        return (
+            <MissingCompanyState description="Meta Ads ekranı şirket bilgisi olan bir müşteri hesabıyla açılmalıdır." />
+        );
+    }
 
     const sortedCampaigns = sortMetaAdsCampaigns(
         data?.campaigns ?? [],

@@ -58,4 +58,9 @@ export const taskApi = {
 
     listReviews: (taskId: string) =>
         api.get<TaskReviewResponse[]>(`/client/tasks/${taskId}/reviews`).then(response => response.data),
+
+    listReviewsBatch: (taskIds: string[]) =>
+        api.get<Record<string, TaskReviewResponse[]>>('/client/tasks/reviews/batch', {
+            params: { taskIds: taskIds.join(',') },
+        }).then(response => response.data),
 };

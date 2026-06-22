@@ -1,10 +1,15 @@
 import { FileText } from 'lucide-react';
+import { MissingCompanyState } from '../../components/client/MissingCompanyState';
 import { ContentPlanPanel } from '../../features/content-plans';
 import { useAuth } from '../../store/AuthContext';
 
 export default function ClientContentPlanPage() {
     const { user } = useAuth();
-    if (!user?.companyId) return null;
+    if (!user?.companyId) {
+        return (
+            <MissingCompanyState description="İçerik planı ekranı şirket bilgisi olan bir müşteri hesabıyla açılmalıdır." />
+        );
+    }
 
     return (
         <div className="space-y-6">

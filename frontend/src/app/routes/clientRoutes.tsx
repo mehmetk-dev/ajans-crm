@@ -1,8 +1,12 @@
 import { lazy } from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import { ServicePageGate } from '../../components/ServiceUpsellOverlay';
 import ProtectedRoute from '../../components/ProtectedRoute';
 
+const ServicePageGate = lazy(() =>
+    import('../../components/ServiceUpsellOverlay').then(module => ({
+        default: module.ServicePageGate,
+    })),
+);
 const ClientDashboard = lazy(() => import('../../pages/client/ClientDashboard'));
 const MediaLibraryPage = lazy(() => import('../../pages/client/MediaLibraryPage'));
 const ClientTasksPage = lazy(() => import('../../pages/client/ClientTasksPage'));

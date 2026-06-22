@@ -17,6 +17,7 @@ import type {
   GroupMessageResponse,
 } from "../../features/messaging";
 import { MessageSquare } from "lucide-react";
+import { getApiErrorMessage } from "../../lib/apiError";
 
 export default function ClientMessagingPage() {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ export default function ClientMessagingPage() {
   const [error, setError] = useState<string | null>(null);
   const [showNewConv, setShowNewConv] = useState(false);
   const [contacts, setContacts] = useState<ContactResponse[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [tab, setTab] = useState<"dm" | "group">("dm");
@@ -102,7 +104,6 @@ export default function ClientMessagingPage() {
   });
 
   useEffect(() => {
-  // eslint-disable-next-line react-hooks/immutability
     loadConversations();
   }, []);
 
@@ -118,10 +119,11 @@ export default function ClientMessagingPage() {
       ]);
       setConversations(convData);
       setGroups(groupData);
-    } catch {
-      setError("Konuşmalar yüklenemedi");
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Konuşmalar yüklenemedi"));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const selectConversation = async (conv: ConversationResponse) => {
@@ -134,19 +136,23 @@ export default function ClientMessagingPage() {
       setConversations((prev) =>
         prev.map((c) => (c.id === conv.id ? { ...c, unreadCount: 0 } : c)),
       );
-    } catch {
-      setError("Mesajlar yüklenemedi");
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Mesajlar yüklenemedi"));
+    } finally {
+      setMsgLoading(false);
     }
-    setMsgLoading(false);
   };
 
   const openNewConversation = async () => {
     setShowNewConv(true);
+    setContactsLoading(true);
     try {
       const data = await clientApi.getContacts();
       setContacts(data);
-    } catch {
-      setError("Kişiler yüklenemedi");
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Kişiler yüklenemedi"));
+    } finally {
+      setContactsLoading(false);
     }
   };
 
@@ -161,8 +167,8 @@ export default function ClientMessagingPage() {
       setActiveGroup(null);
       setShowNewConv(false);
       selectConversation(created);
-    } catch {
-      setError("Konuşma başlatılamadı");
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Konuşma başlatılamadı"));
     }
   };
 
@@ -176,10 +182,11 @@ export default function ClientMessagingPage() {
       setGroups((prev) =>
         prev.map((g) => (g.id === group.id ? { ...g, unreadCount: 0 } : g)),
       );
-    } catch {
-      setError("Mesajlar yüklenemedi");
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Mesajlar yüklenemedi"));
+    } finally {
+      setMsgLoading(false);
     }
-    setMsgLoading(false);
   };
 
   const handleGroupSend = async (e: React.FormEvent) => {
@@ -198,8 +205,8 @@ export default function ClientMessagingPage() {
             : g,
         ),
       );
-    } catch {
-      setError("Mesaj gönderilemedi");
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Mesaj gönderilemedi"));
     }
   };
 
@@ -223,8 +230,8 @@ export default function ClientMessagingPage() {
               : c,
           ),
         );
-      } catch {
-        setError("Mesaj gönderilemedi");
+      } catch (err: unknown) {
+        setError(getApiErrorMessage(err, "Mesaj gönderilemedi"));
       }
     }
   };
@@ -317,6 +324,7 @@ export default function ClientMessagingPage() {
       <NewConversationModal
         open={showNewConv}
         contacts={contacts}
+        loading={contactsLoading}
         onClose={() => setShowNewConv(false)}
         onSelect={startConversationWith}
       />

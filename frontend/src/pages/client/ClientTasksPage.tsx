@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     taskApi,
     taskKeys,
-    type PageResponse,
     type TaskResponse,
     type TaskReviewResponse,
+    type TaskStatus,
 } from '../../features/tasks';
 import {
     ListTodo, CheckCircle2, Clock, AlertCircle, Calendar,
@@ -23,6 +23,9 @@ const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'active', label: 'Devam Eden', icon: Clock },
     { key: 'done', label: 'Tamamlandı', icon: CheckCircle2 },
 ];
+
+const ACTIVE_STATUSES: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'OVERDUE'];
+const TASK_PAGE_SIZE = 50;
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; icon: React.ElementType }> = {
     TODO:        { label: 'Bekliyor',       color: 'text-zinc-400',    bg: 'bg-zinc-700/40',      icon: ListTodo },
@@ -178,31 +181,37 @@ export default function ClientTasksPage() {
     const [hoverScore, setHoverScore] = useState(0);
     const [comment, setComment] = useState('');
 
-    // Tüm görevleri tek sorguda çek, filtreleme client-side
-    const { data, isLoading } = useQuery<PageResponse<TaskResponse>>({
-        queryKey: taskKeys.clientList(),
-        queryFn: () => taskApi.listClient(0, 100),
+    const statusQueries = useQueries({
+        queries: [...ACTIVE_STATUSES, 'DONE' as const].map(status => ({
+            queryKey: taskKeys.clientList(status),
+            queryFn: () => taskApi.listClient(0, TASK_PAGE_SIZE, status),
+        })),
     });
 
-    const allTasks = data?.content ?? [];
-    const activeTasks = allTasks.filter(t => t.status !== 'DONE');
-    const doneTasks = allTasks.filter(t => t.status === 'DONE');
+    const todoData = statusQueries[0]?.data;
+    const inProgressData = statusQueries[1]?.data;
+    const overdueData = statusQueries[2]?.data;
+    const doneData = statusQueries[ACTIVE_STATUSES.length]?.data;
+
+    const activeTasks = useMemo(() => [
+        ...(todoData?.content ?? []),
+        ...(inProgressData?.content ?? []),
+        ...(overdueData?.content ?? []),
+    ], [inProgressData, overdueData, todoData]);
+    const doneTasks = useMemo(() => doneData?.content ?? [], [doneData]);
+    const allTasks = useMemo(() => [...activeTasks, ...doneTasks], [activeTasks, doneTasks]);
+    const isLoading = statusQueries.some(query => query.isLoading);
 
     const displayedTasks = activeTab === 'all' ? allTasks
         : activeTab === 'active' ? activeTasks
         : doneTasks;
 
-    // Reviews sadece tamamlananlar için
+    const doneTaskIds = useMemo(() => doneTasks.map(task => task.id), [doneTasks]);
+
     const { data: reviewsMap } = useQuery<Record<string, TaskReviewResponse[]>>({
-        queryKey: [...taskKeys.all, 'client-reviews', doneTasks.map(t => t.id).join(',')],
-        queryFn: async () => {
-            const map: Record<string, TaskReviewResponse[]> = {};
-            await Promise.all(doneTasks.map(async t => {
-                try { map[t.id] = await taskApi.listReviews(t.id); } catch { map[t.id] = []; }
-            }));
-            return map;
-        },
-        enabled: doneTasks.length > 0,
+        queryKey: taskKeys.reviewsBatch(doneTaskIds),
+        queryFn: () => taskApi.listReviewsBatch(doneTaskIds),
+        enabled: doneTaskIds.length > 0,
     });
 
     const reviewMutation = useMutation({

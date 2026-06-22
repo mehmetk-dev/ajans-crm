@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Sparkles } from 'lucide-react';
+import { Loader2, Lock, Sparkles } from 'lucide-react';
 import { useActiveServices } from '../hooks/useActiveServices';
 import { getServiceInfo, type ServiceCategory } from '../features/serviceCatalog';
 
@@ -75,72 +75,22 @@ export function ServiceBlurOverlay({ service, compact = false }: { service: Serv
 }
 
 export function ServicePageGate({ service, children }: { service: ServiceCategory | string; children: ReactNode }) {
-    const navigate = useNavigate();
     const { hasService, isLoading } = useActiveServices();
 
-    if (isLoading || hasService(service)) {
+    if (isLoading) {
+        return (
+            <div className="flex min-h-[240px] items-center justify-center rounded-2xl border border-white/[0.06] bg-[#0C0C0E]">
+                <div className="flex items-center gap-3 text-zinc-500">
+                    <Loader2 className="h-5 w-5 animate-spin text-[#C8697A]" />
+                    <span className="text-sm">Hizmet bilgileri yükleniyor...</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (hasService(service)) {
         return <>{children}</>;
     }
 
-    const info = getServiceInfo(service) ?? fallbackInfo;
-    const Icon = info.icon;
-
-    return (
-        <div className="relative">
-            <div className="pointer-events-none select-none" style={{ filter: 'blur(12px)', opacity: 0.25 }} aria-hidden>
-                {children}
-            </div>
-
-            <div className="absolute inset-0 flex items-center justify-center z-10 bg-[#07070A]/60 backdrop-blur-sm rounded-3xl">
-                <div
-                    className={`flex flex-col items-center text-center p-8 rounded-3xl border bg-gradient-to-br ${info.color} backdrop-blur-xl max-w-sm mx-4 shadow-2xl`}
-                    style={{ boxShadow: `0 0 100px 0 ${info.glowColor}` }}
-                >
-                    <div className="relative mb-5">
-                        <div className="w-20 h-20 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-                            <Icon className="w-9 h-9 text-white/50" />
-                        </div>
-                        <div className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-[#D1181C] flex items-center justify-center border-2 border-[#07070A]">
-                            <Lock className="w-3 h-3 text-white" />
-                        </div>
-                    </div>
-
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.06] mb-3">
-                        <Lock className="w-3 h-3 text-zinc-400" />
-                        <span className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Bu hizmet aktif değil</span>
-                    </div>
-
-                    <h2 className="text-xl font-bold text-white mb-2">{info.label}</h2>
-                    <p className="text-sm text-zinc-400 leading-relaxed mb-6 max-w-xs">{info.description}</p>
-
-                    {info.panels.length > 0 && (
-                        <div className="flex flex-wrap gap-2 justify-center mb-6">
-                            {info.panels.map((panel) => (
-                                <span key={panel} className="px-3 py-1 rounded-full bg-white/[0.06] text-[11px] text-zinc-400 border border-white/[0.08]">
-                                    {panel}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-
-                    <div className="flex flex-col gap-2 w-full">
-                        <button
-                            onClick={() => navigate('/client/services')}
-                            className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95"
-                            style={{ background: 'linear-gradient(135deg, #D1181C, #C8697A)', boxShadow: '0 12px 24px -8px rgba(209,24,28,0.5)' }}
-                        >
-                            <Sparkles className="w-4 h-4" />
-                            Hizmeti Aktif Et
-                        </button>
-                        <button
-                            onClick={() => navigate('/client')}
-                            className="text-[12px] text-zinc-600 hover:text-zinc-400 transition-colors py-1"
-                        >
-                            Ana Sayfaya Dön
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+    return <ServiceBlurOverlay service={service} />;
 }

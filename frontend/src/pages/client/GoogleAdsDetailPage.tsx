@@ -14,6 +14,7 @@ import {
     sortCampaigns,
     type GoogleAdsSortColumn,
 } from '../../features/google-ads';
+import { MissingCompanyState } from '../../components/client/MissingCompanyState';
 import { useAuth } from '../../store/AuthContext';
 
 export default function GoogleAdsDetailPage() {
@@ -45,7 +46,11 @@ export default function GoogleAdsDetailPage() {
         },
     });
 
-    if (!user?.companyId) return null;
+    if (!user?.companyId) {
+        return (
+            <MissingCompanyState description="Google Ads ekranı şirket bilgisi olan bir müşteri hesabıyla açılmalıdır." />
+        );
+    }
 
     const sortedCampaigns = sortCampaigns(data?.campaigns ?? [], sortCol, sortAsc);
 

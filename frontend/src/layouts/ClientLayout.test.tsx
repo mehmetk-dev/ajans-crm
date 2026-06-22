@@ -2,6 +2,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const useClientDashboardMock = vi.fn();
+
 vi.mock('../store/AuthContext', () => ({
     useAuth: () => ({
         user: {
@@ -22,7 +24,7 @@ vi.mock('../hooks/useUnreadCount', () => ({
 }));
 
 vi.mock('../features/client-dashboard', () => ({
-    useClientDashboard: () => ({ isLoading: false, isAllSettled: true }),
+    useClientDashboard: () => useClientDashboardMock(),
 }));
 
 vi.mock('../hooks/useActiveServices', () => ({
@@ -71,18 +73,20 @@ function renderClientLayout(path = '/client/tasks') {
     );
 
     act(() => {
-        vi.advanceTimersByTime(500);
+        vi.advanceTimersByTime(750);
     });
 }
 
 describe('ClientLayout navigation groups', () => {
     beforeEach(() => {
         vi.useFakeTimers();
+        useClientDashboardMock.mockReturnValue({ isLoading: false, isAllSettled: true });
     });
 
     afterEach(() => {
         vi.runOnlyPendingTimers();
         vi.useRealTimers();
+        useClientDashboardMock.mockClear();
     });
 
     it('groups client navigation and opens collapsed groups on demand', () => {
@@ -100,5 +104,11 @@ describe('ClientLayout navigation groups', () => {
         expect(digitalReports).toHaveAttribute('aria-expanded', 'true');
         expect(screen.getByText('Google Analytics')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /İletişim & Ekip/i })).toHaveTextContent('4');
+    });
+
+    it('does not fetch dashboard data from the portal shell', () => {
+        renderClientLayout('/client/messaging');
+
+        expect(useClientDashboardMock).not.toHaveBeenCalled();
     });
 });

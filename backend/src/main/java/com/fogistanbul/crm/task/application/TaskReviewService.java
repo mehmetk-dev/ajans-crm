@@ -16,7 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -57,13 +59,38 @@ public class TaskReviewService {
     @Transactional(readOnly = true)
     public List<TaskReviewResponse> getReviewsByTask(UUID taskId, UUID requesterId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Görev bulunamadı"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "TASK_NOT_FOUND", "Görev bulunamadı"));
         UserProfile requester = userProfileRepository.findById(requesterId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Kullanıcı bulunamadı"));
         accessPolicy.requireRead(task, requester);
 
         return reviewRepository.findByTaskId(taskId).stream()
                 .map(mapper::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, List<TaskReviewResponse>> getReviewsByTasks(List<UUID> taskIds, UUID requesterId) {
+        if (taskIds == null || taskIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<UUID> distinctTaskIds = taskIds.stream().distinct().toList();
+        UserProfile requester = userProfileRepository.findById(requesterId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Kullanıcı bulunamadı"));
+
+        List<Task> tasks = taskRepository.findAllById(distinctTaskIds);
+        if (tasks.size() != distinctTaskIds.size()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "TASK_NOT_FOUND", "Görev bulunamadı");
+        }
+
+        tasks.forEach(task -> accessPolicy.requireRead(task, requester));
+
+        Map<UUID, List<TaskReviewResponse>> reviewsByTask = reviewRepository.findByTaskIdIn(distinctTaskIds).stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.groupingBy(TaskReviewResponse::getTaskId));
+
+        distinctTaskIds.forEach(taskId -> reviewsByTask.putIfAbsent(taskId, List.of()));
+        return reviewsByTask;
     }
 }

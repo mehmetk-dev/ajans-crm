@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MissingCompanyState } from "../../components/client/MissingCompanyState";
 import { useAuth } from "../../store/AuthContext";
 import {
   MediaGallery,
@@ -25,11 +26,7 @@ export default function MediaLibraryPage() {
   const totalPages = data?.page?.totalPages ?? data?.totalPages ?? 0;
 
   if (!companyId) {
-    return (
-      <div className="text-zinc-500 text-center py-12">
-        Şirket bilgisi bulunamadı
-      </div>
-    );
+    return <MissingCompanyState description="Medya kütüphanesi şirket bilgisi olan bir müşteri hesabıyla açılmalıdır." />;
   }
 
   return (

@@ -12,4 +12,6 @@ export const taskKeys = {
     clientList: (status?: TaskStatus) =>
         [...taskKeys.all, 'client', 'list', status ?? 'ALL'] as const,
     reviews: (taskId: string) => [...taskKeys.detail(taskId), 'reviews'] as const,
+    reviewsBatch: (taskIds: string[]) =>
+        [...taskKeys.all, 'client', 'reviews-batch', taskIds.join(',')] as const,
 };

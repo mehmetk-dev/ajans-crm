@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { useUnreadCount } from '../hooks/useUnreadCount';
-import { useClientDashboard } from '../features/client-dashboard';
 import { useActiveServices } from '../hooks/useActiveServices';
 import { clientApi } from '../api/clientPanel';
 import NotificationBell from '../components/NotificationBell';
@@ -100,12 +99,10 @@ export default function ClientLayout() {
     const { user, logout } = useAuth();
     const { pathname } = useLocation();
     const msgCount = useUnreadCount(clientApi.getMyConversations);
-    const { isLoading, isAllSettled } = useClientDashboard();
     const { hasService, isLoading: servicesLoading } = useActiveServices();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [splashDone, setSplashDone] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-    const splashMinElapsed = useRef(false);
     const isOwner = user?.membershipRole === 'OWNER';
 
     const canShowItem = (item: ClientNavItem) => {
@@ -128,22 +125,11 @@ export default function ClientLayout() {
         }));
     };
 
-    // Minimum 1.6s splash so animation plays + data finishes
+    // Keep the portal splash brief; data readiness owns the actual wait.
     useEffect(() => {
-        const t = setTimeout(() => { splashMinElapsed.current = true; }, 1600);
+        const t = setTimeout(() => setSplashDone(true), 700);
         return () => clearTimeout(t);
     }, []);
-
-    useEffect(() => {
-        if (!isLoading && isAllSettled && splashMinElapsed.current) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setSplashDone(true);
-        }
-        if (!isLoading && isAllSettled) {
-            const t = setTimeout(() => setSplashDone(true), 400);
-            return () => clearTimeout(t);
-        }
-    }, [isLoading, isAllSettled]);
 
     // ─── Splash Screen ─────────────────────────────────────────────
     if (!splashDone) {
