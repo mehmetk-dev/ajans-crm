@@ -41,7 +41,7 @@ public class ShootService {
     public ShootResponse createShoot(CreateShootRequest request, UUID createdById) {
         UserProfile creator = getUserOrThrow(createdById);
         Company company = companyRepository.findById(request.getCompanyId())
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
         accessPolicy.requireCompanyAccess(creator, company.getId());
 
         Shoot shoot = shootRepository.save(Shoot.builder()
@@ -59,7 +59,7 @@ public class ShootService {
         resourceService.saveParticipants(shoot, request.getParticipants());
         resourceService.saveEquipment(shoot, request.getEquipment());
         notifyCompanyMembers(company.getId(), createdById, NotificationType.SHOOT_CREATED,
-                "Yeni cekim planlandi: " + shoot.getTitle(),
+                "Yeni çekim planlandı: " + shoot.getTitle(),
                 shoot.getShootDate() != null ? "Tarih: " + shoot.getShootDate().toString().substring(0, 10) : null,
                 shoot.getId());
         log.info("Shoot created: {} for company {}", shoot.getTitle(), company.getName());
@@ -104,7 +104,7 @@ public class ShootService {
         Shoot shoot = getShootOrThrow(shootId);
         accessPolicy.requireRead(shoot, getUserOrThrow(userId));
         if (!shoot.getCompany().getId().equals(companyId)) {
-            throw new IllegalArgumentException("Cekim ve icerik plani farkli sirketlere ait");
+            throw new IllegalArgumentException("Çekim ve içerik planı farklı şirketlere ait");
         }
         return shoot;
     }
@@ -118,7 +118,7 @@ public class ShootService {
         shootRepository.save(shoot);
         if (oldStatus != status) {
             notifyCompanyMembers(shoot.getCompany().getId(), userId, NotificationType.SHOOT_UPDATED,
-                    "Cekim " + statusLabel(status) + ": " + shoot.getTitle(), null, shoot.getId());
+                    "Çekim " + statusLabel(status) + ": " + shoot.getTitle(), null, shoot.getId());
         }
         return mapper.toResponse(shoot);
     }
@@ -132,19 +132,19 @@ public class ShootService {
 
     private Shoot getShootOrThrow(UUID shootId) {
         return shootRepository.findById(shootId)
-                .orElseThrow(() -> new RuntimeException("Cekim bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Çekim bulunamadı"));
     }
 
     private UserProfile getUserOrThrow(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
 
     private String statusLabel(ShootStatus status) {
         return switch (status) {
-            case COMPLETED -> "tamamlandi";
+            case COMPLETED -> "tamamlandı";
             case CANCELLED -> "iptal edildi";
-            case PLANNED -> "planlandi";
+            case PLANNED -> "planlandı";
         };
     }
 

@@ -46,7 +46,7 @@ public class FileAccessPolicy {
                 boolean companyScoped = note.getCompany() != null
                         && membershipRepository.existsByUserIdAndCompanyId(user.getId(), note.getCompany().getId());
                 if (!ownNote && !companyScoped) {
-                    throw new AccessDeniedException("Bu nota erisim yetkiniz yok");
+                    throw new AccessDeniedException("Bu nota erişim yetkiniz yok");
                 }
             }
             case "MESSAGE" -> {
@@ -55,7 +55,7 @@ public class FileAccessPolicy {
                 boolean participant = message.getConversation().getUser1().getId().equals(user.getId())
                         || message.getConversation().getUser2().getId().equals(user.getId());
                 if (!participant) {
-                    throw new AccessDeniedException("Bu mesaja erisim yetkiniz yok");
+                    throw new AccessDeniedException("Bu mesaja erişim yetkiniz yok");
                 }
             }
             case "COMPANY" -> {
@@ -79,7 +79,7 @@ public class FileAccessPolicy {
             return;
         }
         if (!user.getId().equals(uploadedById)) {
-            throw new AccessDeniedException("Bu dosyayi silme yetkiniz yok");
+            throw new AccessDeniedException("Bu dosyayı silme yetkiniz yok");
         }
     }
 
@@ -89,7 +89,7 @@ public class FileAccessPolicy {
 
     private void requireMembership(UUID userId, UUID companyId) {
         if (!membershipRepository.existsByUserIdAndCompanyId(userId, companyId)) {
-            throw new AccessDeniedException("Bu sirket verilerine erisim yetkiniz yok");
+            throw new AccessDeniedException("Bu şirket verilerine erişim yetkiniz yok");
         }
     }
 }

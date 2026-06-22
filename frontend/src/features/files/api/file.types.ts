@@ -5,6 +5,7 @@ export interface FileAttachmentResponse {
     fileSize: number;
     uploadedById: string;
     uploadedByName: string;
+    uploadedByAvatarUrl?: string | null;
     entityType: string;
     entityId: string;
     createdAt: string;

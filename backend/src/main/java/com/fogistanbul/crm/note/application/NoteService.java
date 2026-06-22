@@ -39,7 +39,7 @@ public class NoteService {
         if (request.getCompanyId() != null) {
             accessPolicy.requireCompanyAccess(user, request.getCompanyId());
             Company company = companyRepository.findById(request.getCompanyId())
-                    .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                    .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
             note.setCompany(company);
         }
 
@@ -73,11 +73,11 @@ public class NoteService {
 
     private UserProfile getUser(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
 
     private Note getNote(UUID noteId) {
         return noteRepository.findById(noteId)
-                .orElseThrow(() -> new RuntimeException("Not bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Not bulunamadı"));
     }
 }

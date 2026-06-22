@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { PrProjectResponse } from '../api/prProject.types';
 import { prProjectStatusMeta } from '../model/prProject.constants';
 import { formatPrProjectDate } from '../model/prProject.utils';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface PrProjectCardProps {
     project: PrProjectResponse;
@@ -38,7 +39,11 @@ export function PrProjectCard({ project, index, onClick }: PrProjectCardProps) {
                             )}
                             {project.responsibleName && (
                                 <span className="text-zinc-600 text-xs flex items-center gap-1 truncate">
-                                    <User className="w-3 h-3" />
+                                    {project.responsibleAvatarUrl ? (
+                                        <UserAvatar name={project.responsibleName} avatarUrl={project.responsibleAvatarUrl} className="h-4 w-4 rounded text-[8px]" />
+                                    ) : (
+                                        <User className="w-3 h-3" />
+                                    )}
                                     {project.responsibleName}
                                 </span>
                             )}

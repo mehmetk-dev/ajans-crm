@@ -1,4 +1,4 @@
-import { X, UserCircle, Users, Check, CheckCheck } from "lucide-react";
+import { X, Users, Check, CheckCheck } from "lucide-react";
 import type {
   MessageResponse,
   ConversationResponse,
@@ -6,6 +6,7 @@ import type {
   GroupConversationResponse,
 } from "../api/messaging.types";
 import { formatMessageTime, getRoleLabel } from "../model/messaging.utils";
+import { UserAvatar } from "../../../components/UserAvatar";
 
 // DM Thread
 interface DmThreadProps {
@@ -35,17 +36,11 @@ export function DmMessageThread({
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="h-8 w-8 rounded-full bg-[#18181b] flex items-center justify-center overflow-hidden border border-white/[0.06]">
-            {conversation.otherUserAvatarUrl ? (
-              <img
-                src={conversation.otherUserAvatarUrl}
-                alt={conversation.otherUserName}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <UserCircle className="w-5 h-5 text-zinc-500" />
-            )}
-          </div>
+          <UserAvatar
+            name={conversation.otherUserName}
+            avatarUrl={conversation.otherUserAvatarUrl}
+            className="h-8 w-8 rounded-full border border-white/[0.06] text-[10px]"
+          />
           <div>
             <h3 className="text-sm font-bold text-white">
               {conversation.otherUserName}
@@ -82,10 +77,14 @@ export function DmMessageThread({
           messages.map((msg) => {
             const isMine = msg.senderId === currentUserId;
             return (
-              <div
-                key={msg.id}
-                className={`flex ${isMine ? "justify-end" : "justify-start"}`}
-              >
+              <div key={msg.id} className={`flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"}`}>
+                {!isMine && (
+                  <UserAvatar
+                    name={msg.senderName}
+                    avatarUrl={msg.senderAvatarUrl}
+                    className="h-7 w-7 rounded-full text-[10px]"
+                  />
+                )}
                 <div
                   className={`max-w-[75%] md:max-w-[60%] rounded-2xl px-4 py-3 ${
                     isMine
@@ -108,6 +107,14 @@ export function DmMessageThread({
                       ))}
                   </div>
                 </div>
+                {isMine && (
+                  <UserAvatar
+                    name={msg.senderName}
+                    avatarUrl={msg.senderAvatarUrl}
+                    className="h-7 w-7 rounded-full text-[10px]"
+                    fallbackClassName="bg-cyan-500/20 text-cyan-100"
+                  />
+                )}
               </div>
             );
           })
@@ -171,10 +178,14 @@ export function GroupMessageThread({
           messages.map((msg) => {
             const isMine = msg.senderId === currentUserId;
             return (
-              <div
-                key={msg.id}
-                className={`flex ${isMine ? "justify-end" : "justify-start"}`}
-              >
+              <div key={msg.id} className={`flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"}`}>
+                {!isMine && (
+                  <UserAvatar
+                    name={msg.senderName}
+                    avatarUrl={msg.senderAvatarUrl}
+                    className="h-7 w-7 rounded-full text-[10px]"
+                  />
+                )}
                 <div
                   className={`max-w-[75%] md:max-w-[60%] rounded-2xl px-4 py-3 ${
                     isMine
@@ -204,6 +215,14 @@ export function GroupMessageThread({
                     <span>{formatMessageTime(msg.createdAt)}</span>
                   </div>
                 </div>
+                {isMine && (
+                  <UserAvatar
+                    name={msg.senderName}
+                    avatarUrl={msg.senderAvatarUrl}
+                    className="h-7 w-7 rounded-full text-[10px]"
+                    fallbackClassName="bg-cyan-500/20 text-cyan-100"
+                  />
+                )}
               </div>
             );
           })

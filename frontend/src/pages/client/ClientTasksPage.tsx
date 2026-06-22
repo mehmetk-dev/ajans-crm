@@ -12,6 +12,7 @@ import {
     ListTodo, CheckCircle2, Clock, AlertCircle, Calendar,
     Star, X, ChevronRight, User, Loader2,
 } from 'lucide-react';
+import { UserAvatar } from '../../components/UserAvatar';
 
 // ─── Sabitler ────────────────────────────────────────────────────────────────
 
@@ -93,7 +94,11 @@ function TaskCard({
                         {/* Assigned to */}
                         {task.assignedToName && (
                             <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
-                                <User className="w-3 h-3" />
+                                {task.assignedToAvatarUrl ? (
+                                    <UserAvatar name={task.assignedToName} avatarUrl={task.assignedToAvatarUrl} className="h-4 w-4 rounded text-[8px]" />
+                                ) : (
+                                    <User className="w-3 h-3" />
+                                )}
                                 {task.assignedToName}
                             </span>
                         )}

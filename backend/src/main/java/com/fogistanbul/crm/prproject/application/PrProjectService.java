@@ -174,7 +174,7 @@ public class PrProjectService {
 
     private PrProject getProject(UUID projectId) {
         return projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("PR projesi bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("PR projesi bulunamadı"));
     }
 
     private Company getCompany(UUID companyId) {
@@ -182,6 +182,6 @@ public class PrProjectService {
             return null;
         }
         return companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
     }
 }

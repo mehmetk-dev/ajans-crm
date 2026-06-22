@@ -3,6 +3,7 @@ import { CheckCircle2, Loader2, MapPin, Plus, Trash2, X } from 'lucide-react';
 import type { AssignableUser } from '../../tasks';
 import type { ApprovalRequestResponse, ReviewApprovalInput } from '../api/contentPlan.types';
 import { parseContentApprovalMetadata } from '../model/approvalMetadata';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface ApprovalReviewDialogProps {
     request: ApprovalRequestResponse;
@@ -69,9 +70,12 @@ export function ApprovalReviewDialog({
                 <header className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
                     <div>
                         <h3 className="text-base font-bold text-white">Çekim Onay Formu</h3>
-                        <p className="mt-1 text-[11px] text-zinc-500">
-                            {request.companyName} · {request.requestedByName}
-                        </p>
+                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-zinc-500">
+                            <span>{request.companyName}</span>
+                            <span>·</span>
+                            <UserAvatar name={request.requestedByName} avatarUrl={request.requestedByAvatarUrl} className="h-4 w-4 rounded text-[8px]" />
+                            <span>{request.requestedByName}</span>
+                        </div>
                     </div>
                     <button type="button" onClick={onClose} className="text-zinc-500 hover:text-white">
                         <X className="h-4 w-4" />

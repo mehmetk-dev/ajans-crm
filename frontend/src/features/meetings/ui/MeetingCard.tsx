@@ -7,6 +7,7 @@ import {
 import type { MeetingResponse } from '../api/meeting.types';
 import { meetingStatusMeta } from '../model/meeting.constants';
 import { hasMeetingNote, isMeetingParticipant, needsMeetingNote } from '../model/meeting.utils';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface MeetingCardProps {
     meeting: MeetingResponse;
@@ -78,7 +79,10 @@ export function MeetingCard({
                                         <div className="mt-2 space-y-2">
                                             {meeting.notes.map(note => (
                                                 <div key={`${note.userId}-${note.createdAt}`} className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-3">
-                                                    <span className="text-xs font-bold text-cyan-400">{note.fullName}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <UserAvatar name={note.fullName} avatarUrl={note.avatarUrl} className="h-6 w-6 rounded-lg text-[10px]" fallbackClassName="bg-cyan-500/10 text-cyan-400" />
+                                                        <span className="text-xs font-bold text-cyan-400">{note.fullName}</span>
+                                                    </div>
                                                     <p className="text-sm text-zinc-300 whitespace-pre-wrap mt-1">{note.content}</p>
                                                 </div>
                                             ))}
@@ -106,7 +110,11 @@ export function MeetingCard({
                                     </button>
                                 )}
                             </div>
-                            <p className="text-[10px] text-zinc-600">Oluşturan: {meeting.createdByName}</p>
+                            <div className="flex items-center gap-1.5 text-[10px] text-zinc-600">
+                                <span>Oluşturan:</span>
+                                <UserAvatar name={meeting.createdByName} avatarUrl={meeting.createdByAvatarUrl} className="h-4 w-4 rounded text-[8px]" />
+                                <span>{meeting.createdByName}</span>
+                            </div>
                         </div>
                     </motion.div>
                 )}
@@ -129,6 +137,12 @@ function ParticipantList({ meeting }: { meeting: MeetingResponse }) {
                                     ? 'bg-pink-500/10 border-pink-500/20 text-pink-400'
                                     : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
                         }`}>
+                        <UserAvatar
+                            name={participant.fullName}
+                            avatarUrl={participant.avatarUrl}
+                            className="h-5 w-5 rounded-md text-[9px]"
+                            fallbackClassName="bg-white/[0.06] text-zinc-300"
+                        />
                         {participant.fullName}
                         {meeting.status === 'COMPLETED' && (
                             participant.noteSubmitted

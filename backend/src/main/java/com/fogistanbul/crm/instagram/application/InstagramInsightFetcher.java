@@ -35,7 +35,7 @@ public class InstagramInsightFetcher {
                     Map.of("metric", metric, "period", period,
                             "since", range.since(), "until", range.until())));
         } catch (Exception exception) {
-            log.warn("Instagram insight alinamadi, metric={}: {}", metric, exception.getMessage());
+            log.warn("Instagram insight alınamadı, metric={}: {}", metric, exception.getMessage());
             return List.of();
         }
     }
@@ -49,7 +49,7 @@ public class InstagramInsightFetcher {
                     Map.of("metric", metric, "metric_type", "total_value", "period", "day",
                             "since", range.since(), "until", range.until())));
         } catch (Exception exception) {
-            log.warn("Instagram total insight alinamadi, metric={}: {}", metric, exception.getMessage());
+            log.warn("Instagram total insight alınamadı, metric={}: {}", metric, exception.getMessage());
             return List.of();
         }
     }
@@ -70,7 +70,7 @@ public class InstagramInsightFetcher {
                     return stats;
                 }
             } catch (Exception exception) {
-                log.debug("Instagram takipci hareketi adayi gecersiz: {}", exception.getMessage());
+                log.debug("Instagram takipçi hareketi adayı geçersiz: {}", exception.getMessage());
             }
         }
         return FollowStats.unavailable();
@@ -92,7 +92,7 @@ public class InstagramInsightFetcher {
                 dailyValues.put(date,
                         parser.sumInsightValues(fetchTotalInsight(igUserId, accessToken, metric, dayRange)));
             } catch (Exception exception) {
-                log.debug("Instagram gunluk insight alinamadi, metric={}, date={}: {}",
+                log.debug("Instagram günlük insight alınamadı, metric={}, date={}: {}",
                         metric, date, exception.getMessage());
                 dailyValues.put(date, 0L);
             }

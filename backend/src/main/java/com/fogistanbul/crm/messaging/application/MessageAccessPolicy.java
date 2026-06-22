@@ -30,7 +30,7 @@ public class MessageAccessPolicy {
         if (targetUser.getGlobalRole() == GlobalRole.ADMIN) return;
 
         if (!membershipRepository.existsSharedCompany(currentUser.getId(), targetUser.getId())) {
-            throw new AccessDeniedException("Bu kullaniciyla mesajlasma yetkiniz yok");
+            throw new AccessDeniedException("Bu kullanıcıyla mesajlaşma yetkiniz yok");
         }
 
         if (currentUser.getGlobalRole() == GlobalRole.COMPANY_USER) {
@@ -40,7 +40,7 @@ public class MessageAccessPolicy {
                 boolean targetIsAgencyStaff = membershipRepository.findByUserId(targetUser.getId()).stream()
                         .anyMatch(m -> m.getMembershipRole() == MembershipRole.AGENCY_STAFF);
                 if (!targetIsAgencyStaff) {
-                    throw new AccessDeniedException("Sadece size atanmis ajans calisanlarina mesaj atabilirsiniz");
+                    throw new AccessDeniedException("Sadece size atanmış ajans çalışanlarına mesaj atabilirsiniz");
                 }
             }
         }
@@ -52,7 +52,7 @@ public class MessageAccessPolicy {
     public void requireConversationAccess(Conversation conversation, UUID userId) {
         if (!conversation.getUser1().getId().equals(userId)
                 && !conversation.getUser2().getId().equals(userId)) {
-            throw new AccessDeniedException("Bu konusmaya erisim yetkiniz yok");
+            throw new AccessDeniedException("Bu konuşmaya erişim yetkiniz yok");
         }
     }
 
@@ -61,7 +61,7 @@ public class MessageAccessPolicy {
      */
     public void requireGroupAccess(UUID groupId, UUID userId) {
         if (!groupMemberRepository.existsByGroupIdAndUserId(groupId, userId)) {
-            throw new AccessDeniedException("Bu gruba erisim yetkiniz yok");
+            throw new AccessDeniedException("Bu gruba erişim yetkiniz yok");
         }
     }
 
@@ -70,7 +70,7 @@ public class MessageAccessPolicy {
      */
     public void requireGroupSendAccess(UUID groupId, UUID userId) {
         if (!groupMemberRepository.existsByGroupIdAndUserId(groupId, userId)) {
-            throw new AccessDeniedException("Bu gruba mesaj gonderme yetkiniz yok");
+            throw new AccessDeniedException("Bu gruba mesaj gönderme yetkiniz yok");
         }
     }
 }

@@ -22,6 +22,7 @@ public class ShootResponse {
     private String status;
     private UUID photographerId;
     private String photographerName;
+    private String photographerAvatarUrl;
     private String notes;
     private UUID createdById;
     private String createdByName;
@@ -35,6 +36,7 @@ public class ShootResponse {
     public static class ParticipantInfo {
         private UUID userId;
         private String fullName;
+        private String avatarUrl;
         private String roleInShoot;
     }
 

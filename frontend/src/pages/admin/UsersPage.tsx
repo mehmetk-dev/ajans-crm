@@ -4,6 +4,7 @@ import { adminApi } from '../../api/admin';
 import type { AllUserResponse } from '../../api/admin';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, X, Search, Shield, Briefcase, Building2, ChevronDown, Trash2 } from 'lucide-react';
+import { UserAvatar } from '../../components/UserAvatar';
 
 const ROLE_LABELS: Record<string, string> = {
     ADMIN: 'Yönetici',
@@ -192,13 +193,7 @@ export default function UsersPage() {
                                     >
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-9 w-9 rounded-xl bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-300 overflow-hidden shrink-0">
-                                                    {u.avatarUrl ? (
-                                                        <img src={u.avatarUrl} alt={u.fullName} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        u.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-                                                    )}
-                                                </div>
+                                                <UserAvatar name={u.fullName} avatarUrl={u.avatarUrl} className="h-9 w-9 rounded-xl text-xs" />
                                                 <div className="min-w-0">
                                                     <p className="text-sm font-medium text-white truncate">{u.fullName}</p>
                                                     <p className="text-[11px] text-zinc-600 truncate">{u.email}</p>
@@ -303,9 +298,7 @@ export default function UsersPage() {
                             <div className="p-6 space-y-5">
                                 {/* User Info */}
                                 <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
-                                    <div className="h-10 w-10 rounded-xl bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-300 shrink-0">
-                                        {editingUser.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                                    </div>
+                                    <UserAvatar name={editingUser.fullName} avatarUrl={editingUser.avatarUrl} className="h-10 w-10 rounded-xl text-xs" />
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-white truncate">{editingUser.fullName}</p>
                                         <p className="text-[11px] text-zinc-500 truncate">{editingUser.email}</p>
@@ -397,9 +390,7 @@ export default function UsersPage() {
                             </div>
                             <div className="p-6 space-y-5">
                                 <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
-                                    <div className="h-10 w-10 rounded-xl bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-300 shrink-0">
-                                        {deleteConfirm.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                                    </div>
+                                    <UserAvatar name={deleteConfirm.fullName} avatarUrl={deleteConfirm.avatarUrl} className="h-10 w-10 rounded-xl text-xs" />
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-white truncate">{deleteConfirm.fullName}</p>
                                         <p className="text-[11px] text-zinc-500 truncate">{deleteConfirm.email}</p>

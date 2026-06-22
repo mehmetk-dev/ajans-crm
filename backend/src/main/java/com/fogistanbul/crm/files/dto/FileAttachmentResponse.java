@@ -15,6 +15,7 @@ public class FileAttachmentResponse {
     private Long fileSize;
     private UUID uploadedById;
     private String uploadedByName;
+    private String uploadedByAvatarUrl;
     private String entityType;
     private UUID entityId;
     private Instant createdAt;

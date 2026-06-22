@@ -1,4 +1,5 @@
 import type { AssignableUser } from '../../tasks';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface PrProjectMemberSelectorProps {
     users: AssignableUser[];
@@ -29,6 +30,7 @@ export function PrProjectMemberSelector({
                                 ? [...selectedIds, user.id]
                                 : selectedIds.filter(id => id !== user.id))}
                         />
+                        <UserAvatar name={user.fullName} avatarUrl={user.avatarUrl} className="h-5 w-5 rounded-md text-[9px]" />
                         {user.fullName}
                     </label>
                 ))}

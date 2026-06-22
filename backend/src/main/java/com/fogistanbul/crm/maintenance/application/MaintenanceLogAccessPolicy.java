@@ -22,14 +22,14 @@ public class MaintenanceLogAccessPolicy {
 
     public void requireManageAccess(UserProfile user, UUID companyId) {
         if (user.getGlobalRole() == GlobalRole.COMPANY_USER) {
-            throw new AccessDeniedException("Bakim gunlugunu degistirme yetkiniz yok");
+            throw new AccessDeniedException("Bakım günlüğünü değiştirme yetkiniz yok");
         }
         requireCompanyAccess(user, companyId);
     }
 
     public void requireEntryCompany(MaintenanceLogEntry entry, UUID companyId) {
         if (!entry.getCompany().getId().equals(companyId)) {
-            throw new AccessDeniedException("Bakim kaydi bu sirkete ait degil");
+            throw new AccessDeniedException("Bakım kaydı bu şirkete ait değil");
         }
     }
 }

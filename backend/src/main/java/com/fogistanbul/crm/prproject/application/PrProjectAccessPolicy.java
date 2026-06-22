@@ -35,7 +35,7 @@ public class PrProjectAccessPolicy {
             companyAccessPolicy.requireAccess(user, project.getCompany().getId());
             return;
         }
-        throw new AccessDeniedException("Bu PR projesini goruntuleme yetkiniz yok");
+        throw new AccessDeniedException("Bu PR projesini görüntüleme yetkiniz yok");
     }
 
     public void requireManage(PrProject project, UserProfile user) {
@@ -46,7 +46,7 @@ public class PrProjectAccessPolicy {
             companyAccessPolicy.requireAccess(user, project.getCompany().getId());
             return;
         }
-        throw new AccessDeniedException("Bu PR projesini yonetme yetkiniz yok");
+        throw new AccessDeniedException("Bu PR projesini yönetme yetkiniz yok");
     }
 
     public void requireCompanyParticipant(UserProfile target, UUID companyId) {

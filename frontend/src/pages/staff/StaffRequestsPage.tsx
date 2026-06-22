@@ -13,6 +13,7 @@ import {
     type ApprovalRequestResponse,
 } from '../../features/content-plans';
 import { taskApi, taskKeys } from '../../features/tasks';
+import { UserAvatar } from '../../components/UserAvatar';
 
 type Tab = 'PENDING' | 'ALL';
 
@@ -126,7 +127,14 @@ function RequestCard({
                     </div>
                     <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-zinc-500">
                         <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{request.companyName}</span>
-                        <span className="flex items-center gap-1"><User className="h-3 w-3" />{request.requestedByName}</span>
+                        <span className="flex items-center gap-1">
+                            {request.requestedByAvatarUrl ? (
+                                <UserAvatar name={request.requestedByName} avatarUrl={request.requestedByAvatarUrl} className="h-4 w-4 rounded text-[8px]" />
+                            ) : (
+                                <User className="h-3 w-3" />
+                            )}
+                            {request.requestedByName}
+                        </span>
                         <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDate(request.createdAt)}</span>
                     </div>
                 </div>

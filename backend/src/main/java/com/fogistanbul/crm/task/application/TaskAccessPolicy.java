@@ -25,7 +25,7 @@ public class TaskAccessPolicy {
             companyAccessPolicy.requireAccess(user, task.getCompany().getId());
             return;
         }
-        throw new AccessDeniedException("Bu gorevi goruntuleme yetkiniz yok");
+        throw new AccessDeniedException("Bu görevi görüntüleme yetkiniz yok");
     }
 
     public void requireUpdate(Task task, UserProfile user) {
@@ -37,7 +37,7 @@ public class TaskAccessPolicy {
                 || task.getCreatedBy().getId().equals(user.getId())) {
             return;
         }
-        throw new AccessDeniedException("Bu gorevi silme yetkiniz yok");
+        throw new AccessDeniedException("Bu görevi silme yetkiniz yok");
     }
 
     public void requireCompanyAccess(UserProfile user, UUID companyId) {
@@ -59,7 +59,7 @@ public class TaskAccessPolicy {
             return;
         }
         if (assignee.getGlobalRole() != GlobalRole.AGENCY_STAFF || companyId == null) {
-            throw new AccessDeniedException("Sadece bagli ajans calisanlarina gorev atayabilirsiniz");
+            throw new AccessDeniedException("Sadece bağlı ajans çalışanlarına görev atayabilirsiniz");
         }
         companyAccessPolicy.requireMembership(assignee.getId(), companyId);
     }

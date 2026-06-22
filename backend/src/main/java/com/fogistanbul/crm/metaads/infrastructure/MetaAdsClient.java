@@ -30,7 +30,7 @@ public class MetaAdsClient {
             return stringValue(response.get("name"));
         } catch (Exception exception) {
             log.debug(
-                    "Meta Ads hesap adi alinamadi, account={}: {}",
+                    "Meta Ads hesap adı alınamadı, account={}: {}",
                     adAccountId, exception.getMessage());
             return "";
         }
@@ -62,7 +62,7 @@ public class MetaAdsClient {
                     "/" + adAccountId + "/insights", accessToken, query));
         } catch (Exception exception) {
             log.warn(
-                    "Meta kampanya verileri alinamadi, account={}: {}",
+                    "Meta kampanya verileri alınamadı, account={}: {}",
                     adAccountId, exception.getMessage());
             return List.of();
         }
@@ -81,7 +81,7 @@ public class MetaAdsClient {
                     "/" + adAccountId + "/insights", accessToken, query));
         } catch (Exception exception) {
             log.warn(
-                    "Meta gunluk trend verileri alinamadi, account={}: {}",
+                    "Meta günlük trend verileri alınamadı, account={}: {}",
                     adAccountId, exception.getMessage());
             return List.of();
         }

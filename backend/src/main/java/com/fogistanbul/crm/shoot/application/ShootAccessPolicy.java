@@ -33,7 +33,7 @@ public class ShootAccessPolicy {
                 || shoot.getCreatedBy().getId().equals(user.getId())) {
             return;
         }
-        throw new AccessDeniedException("Bu cekimi guncelleme yetkiniz yok");
+        throw new AccessDeniedException("Bu çekimi güncelleme yetkiniz yok");
     }
 
     public void requireDelete(Shoot shoot, UserProfile user) {
@@ -42,7 +42,7 @@ public class ShootAccessPolicy {
                 || shoot.getCreatedBy().getId().equals(user.getId())) {
             return;
         }
-        throw new AccessDeniedException("Bu cekimi silme yetkiniz yok");
+        throw new AccessDeniedException("Bu çekimi silme yetkiniz yok");
     }
 
     public void requireCompanyAccess(UserProfile user, UUID companyId) {

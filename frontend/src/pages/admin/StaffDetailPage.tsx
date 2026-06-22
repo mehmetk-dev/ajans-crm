@@ -6,6 +6,7 @@ import {
     ArrowLeft, User, Mail, Phone, Briefcase, Building2,
     Plus, Trash2
 } from 'lucide-react';
+import { UserAvatar } from '../../components/UserAvatar';
 
 export default function StaffDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -65,13 +66,12 @@ export default function StaffDetailPage() {
                     <ArrowLeft className="w-5 h-5" />
                 </button>
                 <div className="flex items-center gap-4">
-                    <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 flex items-center justify-center">
-                        {staff.avatarUrl ? (
-                            <img src={staff.avatarUrl} alt="" className="h-14 w-14 rounded-2xl object-cover" />
-                        ) : (
-                            <span className="text-xl font-bold text-orange-400">{staff.fullName?.charAt(0)}</span>
-                        )}
-                    </div>
+                    <UserAvatar
+                        name={staff.fullName}
+                        avatarUrl={staff.avatarUrl}
+                        className="h-14 w-14 rounded-2xl text-xl"
+                        fallbackClassName="bg-gradient-to-br from-orange-500/20 to-orange-500/5 text-orange-400"
+                    />
                     <div>
                         <h1 className="text-2xl font-bold text-white">{staff.fullName}</h1>
                         <p className="text-sm text-zinc-500">Ajans Çalışanı</p>

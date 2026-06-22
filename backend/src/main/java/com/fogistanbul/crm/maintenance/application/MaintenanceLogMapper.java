@@ -20,6 +20,7 @@ public class MaintenanceLogMapper {
                 .performedAt(entry.getPerformedAt())
                 .performedById(author != null ? author.getId() : null)
                 .performedByName(authorName(author))
+                .performedByAvatarUrl(authorAvatarUrl(author))
                 .createdAt(entry.getCreatedAt())
                 .updatedAt(entry.getUpdatedAt())
                 .build();
@@ -33,5 +34,12 @@ public class MaintenanceLogMapper {
         return person != null && person.getFullName() != null
                 ? person.getFullName()
                 : author.getEmail();
+    }
+
+    private String authorAvatarUrl(UserProfile author) {
+        if (author == null || author.getPerson() == null) {
+            return null;
+        }
+        return author.getPerson().getAvatarUrl();
     }
 }

@@ -41,8 +41,10 @@ public class PrProjectMapper {
                 .status(project.getStatus().name())
                 .createdById(project.getCreatedBy().getId())
                 .createdByName(displayName(project.getCreatedBy()))
+                .createdByAvatarUrl(avatarUrl(project.getCreatedBy()))
                 .responsibleId(project.getResponsible() != null ? project.getResponsible().getId() : null)
                 .responsibleName(displayName(project.getResponsible()))
+                .responsibleAvatarUrl(avatarUrl(project.getResponsible()))
                 .startDate(project.getStartDate())
                 .endDate(project.getEndDate())
                 .notes(project.getNotes())
@@ -64,6 +66,7 @@ public class PrProjectMapper {
                 .completedAt(phase.getCompletedAt())
                 .assignedToId(phase.getAssignedTo() != null ? phase.getAssignedTo().getId() : null)
                 .assignedToName(displayName(phase.getAssignedTo()))
+                .assignedToAvatarUrl(avatarUrl(phase.getAssignedTo()))
                 .taskId(phase.getTask() != null ? phase.getTask().getId() : null)
                 .startDate(phase.getStartDate())
                 .endDate(phase.getEndDate())
@@ -81,6 +84,7 @@ public class PrProjectMapper {
                 .id(note.getId())
                 .authorId(note.getAuthor().getId())
                 .authorName(displayName(note.getAuthor()))
+                .authorAvatarUrl(avatarUrl(note.getAuthor()))
                 .content(note.getContent())
                 .createdAt(note.getCreatedAt())
                 .build();
@@ -90,6 +94,7 @@ public class PrProjectMapper {
         return PrProjectResponse.MemberInfo.builder()
                 .userId(member.getUser().getId())
                 .fullName(displayName(member.getUser()))
+                .avatarUrl(avatarUrl(member.getUser()))
                 .build();
     }
 
@@ -98,5 +103,12 @@ public class PrProjectMapper {
             return null;
         }
         return user.getPerson() != null ? user.getPerson().getFullName() : user.getEmail();
+    }
+
+    private String avatarUrl(UserProfile user) {
+        if (user == null || user.getPerson() == null) {
+            return null;
+        }
+        return user.getPerson().getAvatarUrl();
     }
 }

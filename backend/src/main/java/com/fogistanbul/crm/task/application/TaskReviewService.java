@@ -57,9 +57,9 @@ public class TaskReviewService {
     @Transactional(readOnly = true)
     public List<TaskReviewResponse> getReviewsByTask(UUID taskId, UUID requesterId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Görev bulunamadı"));
         UserProfile requester = userProfileRepository.findById(requesterId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
         accessPolicy.requireRead(task, requester);
 
         return reviewRepository.findByTaskId(taskId).stream()

@@ -6,8 +6,9 @@ import NotificationBell from '../components/NotificationBell';
 import GlobalSearch from '../components/GlobalSearch';
 import ThemeToggle from '../components/ThemeToggle';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { UserAvatar } from '../components/UserAvatar';
 import {
-    LayoutDashboard, Building2, Users, LogOut, Shield, MessageSquare, Zap, Menu, X, BarChart3, Activity, Search, Settings, UserCog, RefreshCw, Inbox
+    LayoutDashboard, Building2, Users, LogOut, MessageSquare, Zap, Menu, X, BarChart3, Activity, Search, Settings, UserCog, RefreshCw, Inbox
 } from 'lucide-react';
 import { usePendingApprovalCount } from '../features/content-plans';
 
@@ -111,9 +112,12 @@ export default function AdminLayout() {
                 {/* User */}
                 <div className="px-3 pb-4 space-y-2">
                     <div className="flex items-center gap-3 px-3 py-2">
-                        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-orange-500/20 to-amber-500/20 flex items-center justify-center">
-                            <Shield className="w-3.5 h-3.5 text-orange-400" />
-                        </div>
+                        <UserAvatar
+                            name={user?.fullName || 'Admin'}
+                            avatarUrl={user?.avatarUrl}
+                            className="h-8 w-8 rounded-lg"
+                            fallbackClassName="bg-gradient-to-br from-orange-500/20 to-amber-500/20 text-orange-400 text-xs"
+                        />
                         <div className="flex-1 min-w-0">
                             <p className="text-[13px] text-white font-medium truncate">{user?.fullName || 'Admin'}</p>
                             <p className="text-[10px] text-zinc-600 truncate">{user?.email}</p>

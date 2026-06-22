@@ -18,6 +18,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import { Calendar, Building2, User } from 'lucide-react';
 import type { TaskResponse, TaskStatus } from '../api/task.types';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface KanbanBoardProps {
     tasks: TaskResponse[];
@@ -51,7 +52,11 @@ function TaskCard({ task, isDragging = false }: { task: TaskResponse; isDragging
                 )}
                 {task.assignedToName && (
                     <span className="flex items-center gap-1">
-                        <User className="w-3 h-3" />
+                        {task.assignedToAvatarUrl ? (
+                            <UserAvatar name={task.assignedToName} avatarUrl={task.assignedToAvatarUrl} className="h-4 w-4 rounded text-[8px]" />
+                        ) : (
+                            <User className="w-3 h-3" />
+                        )}
                         {task.assignedToName}
                     </span>
                 )}

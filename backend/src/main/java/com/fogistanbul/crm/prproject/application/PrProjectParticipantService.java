@@ -25,7 +25,7 @@ public class PrProjectParticipantService {
 
     public UserProfile getUser(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
 
     public UserProfile getOptionalUser(UUID userId, UUID companyId) {

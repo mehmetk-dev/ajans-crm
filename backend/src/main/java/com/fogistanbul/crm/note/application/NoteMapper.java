@@ -14,6 +14,9 @@ public class NoteMapper {
                 .userName(note.getUser().getPerson() != null
                         ? note.getUser().getPerson().getFullName()
                         : note.getUser().getEmail())
+                .userAvatarUrl(note.getUser().getPerson() != null
+                        ? note.getUser().getPerson().getAvatarUrl()
+                        : null)
                 .companyId(note.getCompany() != null ? note.getCompany().getId() : null)
                 .companyName(note.getCompany() != null ? note.getCompany().getName() : null)
                 .content(note.getContent())

@@ -21,7 +21,7 @@ public class NoteAccessPolicy {
 
     public void requireOwner(Note note, UUID userId) {
         if (!note.getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("Bu notu degistirme yetkiniz yok");
+            throw new AccessDeniedException("Bu notu değiştirme yetkiniz yok");
         }
     }
 }

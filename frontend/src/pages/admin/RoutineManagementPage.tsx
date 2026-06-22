@@ -8,6 +8,7 @@ import {
     RefreshCw, Plus, Trash2, Edit3, X, Check, Pause, Play,
     Calendar, Clock, Users, Loader2
 } from 'lucide-react';
+import { UserAvatar } from '../../components/UserAvatar';
 
 const FREQ_LABELS: Record<string, string> = {
     DAILY: 'Günlük',
@@ -365,7 +366,11 @@ export default function RoutineManagementPage() {
                                         </span>
                                     )}
                                     <span className="flex items-center gap-1">
-                                        <Users className="w-3 h-3" />
+                                        {r.assignedToAvatarUrl ? (
+                                            <UserAvatar name={r.assignedToName} avatarUrl={r.assignedToAvatarUrl} className="h-4 w-4 rounded text-[8px]" />
+                                        ) : (
+                                            <Users className="w-3 h-3" />
+                                        )}
                                         {r.assignedToName}
                                     </span>
                                 </div>

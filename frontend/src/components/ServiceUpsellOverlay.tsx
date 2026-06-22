@@ -6,7 +6,7 @@ import { getServiceInfo, type ServiceCategory } from '../features/serviceCatalog
 
 const fallbackInfo = {
     label: 'Bu Hizmet',
-    description: 'Bu icerik icin hizmet paketinin aktif olmasi gerekir.',
+    description: 'Bu içerik için hizmet paketinin aktif olması gerekir.',
     icon: Lock,
     color: 'from-zinc-500/20 to-zinc-600/20 border-zinc-500/30',
     glowColor: 'rgba(113,113,122,0.3)',
@@ -45,7 +45,7 @@ export function ServiceBlurOverlay({ service, compact = false }: { service: Serv
 
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] mb-3">
                     <Lock className="w-3 h-3 text-zinc-400" />
-                    <span className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Hizmet Aktif Degil</span>
+                    <span className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Hizmet Aktif Değil</span>
                 </div>
 
                 <h3 className="text-sm font-bold text-white mb-1">{info.label}</h3>
@@ -67,7 +67,7 @@ export function ServiceBlurOverlay({ service, compact = false }: { service: Serv
                     style={{ background: 'linear-gradient(135deg, #D1181C, #C8697A)', boxShadow: '0 8px 20px -6px rgba(209,24,28,0.5)' }}
                 >
                     <Sparkles className="w-3.5 h-3.5" />
-                    Hizmeti Aktive Et
+                    Hizmeti Aktif Et
                 </button>
             </div>
         </div>
@@ -107,7 +107,7 @@ export function ServicePageGate({ service, children }: { service: ServiceCategor
 
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.06] mb-3">
                         <Lock className="w-3 h-3 text-zinc-400" />
-                        <span className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Bu hizmet aktif degil</span>
+                        <span className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Bu hizmet aktif değil</span>
                     </div>
 
                     <h2 className="text-xl font-bold text-white mb-2">{info.label}</h2>
@@ -130,13 +130,13 @@ export function ServicePageGate({ service, children }: { service: ServiceCategor
                             style={{ background: 'linear-gradient(135deg, #D1181C, #C8697A)', boxShadow: '0 12px 24px -8px rgba(209,24,28,0.5)' }}
                         >
                             <Sparkles className="w-4 h-4" />
-                            Hizmeti Aktive Et
+                            Hizmeti Aktif Et
                         </button>
                         <button
                             onClick={() => navigate('/client')}
                             className="text-[12px] text-zinc-600 hover:text-zinc-400 transition-colors py-1"
                         >
-                            Ana Sayfaya Don
+                            Ana Sayfaya Dön
                         </button>
                     </div>
                 </div>

@@ -18,8 +18,10 @@ public class TaskResponse {
     private String companyName;
     private UUID assignedToId;
     private String assignedToName;
+    private String assignedToAvatarUrl;
     private UUID createdById;
     private String createdByName;
+    private String createdByAvatarUrl;
     private String title;
     private String description;
     private TaskCategory category;

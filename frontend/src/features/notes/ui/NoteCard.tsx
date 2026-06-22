@@ -4,6 +4,7 @@ import { Building2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { Note } from '../api/note.types';
 import { useDeleteNote } from '../hooks/useNotes';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface NoteCardProps {
     note: Note;
@@ -27,6 +28,12 @@ export function NoteCard({ note, index }: NoteCardProps) {
         >
             <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2 min-w-0">
+                    <UserAvatar
+                        name={note.userName}
+                        avatarUrl={note.userAvatarUrl}
+                        className="h-5 w-5 rounded-md text-[9px]"
+                        fallbackClassName="bg-orange-500/10 text-orange-400"
+                    />
                     <span className="text-[11px] text-zinc-500">{note.userName}</span>
                     {note.companyName && (
                         <span className="flex items-center gap-1 text-[10px] text-orange-400/60 bg-orange-500/10 px-1.5 py-0.5 rounded">

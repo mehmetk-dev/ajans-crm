@@ -32,7 +32,7 @@ public class ContentPlanAccessPolicy {
                 || user.getGlobalRole() == GlobalRole.AGENCY_STAFF) {
             return;
         }
-        throw new AccessDeniedException("Bu icerik planini yonetme yetkiniz yok");
+        throw new AccessDeniedException("Bu içerik planını yönetme yetkiniz yok");
     }
 
     public void requireCompanyAccess(UserProfile user, UUID companyId) {

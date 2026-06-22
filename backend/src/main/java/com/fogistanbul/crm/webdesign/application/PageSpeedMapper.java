@@ -28,10 +28,10 @@ public class PageSpeedMapper {
     private String toDisplayFetchError(String error) {
         if (error == null) return null;
         if (error.contains("FAILED_DOCUMENT_REQUEST")) {
-            return "Google PageSpeed siteyi yukleyemedi. Site tarayicida acilsa bile Google Lighthouse tarafindan engelleniyor, cok yavas yanit veriyor veya bot/guvenlik kurallarina takiliyor olabilir.";
+            return "Google PageSpeed siteyi yükleyemedi. Site tarayıcıda açılsa bile Google Lighthouse tarafından engelleniyor, çok yavaş yanıt veriyor veya bot/güvenlik kurallarına takılıyor olabilir.";
         }
         if (error.contains("API key not valid")) {
-            return "PAGESPEED_API_KEY gecersiz gorunuyor.";
+            return "PAGESPEED_API_KEY geçersiz görünüyor.";
         }
         if (error.toLowerCase().contains("quota") || error.contains("429")) {
             return "PageSpeed API kotasi dolmus olabilir. Bir sure sonra tekrar deneyin.";

@@ -53,7 +53,7 @@ public class MaintenanceLogService {
         UserProfile author = getUser(userId);
         accessPolicy.requireManageAccess(author, companyId);
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
 
         MaintenanceLogEntry entry = MaintenanceLogEntry.builder()
                 .company(company)
@@ -96,12 +96,12 @@ public class MaintenanceLogService {
 
     private UserProfile getUser(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
 
     private MaintenanceLogEntry getEntry(UUID entryId) {
         return maintenanceLogRepository.findById(entryId)
-                .orElseThrow(() -> new RuntimeException("Bakim kaydi bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Bakım kaydı bulunamadı"));
     }
 
     private String normalizeDescription(String description) {

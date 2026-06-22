@@ -124,12 +124,12 @@ public class GroupMessagingService {
     @Transactional
     public GroupMessageResponse sendMessage(UUID groupId, SendMessageRequest request, UUID senderId) {
         GroupConversation group = groupConversationRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException("Grup bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Grup bulunamadı"));
 
         accessPolicy.requireGroupSendAccess(groupId, senderId);
 
         UserProfile sender = userProfileRepository.findById(senderId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
         GroupMessage message = GroupMessage.builder()
                 .group(group).sender(sender).content(request.getContent()).build();

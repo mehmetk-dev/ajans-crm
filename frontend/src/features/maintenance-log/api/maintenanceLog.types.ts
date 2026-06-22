@@ -19,6 +19,7 @@ export interface MaintenanceLogEntry {
     performedAt: string;
     performedById?: string | null;
     performedByName?: string | null;
+    performedByAvatarUrl?: string | null;
     createdAt: string;
     updatedAt?: string | null;
 }

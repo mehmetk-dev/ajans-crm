@@ -12,6 +12,7 @@ export interface PrPhaseNote {
     id: string;
     authorId: string;
     authorName: string;
+    authorAvatarUrl?: string | null;
     content: string;
     createdAt: string;
 }
@@ -24,6 +25,7 @@ export interface PrProjectPhase {
     completedAt: string | null;
     assignedToId: string | null;
     assignedToName: string | null;
+    assignedToAvatarUrl?: string | null;
     taskId: string | null;
     startDate: string | null;
     endDate: string | null;
@@ -44,13 +46,15 @@ export interface PrProjectResponse {
     status: PrProjectStatus;
     createdById: string;
     createdByName: string;
+    createdByAvatarUrl?: string | null;
     responsibleId: string | null;
     responsibleName: string | null;
+    responsibleAvatarUrl?: string | null;
     startDate: string | null;
     endDate: string | null;
     notes: string | null;
     phases: PrProjectPhase[];
-    members: { userId: string; fullName: string }[];
+    members: { userId: string; fullName: string; avatarUrl?: string | null }[];
     createdAt: string;
 }
 

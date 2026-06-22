@@ -81,6 +81,7 @@ export interface ApprovalRequestResponse {
     companyId: string;
     requestedByName: string;
     requestedById: string;
+    requestedByAvatarUrl?: string | null;
     status: ApprovalStatus;
     title: string;
     description: string | null;

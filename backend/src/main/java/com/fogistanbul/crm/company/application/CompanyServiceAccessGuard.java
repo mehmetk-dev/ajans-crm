@@ -29,7 +29,7 @@ public class CompanyServiceAccessGuard {
                 .orElse(false);
 
         if (!active) {
-            throw new AccessDeniedException("Bu hizmet bu sirket icin aktif degil: " + category.name());
+            throw new AccessDeniedException("Bu hizmet bu şirket için aktif değil: " + category.name());
         }
     }
 
@@ -37,7 +37,7 @@ public class CompanyServiceAccessGuard {
     public UUID requireClientService(UUID userId, ServiceCategory category) {
         UUID companyId = membershipRepository.findClientCompanyIdsForUser(userId).stream()
                 .findFirst()
-                .orElseThrow(() -> new AccessDeniedException("Bagli musteri sirketi bulunamadi"));
+                .orElseThrow(() -> new AccessDeniedException("Bağlı müşteri şirketi bulunamadı"));
         requireService(userId, companyId, category);
         return companyId;
     }

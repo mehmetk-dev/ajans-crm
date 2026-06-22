@@ -22,8 +22,10 @@ public class PrProjectResponse {
     private String status;
     private UUID createdById;
     private String createdByName;
+    private String createdByAvatarUrl;
     private UUID responsibleId;
     private String responsibleName;
+    private String responsibleAvatarUrl;
     private Instant startDate;
     private Instant endDate;
     private String notes;
@@ -41,6 +43,7 @@ public class PrProjectResponse {
         private Instant completedAt;
         private UUID assignedToId;
         private String assignedToName;
+        private String assignedToAvatarUrl;
         private UUID taskId;
         private Instant startDate;
         private Instant endDate;
@@ -55,6 +58,7 @@ public class PrProjectResponse {
         private UUID id;
         private UUID authorId;
         private String authorName;
+        private String authorAvatarUrl;
         private String content;
         private Instant createdAt;
     }
@@ -64,5 +68,6 @@ public class PrProjectResponse {
     public static class MemberInfo {
         private UUID userId;
         private String fullName;
+        private String avatarUrl;
     }
 }

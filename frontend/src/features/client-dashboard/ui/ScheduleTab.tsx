@@ -1,6 +1,7 @@
 import { Camera, ListTodo, Clock, MapPin, ChevronRight } from 'lucide-react';
 import type { ShootResponse } from '../../shoots/api/shoot.types';
 import type { TaskResponse } from '../../tasks/api/task.types';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface ScheduleTabProps {
     upcomingShoots: (ShootResponse & { shootDate: string })[];
@@ -76,7 +77,12 @@ export function ScheduleTab({ upcomingShoots, activeTasks, navigate }: ScheduleT
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-[13px] font-medium text-white truncate">{t.title}</p>
-                                            {t.assignedToName && <p className="text-[10px] text-zinc-500 mt-0.5">{t.assignedToName}</p>}
+                                            {t.assignedToName && (
+                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                    <UserAvatar name={t.assignedToName} avatarUrl={t.assignedToAvatarUrl} className="h-4 w-4 rounded text-[8px]" />
+                                                    <p className="text-[10px] text-zinc-500 truncate">{t.assignedToName}</p>
+                                                </div>
+                                            )}
                                         </div>
                                         <span className={`shrink-0 text-[10px] font-semibold px-2.5 py-1 rounded-full border ${s.cls}`}>{s.label}</span>
                                     </div>

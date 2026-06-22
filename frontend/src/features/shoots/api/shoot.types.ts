@@ -5,6 +5,7 @@ export type ShootScope = 'staff' | 'client';
 export interface ShootParticipant {
     userId: string;
     fullName: string;
+    avatarUrl: string | null;
     roleInShoot: string | null;
 }
 
@@ -27,6 +28,7 @@ export interface ShootResponse {
     status: ShootStatus;
     photographerId: string | null;
     photographerName: string | null;
+    photographerAvatarUrl: string | null;
     notes: string | null;
     createdById: string;
     createdByName: string;

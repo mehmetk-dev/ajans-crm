@@ -12,6 +12,7 @@ import {
 import { useStaffCompanies } from '../../features/company';
 import { motion } from 'framer-motion';
 import { Plus, ListTodo, Filter, Clock, Trash2, ArrowUpDown, Building2, User, Calendar } from 'lucide-react';
+import { UserAvatar } from '../../components/UserAvatar';
 
 const statusBadge: Record<string, { bg: string; text: string; label: string }> = {
     TODO: { bg: 'bg-zinc-800', text: 'text-zinc-400', label: 'Bekliyor' },
@@ -193,7 +194,12 @@ export default function TasksPage() {
                                                 </span>
                                             )}
                                             <span className="text-zinc-500 text-[11px] flex items-center gap-1">
-                                                <User className="w-3 h-3" /> {task.assignedToName}
+                                                {task.assignedToAvatarUrl ? (
+                                                    <UserAvatar name={task.assignedToName} avatarUrl={task.assignedToAvatarUrl} className="h-4 w-4 rounded text-[8px]" />
+                                                ) : (
+                                                    <User className="w-3 h-3" />
+                                                )}
+                                                {task.assignedToName}
                                             </span>
                                             {(task.startDate || task.endDate) && (
                                                 <span className="text-zinc-600 text-[11px] flex items-center gap-1">

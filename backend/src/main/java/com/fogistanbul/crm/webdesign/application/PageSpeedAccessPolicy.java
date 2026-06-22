@@ -22,7 +22,7 @@ public class PageSpeedAccessPolicy {
      */
     public void requireStaffReadAccess(String role) {
         if (!"ROLE_ADMIN".equals(role) && !"ROLE_AGENCY_STAFF".equals(role)) {
-            throw new AccessDeniedException("Bu endpoint icin yeterli yetkiniz yok");
+            throw new AccessDeniedException("Bu endpoint için yeterli yetkiniz yok");
         }
     }
 

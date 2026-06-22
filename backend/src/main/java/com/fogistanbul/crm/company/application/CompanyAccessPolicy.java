@@ -25,7 +25,7 @@ public class CompanyAccessPolicy {
 
     public void requireMembership(UUID userId, UUID companyId) {
         if (!membershipRepository.existsByUserIdAndCompanyId(userId, companyId)) {
-            throw new AccessDeniedException("Bu sirket verilerine erisim yetkiniz yok");
+            throw new AccessDeniedException("Bu şirket verilerine erişim yetkiniz yok");
         }
     }
 

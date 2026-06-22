@@ -53,7 +53,14 @@ export function ShootDetailPanel({
                         <div className="p-5 space-y-5">
                             <div className="grid grid-cols-2 gap-3">
                                 <Info icon={<User />} label="Şirket" value={shoot.companyName} />
-                                {shoot.photographerName && <Info icon={<Camera />} label="Çekimci" value={shoot.photographerName} />}
+                                {shoot.photographerName && (
+                                    <Info
+                                        icon={<Camera />}
+                                        label="Çekimci"
+                                        value={shoot.photographerName}
+                                        avatarUrl={shoot.photographerAvatarUrl}
+                                    />
+                                )}
                                 {shoot.shootDate && <Info icon={<Calendar />} label="Tarih" value={new Date(shoot.shootDate).toLocaleDateString('tr-TR')} />}
                                 {shoot.shootTime && <Info icon={<Clock />} label="Saat" value={shoot.shootTime.slice(0, 5)} />}
                                 {shoot.location && <Info icon={<MapPin />} label="Konum" value={shoot.location} />}
@@ -113,8 +120,15 @@ function ResourceList({ shoot }: { shoot: ShootResponse }) {
                     <h3 className="text-[10px] font-bold text-zinc-600 uppercase mb-3 flex items-center gap-1"><Users className="w-3 h-3" /> Katılımcılar</h3>
                     <div className="flex flex-wrap gap-2">
                         {shoot.participants.map(person => (
-                            <span key={person.userId} className="px-3 py-1.5 bg-white/[0.03] rounded-lg text-xs text-zinc-300">
-                                {person.fullName}{person.roleInShoot ? ` · ${person.roleInShoot}` : ''}
+                            <span key={person.userId} className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] rounded-lg text-xs text-zinc-300">
+                                {person.avatarUrl && (
+                                    <img
+                                        src={person.avatarUrl}
+                                        alt={person.fullName}
+                                        className="h-5 w-5 rounded-full object-cover border border-white/[0.08]"
+                                    />
+                                )}
+                                <span>{person.fullName}{person.roleInShoot ? ` · ${person.roleInShoot}` : ''}</span>
                             </span>
                         ))}
                     </div>
@@ -124,13 +138,22 @@ function ResourceList({ shoot }: { shoot: ShootResponse }) {
     );
 }
 
-function Info({ icon, label, value }: { icon: ReactElement; label: string; value: string }) {
+function Info({ icon, label, value, avatarUrl }: { icon: ReactElement; label: string; value: string; avatarUrl?: string | null }) {
     return (
         <div className="bg-white/[0.03] rounded-xl p-3">
             <p className="text-[10px] text-zinc-600 uppercase flex items-center gap-1">
                 {icon && <span className="[&>svg]:w-3 [&>svg]:h-3">{icon}</span>}{label}
             </p>
-            <p className="text-sm text-white mt-1">{value}</p>
+            <div className="mt-1 flex items-center gap-2">
+                {avatarUrl && (
+                    <img
+                        src={avatarUrl}
+                        alt={value}
+                        className="h-6 w-6 rounded-full object-cover border border-white/[0.08]"
+                    />
+                )}
+                <p className="text-sm text-white">{value}</p>
+            </div>
         </div>
     );
 }

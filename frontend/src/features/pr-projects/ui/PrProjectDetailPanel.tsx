@@ -10,6 +10,7 @@ import {
 import { prProjectStatusMeta } from '../model/prProject.constants';
 import { formatPrProjectDate } from '../model/prProject.utils';
 import { PrPhaseCard } from './PrPhaseCard';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface PrProjectDetailPanelProps {
     project: PrProjectResponse | null;
@@ -96,6 +97,7 @@ export function PrProjectDetailPanel({
                                         icon={<User className="w-4 h-4" />}
                                         label="Sorumlu"
                                         value={project.responsibleName}
+                                        avatarUrl={project.responsibleAvatarUrl}
                                     />
                                 )}
                                 {project.companyName && (
@@ -177,8 +179,9 @@ export function PrProjectDetailPanel({
                                         {project.members.map(member => (
                                             <span
                                                 key={member.userId}
-                                                className="px-3 py-1.5 bg-[#0C0C0E] border border-white/[0.04] rounded-lg text-xs text-zinc-300"
+                                                className="px-3 py-1.5 bg-[#0C0C0E] border border-white/[0.04] rounded-lg text-xs text-zinc-300 inline-flex items-center gap-2"
                                             >
+                                                <UserAvatar name={member.fullName} avatarUrl={member.avatarUrl} className="h-5 w-5 rounded-md text-[9px]" />
                                                 {member.fullName}
                                             </span>
                                         ))}
@@ -193,10 +196,11 @@ export function PrProjectDetailPanel({
     );
 }
 
-function InfoCard({ icon, label, value }: {
+function InfoCard({ icon, label, value, avatarUrl }: {
     icon: ReactNode;
     label: string;
     value: string;
+    avatarUrl?: string | null;
 }) {
     return (
         <div className="bg-[#0C0C0E] rounded-xl p-3 border border-white/[0.04]">
@@ -206,7 +210,10 @@ function InfoCard({ icon, label, value }: {
                     {label}
                 </span>
             </div>
-            <p className="text-sm text-white font-medium truncate">{value}</p>
+            <div className="flex items-center gap-2 min-w-0">
+                {avatarUrl && <UserAvatar name={value} avatarUrl={avatarUrl} className="h-6 w-6 rounded-lg text-[10px]" />}
+                <p className="text-sm text-white font-medium truncate">{value}</p>
+            </div>
         </div>
     );
 }

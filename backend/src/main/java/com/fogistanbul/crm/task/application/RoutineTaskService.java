@@ -65,7 +65,7 @@ public class RoutineTaskService {
     @Transactional
     public RoutineTaskResponse updateRoutine(UUID routineId, UpdateRoutineTaskRequest req) {
         RoutineTask routine = routineTaskRepository.findById(routineId)
-                .orElseThrow(() -> new RuntimeException("Rutin bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Rutin bulunamadı"));
 
         if (req.getTitle() != null) routine.setTitle(req.getTitle());
         if (req.getDescription() != null) routine.setDescription(req.getDescription());
@@ -96,7 +96,7 @@ public class RoutineTaskService {
     @Transactional(readOnly = true)
     public RoutineTaskResponse getRoutineById(UUID routineId) {
         RoutineTask routine = routineTaskRepository.findById(routineId)
-                .orElseThrow(() -> new RuntimeException("Rutin bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Rutin bulunamadı"));
         return toResponse(routine);
     }
 
@@ -218,7 +218,7 @@ public class RoutineTaskService {
 
     private UserProfile getUserOrThrow(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
 
     private RoutineTaskResponse toResponse(RoutineTask r) {
@@ -234,12 +234,18 @@ public class RoutineTaskService {
                 .assignedToName(r.getAssignedTo() != null
                         ? (r.getAssignedTo().getPerson() != null ? r.getAssignedTo().getPerson().getFullName() : r.getAssignedTo().getEmail())
                         : "Tüm Çalışanlar")
+                .assignedToAvatarUrl(r.getAssignedTo() != null && r.getAssignedTo().getPerson() != null
+                        ? r.getAssignedTo().getPerson().getAvatarUrl()
+                        : null)
                 .category(r.getCategory())
                 .isActive(r.getIsActive())
                 .createdById(r.getCreatedBy().getId())
                 .createdByName(r.getCreatedBy().getPerson() != null
                         ? r.getCreatedBy().getPerson().getFullName()
                         : r.getCreatedBy().getEmail())
+                .createdByAvatarUrl(r.getCreatedBy().getPerson() != null
+                        ? r.getCreatedBy().getPerson().getAvatarUrl()
+                        : null)
                 .createdAt(r.getCreatedAt())
                 .updatedAt(r.getUpdatedAt())
                 .completedThisPeriod(null)

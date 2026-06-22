@@ -1,5 +1,6 @@
 import type { TaskResponse } from '../../tasks';
 import { Building2, User } from 'lucide-react';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface TaskAgendaProps {
     tasks: TaskResponse[];
@@ -21,7 +22,14 @@ export function TaskAgenda({ tasks, onSelect }: TaskAgendaProps) {
                             <p className="text-sm font-medium text-white truncate">{task.title}</p>
                             <div className="flex flex-wrap gap-3 mt-1 text-[10px] text-zinc-500">
                                 {task.companyName && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{task.companyName}</span>}
-                                <span className="flex items-center gap-1"><User className="w-3 h-3" />{task.assignedToName}</span>
+                                <span className="flex items-center gap-1">
+                                    {task.assignedToAvatarUrl ? (
+                                        <UserAvatar name={task.assignedToName} avatarUrl={task.assignedToAvatarUrl} className="h-4 w-4 rounded text-[8px]" />
+                                    ) : (
+                                        <User className="w-3 h-3" />
+                                    )}
+                                    {task.assignedToName}
+                                </span>
                             </div>
                         </div>
                         <span className="text-[9px] font-bold text-zinc-500">{task.status}</span>

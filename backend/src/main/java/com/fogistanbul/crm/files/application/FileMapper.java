@@ -17,6 +17,9 @@ public class FileMapper {
                 .uploadedByName(f.getUploadedBy().getPerson() != null
                         ? f.getUploadedBy().getPerson().getFullName()
                         : f.getUploadedBy().getEmail())
+                .uploadedByAvatarUrl(f.getUploadedBy().getPerson() != null
+                        ? f.getUploadedBy().getPerson().getAvatarUrl()
+                        : null)
                 .entityType(f.getEntityType())
                 .entityId(f.getEntityId())
                 .createdAt(f.getCreatedAt())

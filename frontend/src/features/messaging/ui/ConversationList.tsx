@@ -1,6 +1,7 @@
-import { MessageSquare, Plus, UserCircle, Users } from 'lucide-react';
+import { MessageSquare, Plus, Users } from 'lucide-react';
 import type { ConversationResponse, GroupConversationResponse } from '../api/messaging.types';
 import { timeAgo } from '../model/messaging.utils';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface Props {
     conversations: ConversationResponse[];
@@ -79,13 +80,7 @@ export function ConversationList({
                                 className={`w-full p-4 text-left border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors ${activeConvId === conv.id ? 'bg-white/[0.04]' : ''}`}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-full bg-[#18181b] flex items-center justify-center overflow-hidden">
-                                        {conv.otherUserAvatarUrl ? (
-                                            <img src={conv.otherUserAvatarUrl} alt={conv.otherUserName} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <UserCircle className="w-6 h-6 text-zinc-500" />
-                                        )}
-                                    </div>
+                                    <UserAvatar name={conv.otherUserName} avatarUrl={conv.otherUserAvatarUrl} className="h-10 w-10 rounded-full text-xs" />
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between">
                                             <p className="text-sm font-medium text-white truncate">{conv.otherUserName}</p>

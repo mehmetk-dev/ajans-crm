@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, UserCircle } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { ContactResponse } from '../api/messaging.types';
 import { getRoleLabel } from '../model/messaging.utils';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface Props {
     open: boolean;
@@ -47,13 +48,7 @@ export function NewConversationModal({ open, contacts, onClose, onSelect }: Prop
                                         onClick={() => onSelect(contact.id)}
                                         className="w-full flex items-center gap-3 p-3 hover:bg-white/[0.03] transition-colors rounded-xl text-left"
                                     >
-                                        <div className="h-10 w-10 rounded-full bg-[#18181b] flex items-center justify-center overflow-hidden">
-                                            {contact.avatarUrl ? (
-                                                <img src={contact.avatarUrl} alt={contact.fullName} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <UserCircle className="w-6 h-6 text-zinc-500" />
-                                            )}
-                                        </div>
+                                        <UserAvatar name={contact.fullName} avatarUrl={contact.avatarUrl} className="h-10 w-10 rounded-full text-xs" />
                                         <div className="flex-1">
                                             <p className="text-sm font-medium text-white">{contact.fullName}</p>
                                             <p className="text-xs text-zinc-500">

@@ -79,7 +79,7 @@ public class ContentPlanApprovalService {
             boolean manage
     ) {
         if (details.shootTitle() == null || details.shootTitle().isBlank()) {
-            throw new IllegalArgumentException("Yeni cekim icin baslik zorunludur");
+            throw new IllegalArgumentException("Yeni çekim için başlık zorunludur");
         }
         ContentPlan plan = contentPlanService.getPlanForApproval(planId, companyId, userId, manage);
         CreateShootRequest request = new CreateShootRequest();

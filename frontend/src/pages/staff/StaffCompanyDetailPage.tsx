@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { ContentPlanPanel } from '../../features/content-plans';
 import { FileText, Wrench } from 'lucide-react';
 import { MaintenanceLogPanel } from '../../features/maintenance-log';
+import { UserAvatar } from '../../components/UserAvatar';
 
 export default function StaffCompanyDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -257,9 +258,12 @@ export default function StaffCompanyDetailPage() {
                         {selectedMember.fullName} — Detay
                     </h3>
                     <div className="flex items-center gap-4">
-                        <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-pink-500/20 to-blue-500/20 flex items-center justify-center text-xl font-bold text-white">
-                            {selectedMember.fullName?.charAt(0) || 'U'}
-                        </div>
+                        <UserAvatar
+                            name={selectedMember.fullName}
+                            avatarUrl={selectedMember.avatarUrl}
+                            className="h-14 w-14 rounded-xl text-xl"
+                            fallbackClassName="bg-gradient-to-br from-pink-500/20 to-blue-500/20 text-white"
+                        />
                         <div className="space-y-1">
                             <p className="text-white font-medium">{selectedMember.fullName}</p>
                             <p className="text-zinc-500 text-sm">{selectedMember.email}</p>
@@ -288,9 +292,12 @@ function MemberRow({ member, selectedMember, onSelect, avatarBg, avatarText, bad
         <div
             className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${selectedMember?.id === member.id ? 'bg-white/5 ring-1 ring-pink-500/30' : 'hover:bg-white/[0.02]'}`}
             onClick={() => onSelect(selectedMember?.id === member.id ? null : member)}>
-            <div className={`h-9 w-9 rounded-full ${avatarBg} flex items-center justify-center text-sm font-bold ${avatarText}`}>
-                {member.fullName?.charAt(0) || 'U'}
-            </div>
+            <UserAvatar
+                name={member.fullName}
+                avatarUrl={member.avatarUrl}
+                className="h-9 w-9 rounded-full text-sm"
+                fallbackClassName={`${avatarBg} ${avatarText}`}
+            />
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">{member.fullName}</p>
                 <p className="text-xs text-zinc-600 truncate">{member.email}</p>

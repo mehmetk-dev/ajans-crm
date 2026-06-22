@@ -76,10 +76,12 @@ export interface AdminRoutineResponse {
     executionTime: string | null;
     assignedToId: string | null;
     assignedToName: string;
+    assignedToAvatarUrl?: string | null;
     category: string;
     isActive: boolean;
     createdById: string;
     createdByName: string;
+    createdByAvatarUrl?: string | null;
     createdAt: string;
     updatedAt: string;
 }

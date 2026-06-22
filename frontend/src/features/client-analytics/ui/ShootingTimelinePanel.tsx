@@ -83,7 +83,7 @@ export default function ShootingTimelinePanel() {
             cancelled.length > 0 && {
                 tab: 'CANCELLED',
                 count: cancelled.length,
-                label: 'iptal',
+                label: 'İptal',
                 icon: XCircle,
                 className:
                     'border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/15',

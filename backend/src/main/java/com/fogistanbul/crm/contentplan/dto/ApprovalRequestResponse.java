@@ -16,6 +16,7 @@ public class ApprovalRequestResponse {
     private UUID companyId;
     private String requestedByName;
     private UUID requestedById;
+    private String requestedByAvatarUrl;
     private String status;
     private String title;
     private String description;

@@ -13,6 +13,7 @@ public class TaskNoteResponse {
     private UUID taskId;
     private UUID authorId;
     private String authorName;
+    private String authorAvatarUrl;
     private String content;
     private Instant createdAt;
 }

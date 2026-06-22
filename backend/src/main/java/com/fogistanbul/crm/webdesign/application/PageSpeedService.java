@@ -56,7 +56,7 @@ public class PageSpeedService {
     @Transactional
     public PageSpeedReportResponse getReport(UUID companyId, boolean refresh) {
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
 
         String websiteUrl = resolveWebsiteUrl(company);
         String url = normalizeUrl(websiteUrl);
@@ -88,7 +88,7 @@ public class PageSpeedService {
         }
 
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
         company.setWebsite(normalized);
         companyRepository.save(company);
     }
@@ -118,14 +118,14 @@ public class PageSpeedService {
         if (url == null) {
             snap.setTestedUrl(websiteUrl != null ? websiteUrl : "");
             snap.setFetchedAt(Instant.now());
-            snap.setFetchError("Sirket icin website adresi tanimli degil");
+            snap.setFetchError("Şirket için website adresi tanımlı değil");
             return mapper.toScoreResponse(snapshotRepository.save(snap));
         }
 
         if (apiKey.isBlank()) {
             snap.setTestedUrl(url);
             snap.setFetchedAt(Instant.now());
-            snap.setFetchError("PAGESPEED_API_KEY tanimli degil");
+            snap.setFetchError("PAGESPEED_API_KEY tanımlı değil");
             return mapper.toScoreResponse(snapshotRepository.save(snap));
         }
 
@@ -240,10 +240,10 @@ public class PageSpeedService {
 
     private String toPageSpeedErrorMessage(String status, String body) {
         if (body != null && body.contains("FAILED_DOCUMENT_REQUEST")) {
-            return "Google PageSpeed siteyi yukleyemedi. Site tarayicida acilsa bile Google Lighthouse tarafindan engelleniyor, cok yavas yanit veriyor veya bot/guvenlik kurallarina takiliyor olabilir.";
+            return "Google PageSpeed siteyi yükleyemedi. Site tarayıcıda açılsa bile Google Lighthouse tarafından engelleniyor, çok yavaş yanıt veriyor veya bot/güvenlik kurallarına takılıyor olabilir.";
         }
         if (body != null && body.contains("API key not valid")) {
-            return "PAGESPEED_API_KEY gecersiz gorunuyor.";
+            return "PAGESPEED_API_KEY geçersiz görünüyor.";
         }
         if (body != null && body.contains("quota")) {
             return "PageSpeed API kotasi dolmus olabilir. Bir sure sonra tekrar deneyin.";

@@ -22,11 +22,13 @@ public class RoutineTaskResponse {
     private LocalTime executionTime;
     private UUID assignedToId;
     private String assignedToName;
+    private String assignedToAvatarUrl;
     private TaskCategory category;
     private Priority priority;
     private Boolean isActive;
     private UUID createdById;
     private String createdByName;
+    private String createdByAvatarUrl;
     private Instant createdAt;
     private Instant updatedAt;
     // for staff view: is current period completed?

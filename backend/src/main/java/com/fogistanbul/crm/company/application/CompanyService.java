@@ -237,7 +237,7 @@ public class CompanyService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "MEMBERSHIP_NOT_FOUND", "Bu kullanıcı bu şirkette bulunamadı"));
         if (membership.getMembershipRole() != MembershipRole.EMPLOYEE) {
             throw new org.springframework.security.access.AccessDeniedException(
-                    "Bu endpoint yalnizca sirket calisanlarini kaldirabilir"
+                    "Bu endpoint yalnızca şirket çalışanlarını kaldırabilir"
             );
         }
         membershipRepository.delete(membership);

@@ -64,7 +64,7 @@ export function NotesWorkspace({ companies }: NotesWorkspaceProps) {
                     onChange={event => setCompanyFilter(event.target.value)}
                     className="px-3 py-2 bg-white/[0.04] border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/40"
                 >
-                    <option value="">Tum Sirketler</option>
+                    <option value="">Tüm Şirketler</option>
                     {companies.map(company => (
                         <option key={company.id} value={company.id}>{company.name}</option>
                     ))}
@@ -78,11 +78,11 @@ export function NotesWorkspace({ companies }: NotesWorkspaceProps) {
             </AnimatePresence>
 
             {isError ? (
-                <div className="text-center py-12 text-red-400 text-sm">Notlar yuklenemedi.</div>
+                <div className="text-center py-12 text-red-400 text-sm">Notlar yüklenemedi.</div>
             ) : notes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-zinc-600">
                     <FileText className="w-12 h-12 mb-3 opacity-40" />
-                    <p className="text-sm">Not bulunamadi</p>
+                    <p className="text-sm">Not bulunamadı</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

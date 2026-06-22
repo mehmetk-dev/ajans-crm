@@ -38,7 +38,7 @@ public class ApprovalRequestService {
     public ApprovalRequestResponse create(CreateApprovalRequest request, UUID userId) {
         UserProfile requester = getUserOrThrow(userId);
         Company company = companyRepository.findById(request.getCompanyId())
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
         accessPolicy.requireCompanyAccess(requester, company.getId());
 
         if (request.getType() == RequestType.CONTENT_APPROVAL) {
@@ -119,17 +119,17 @@ public class ApprovalRequestService {
 
     private void validateContentApproval(CreateApprovalRequest request, UUID userId) {
         if (request.getReferenceId() == null) {
-            throw new IllegalArgumentException("Icerik onayi icin referans zorunludur");
+            throw new IllegalArgumentException("İçerik onayı için referans zorunludur");
         }
         ContentPlan plan = contentPlanService.getPlanForApproval(
                 request.getReferenceId(), request.getCompanyId(), userId, false);
         if (plan.getStatus() != com.fogistanbul.crm.entity.enums.ContentStatus.WAITING_APPROVAL) {
-            throw new IllegalStateException("Yalnizca onay bekleyen icerikler icin istek olusturulabilir");
+            throw new IllegalStateException("Yalnızca onay bekleyen içerikler için istek oluşturulabilir");
         }
         approvalRequestRepository.findByReferenceIdAndTypeAndStatus(
                 request.getReferenceId(), RequestType.CONTENT_APPROVAL, RequestStatus.PENDING)
                 .ifPresent(existing -> {
-                    throw new IllegalStateException("Bu icerik icin bekleyen bir onay istegi zaten var");
+                    throw new IllegalStateException("Bu içerik için bekleyen bir onay isteği zaten var");
                 });
         metadataCodec.parse(request.getMetadata());
     }
@@ -152,7 +152,7 @@ public class ApprovalRequestService {
 
     private ApprovalRequest getPendingRequest(UUID requestId) {
         ApprovalRequest request = approvalRequestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Istek bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("İstek bulunamadı"));
         if (request.getStatus() != RequestStatus.PENDING) {
             throw new IllegalStateException("Bu istek daha once sonuclandirilmis");
         }
@@ -161,7 +161,7 @@ public class ApprovalRequestService {
 
     private UserProfile getUserOrThrow(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
 
     private void markReviewed(

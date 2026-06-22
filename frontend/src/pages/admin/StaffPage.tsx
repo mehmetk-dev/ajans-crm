@@ -8,6 +8,7 @@ import {
 } from '../../features/company';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Plus, X, Building2, Trash2 } from 'lucide-react';
+import { UserAvatar } from '../../components/UserAvatar';
 
 export default function StaffPage() {
     const [staff, setStaff] = useState<StaffResponse[]>([]);
@@ -147,9 +148,12 @@ export default function StaffPage() {
                                     >
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-9 w-9 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-400 text-xs font-bold flex-shrink-0">
-                                                    {s.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                                                </div>
+                                                <UserAvatar
+                                                    name={s.fullName}
+                                                    avatarUrl={s.avatarUrl}
+                                                    className="h-9 w-9 rounded-xl text-xs"
+                                                    fallbackClassName="bg-pink-500/10 text-pink-400"
+                                                />
                                                 <div>
                                                     <a href={`/admin/staff/${s.id}`} className="text-sm font-medium text-white hover:text-orange-400 transition-colors">{s.fullName}</a>
                                                     <p className="text-[11px] text-zinc-600">{s.email}</p>

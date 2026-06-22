@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Users, Briefcase, Mail, Phone, Shield } from 'lucide-react';
 import { useMyTeam, type TeamMember } from '../../features/company';
+import { UserAvatar } from '../../components/UserAvatar';
 
 const ROLE_LABELS: Record<string, string> = {
     OWNER: 'Şirket Sahibi',
@@ -109,15 +110,12 @@ function MemberCard({ member, index, accent }: { member: TeamMember; index: numb
             className="glass-panel rounded-2xl p-5 hover:bg-white/[0.02] transition-colors"
         >
             <div className="flex items-start gap-4">
-                <div className={`h-12 w-12 rounded-xl ${accentStyles.avatar} flex items-center justify-center shrink-0 overflow-hidden`}>
-                    {member.avatarUrl ? (
-                        <img src={member.avatarUrl} alt={member.fullName} className="w-full h-full object-cover" />
-                    ) : (
-                        <span className="text-sm font-bold">
-                            {member.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                        </span>
-                    )}
-                </div>
+                <UserAvatar
+                    name={member.fullName}
+                    avatarUrl={member.avatarUrl}
+                    className="h-12 w-12 rounded-xl text-sm"
+                    fallbackClassName={accentStyles.avatar}
+                />
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-white truncate">{member.fullName}</p>
                     <span className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-md border mt-1 ${accentStyles.badge}`}>

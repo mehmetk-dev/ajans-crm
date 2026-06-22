@@ -3,6 +3,7 @@ export type MeetingStatus = 'PLANNED' | 'COMPLETED' | 'CANCELLED';
 export interface MeetingParticipant {
     userId: string;
     fullName: string;
+    avatarUrl?: string | null;
     email: string;
     noteSubmitted: boolean;
 }
@@ -10,6 +11,7 @@ export interface MeetingParticipant {
 export interface MeetingNote {
     userId: string;
     fullName: string;
+    avatarUrl?: string | null;
     content: string;
     createdAt: string;
 }
@@ -26,6 +28,7 @@ export interface MeetingResponse {
     status: MeetingStatus;
     createdById: string;
     createdByName: string;
+    createdByAvatarUrl?: string | null;
     participants: MeetingParticipant[];
     notes: MeetingNote[];
     createdAt: string;

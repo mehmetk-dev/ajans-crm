@@ -67,6 +67,6 @@ public class ShootResourceService {
 
     private UserProfile getUserOrThrow(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
 }

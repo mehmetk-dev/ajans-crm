@@ -13,6 +13,7 @@ public class NoteResponse {
     private UUID id;
     private UUID userId;
     private String userName;
+    private String userAvatarUrl;
     private UUID companyId;
     private String companyName;
     private String content;

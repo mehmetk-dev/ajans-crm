@@ -54,7 +54,7 @@ public class MetaAdsService {
                     ? exception.getMessage()
                     : "";
             log.error(
-                    "Meta Ads overview hatasi, company={}: {}",
+                    "Meta Ads overview hatası, company={}: {}",
                     companyId, message, exception);
             return MetaAdsOverviewResponse.error(
                     adAccountId, mapper.toUserErrorMessage(message));

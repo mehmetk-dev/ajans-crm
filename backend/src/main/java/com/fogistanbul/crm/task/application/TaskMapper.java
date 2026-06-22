@@ -3,6 +3,7 @@ package com.fogistanbul.crm.task.application;
 import com.fogistanbul.crm.entity.Task;
 import com.fogistanbul.crm.entity.TaskNote;
 import com.fogistanbul.crm.entity.TaskReview;
+import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.task.dto.TaskNoteResponse;
 import com.fogistanbul.crm.task.dto.TaskResponse;
 import com.fogistanbul.crm.task.dto.TaskReviewResponse;
@@ -18,8 +19,10 @@ public class TaskMapper {
                 .companyName(task.getCompany() != null ? task.getCompany().getName() : null)
                 .assignedToId(task.getAssignedTo().getId())
                 .assignedToName(displayName(task.getAssignedTo()))
+                .assignedToAvatarUrl(avatarUrl(task.getAssignedTo()))
                 .createdById(task.getCreatedBy().getId())
                 .createdByName(displayName(task.getCreatedBy()))
+                .createdByAvatarUrl(avatarUrl(task.getCreatedBy()))
                 .title(task.getTitle())
                 .description(task.getDescription())
                 .category(task.getCategory())
@@ -41,6 +44,7 @@ public class TaskMapper {
                 .taskId(note.getTask().getId())
                 .authorId(note.getAuthor().getId())
                 .authorName(displayName(note.getAuthor()))
+                .authorAvatarUrl(avatarUrl(note.getAuthor()))
                 .content(note.getContent())
                 .createdAt(note.getCreatedAt())
                 .build();
@@ -53,13 +57,18 @@ public class TaskMapper {
                 .taskTitle(review.getTask().getTitle())
                 .reviewerId(review.getReviewer().getId())
                 .reviewerName(displayName(review.getReviewer()))
+                .reviewerAvatarUrl(avatarUrl(review.getReviewer()))
                 .score(review.getScore())
                 .comment(review.getComment())
                 .createdAt(review.getCreatedAt())
                 .build();
     }
 
-    private String displayName(com.fogistanbul.crm.entity.UserProfile user) {
+    private String displayName(UserProfile user) {
         return user.getPerson() != null ? user.getPerson().getFullName() : user.getEmail();
+    }
+
+    private String avatarUrl(UserProfile user) {
+        return user.getPerson() != null ? user.getPerson().getAvatarUrl() : null;
     }
 }

@@ -3,6 +3,7 @@ import { CheckCircle2, Clock, Loader2, Wrench } from 'lucide-react';
 import { useMaintenanceLog } from '../hooks/useMaintenanceLog';
 import { MAINTENANCE_CATEGORY_LABELS } from '../model/maintenanceLog.constants';
 import { formatMaintenanceDate } from '../model/maintenanceLogDate';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface Props {
     companyId?: string;
@@ -57,7 +58,8 @@ export function MaintenanceTimeline({ companyId }: Props) {
                                         {MAINTENANCE_CATEGORY_LABELS[entry.category]}
                                     </span>
                                     {entry.performedByName && (
-                                        <span className="text-[11px] text-zinc-500">
+                                        <span className="text-[11px] text-zinc-500 flex items-center gap-1">
+                                            <UserAvatar name={entry.performedByName} avatarUrl={entry.performedByAvatarUrl} className="h-4 w-4 rounded text-[8px]" />
                                             {entry.performedByName}
                                         </span>
                                     )}

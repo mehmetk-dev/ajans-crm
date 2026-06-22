@@ -23,7 +23,7 @@ public class TaskAssignableUserService {
     @Transactional(readOnly = true)
     public List<ContactResponse> getAssignableUsers(UUID userId, UUID companyId) {
         UserProfile user = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
         List<UserProfile> users = candidates(user);
 
         if (companyId != null) {

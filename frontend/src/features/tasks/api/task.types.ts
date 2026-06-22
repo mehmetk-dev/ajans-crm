@@ -8,8 +8,10 @@ export interface TaskResponse {
     companyName: string | null;
     assignedToId: string;
     assignedToName: string;
+    assignedToAvatarUrl?: string | null;
     createdById: string;
     createdByName: string;
+    createdByAvatarUrl?: string | null;
     title: string;
     description: string | null;
     category: TaskCategory;
@@ -73,6 +75,7 @@ export interface TaskReviewResponse {
     taskTitle: string;
     reviewerId: string;
     reviewerName: string;
+    reviewerAvatarUrl?: string | null;
     score: number;
     comment: string | null;
     createdAt: string;
@@ -83,6 +86,7 @@ export interface TaskNoteResponse {
     taskId: string;
     authorId: string;
     authorName: string;
+    authorAvatarUrl?: string | null;
     content: string;
     createdAt: string;
 }

@@ -45,7 +45,7 @@ public class ContentPlanService {
     public ContentPlanResponse create(CreateContentPlanRequest request, UUID userId) {
         UserProfile creator = getUserOrThrow(userId);
         Company company = companyRepository.findById(request.getCompanyId())
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
         accessPolicy.requireCompanyAccess(creator, company.getId());
 
         ContentPlan plan = contentPlanRepository.save(ContentPlan.builder()
@@ -63,7 +63,7 @@ public class ContentPlanService {
                 .build());
 
         notifyCompanyMembers(company.getId(), userId, NotificationType.CONTENT_PLAN_CREATED,
-                "Yeni icerik plani: " + plan.getTitle(),
+                "Yeni içerik planı: " + plan.getTitle(),
                 "Platform: " + plan.getPlatform().name(), plan.getId());
         return mapper.toResponse(plan);
     }
@@ -171,7 +171,7 @@ public class ContentPlanService {
     ContentPlan getPlanForApproval(UUID planId, UUID companyId, UUID userId, boolean manage) {
         ContentPlan plan = getPlanOrThrow(planId);
         if (!plan.getCompany().getId().equals(companyId)) {
-            throw new IllegalArgumentException("Icerik plani ve sirket eslesmiyor");
+            throw new IllegalArgumentException("İçerik planı ve şirket eşleşmiyor");
         }
         if (manage) {
             accessPolicy.requireManage(plan, getUserOrThrow(userId));
@@ -197,12 +197,12 @@ public class ContentPlanService {
 
     private ContentPlan getPlanOrThrow(UUID planId) {
         return contentPlanRepository.findById(planId)
-                .orElseThrow(() -> new RuntimeException("Icerik plani bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("İçerik planı bulunamadı"));
     }
 
     private UserProfile getUserOrThrow(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
 
     private LocalDate parseDate(String value) {
@@ -219,7 +219,7 @@ public class ContentPlanService {
 
     private void notifyStatusChange(ContentPlan plan, UUID userId) {
         notifyCompanyMembers(plan.getCompany().getId(), userId, NotificationType.CONTENT_PLAN_UPDATED,
-                "Icerik plani guncellendi: " + plan.getTitle(),
+                "İçerik planı güncellendi: " + plan.getTitle(),
                 "Durum: " + plan.getStatus().name(), plan.getId());
     }
 

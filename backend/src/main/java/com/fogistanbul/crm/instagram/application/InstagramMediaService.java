@@ -69,7 +69,7 @@ public class InstagramMediaService {
             return rows;
         } catch (Exception exception) {
             log.error(
-                    "Instagram reels hatasi, companyId={}: {}",
+                    "Instagram reels hatası, companyId={}: {}",
                     companyId, exception.getMessage());
             return List.of();
         }
@@ -113,7 +113,7 @@ public class InstagramMediaService {
             return rows;
         } catch (Exception exception) {
             log.error(
-                    "Instagram posts hatasi, companyId={}: {}",
+                    "Instagram posts hatası, companyId={}: {}",
                     companyId, exception.getMessage());
             return List.of();
         }
@@ -144,7 +144,7 @@ public class InstagramMediaService {
                             parser.toLong(media.get("comments_count"))))
                     .toList();
         } catch (Exception exception) {
-            log.warn("Instagram media alinamadi: {}", exception.getMessage());
+            log.warn("Instagram media alınamadı: {}", exception.getMessage());
             return List.of();
         }
     }

@@ -121,7 +121,7 @@ public class StaffService {
         if (membership.getMembershipRole() != MembershipRole.AGENCY_STAFF
                 || membership.getCompany().getId().equals(AGENCY_ID)) {
             throw new org.springframework.security.access.AccessDeniedException(
-                    "Yalnizca musteri sirketindeki ajans atamasi kaldirilabilir"
+                    "Yalnızca müşteri şirketindeki ajans ataması kaldırılabilir"
             );
         }
 

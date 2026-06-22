@@ -21,6 +21,7 @@ public class MeetingResponse {
     private String status;
     private UUID createdById;
     private String createdByName;
+    private String createdByAvatarUrl;
     private List<ParticipantInfo> participants;
     private List<NoteInfo> notes;
     private Instant createdAt;
@@ -30,6 +31,7 @@ public class MeetingResponse {
     public static class ParticipantInfo {
         private UUID userId;
         private String fullName;
+        private String avatarUrl;
         private String email;
         private boolean noteSubmitted;
     }
@@ -39,6 +41,7 @@ public class MeetingResponse {
     public static class NoteInfo {
         private UUID userId;
         private String fullName;
+        private String avatarUrl;
         private String content;
         private Instant createdAt;
     }

@@ -29,15 +29,15 @@ export default function LoginPage() {
             await login(email, password);
             setTimeout(() => navigate('/'), 600);
         } catch (err: unknown) {
-            const apiError = parseApiError(err, 'Beklenmeyen bir hata olustu.');
+            const apiError = parseApiError(err, 'Beklenmeyen bir hata oluştu.');
             if (apiError.code === 'NETWORK_ERROR') {
-                setError('Sunucuya ulasilamiyor. Lutfen birkas saniye sonra tekrar deneyin.');
+                setError('Sunucuya ulaşılamıyor. Lütfen birkaç saniye sonra tekrar deneyin.');
             } else if (apiError.status === 429) {
-                setError('Cok fazla deneme yapildi. Lutfen biraz bekleyip tekrar deneyin.');
+                setError('Çok fazla deneme yapıldı. Lütfen biraz bekleyip tekrar deneyin.');
             } else if (apiError.code === 'INVALID_CREDENTIALS' || apiError.status === 401) {
-                setError('Gecersiz email veya sifre.');
+                setError('Geçersiz email veya şifre.');
             } else if ((apiError.status ?? 0) >= 500) {
-                setError('Sunucu gecici olarak hazir degil. Lutfen tekrar deneyin.');
+                setError('Sunucu geçici olarak hazır değil. Lütfen tekrar deneyin.');
             } else {
                 setError(apiError.message);
             }
@@ -72,7 +72,7 @@ export default function LoginPage() {
                                 <h1 className="text-2xl font-bold tracking-tight text-white">
                                     FOG<span className="text-zinc-500 font-normal">istanbul</span>
                                 </h1>
-                                <p className="text-zinc-600 text-xs mt-1">Dijital Ajans Yonetim Sistemi</p>
+                                <p className="text-zinc-600 text-xs mt-1">Dijital Ajans Yönetim Sistemi</p>
                             </motion.div>
                         </div>
 
@@ -83,8 +83,8 @@ export default function LoginPage() {
                             className="bg-[#0C0C0E] border border-white/[0.06] p-7 rounded-2xl"
                         >
                             <div className="mb-6">
-                                <h2 className="text-lg font-semibold text-white">Giris Yap</h2>
-                                <p className="text-zinc-500 text-[13px] mt-0.5">Hesabiniza erismek icin bilgilerinizi girin.</p>
+                                <h2 className="text-lg font-semibold text-white">Giriş Yap</h2>
+                                <p className="text-zinc-500 text-[13px] mt-0.5">Hesabınıza erişmek için bilgilerinizi girin.</p>
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-4">
@@ -119,7 +119,7 @@ export default function LoginPage() {
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label htmlFor={`${fid}-password`} className="text-[11px] font-medium text-zinc-400 ml-0.5">Sifre</label>
+                                    <label htmlFor={`${fid}-password`} className="text-[11px] font-medium text-zinc-400 ml-0.5">Şifre</label>
                                     <div className="relative group">
                                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-pink-400 transition-colors" />
                                         <input
@@ -147,7 +147,7 @@ export default function LoginPage() {
                                             <input type="checkbox" className="peer appearance-none w-4 h-4 border border-white/10 rounded bg-white/[0.03] checked:bg-pink-500 checked:border-pink-500 transition-all" />
                                             <User className="absolute w-2.5 h-2.5 left-[3px] text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
                                         </div>
-                                        <span className="text-zinc-500 text-[11px] group-hover:text-zinc-400 transition-colors">Beni Hatirla</span>
+                                        <span className="text-zinc-500 text-[11px] group-hover:text-zinc-400 transition-colors">Beni Hatırla</span>
                                     </label>
                                 </div>
 
@@ -160,7 +160,7 @@ export default function LoginPage() {
                                         <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                                     ) : (
                                         <>
-                                            <span>Giris Yap</span>
+                                            <span>Giriş Yap</span>
                                             <LogIn className="w-3.5 h-3.5" />
                                         </>
                                     )}

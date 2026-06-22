@@ -203,9 +203,9 @@ public class PrProjectPhaseService {
 
     private PrProjectPhase getProjectPhase(UUID projectId, UUID phaseId) {
         PrProjectPhase phase = phaseRepository.findById(phaseId)
-                .orElseThrow(() -> new RuntimeException("Faz bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Faz bulunamadı"));
         if (!phase.getProject().getId().equals(projectId)) {
-            throw new IllegalArgumentException("Faz bu projeye ait degil");
+            throw new IllegalArgumentException("Faz bu projeye ait değil");
         }
         return phase;
     }

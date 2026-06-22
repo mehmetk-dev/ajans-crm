@@ -3,6 +3,7 @@ import { Download, Eye, Trash2, Video } from 'lucide-react';
 import { fileApi } from '../api/fileApi';
 import type { FileAttachmentResponse } from '../api/file.types';
 import { getFileIcon, isImageType, isVideoType, formatFileSize, formatFileDate } from '../model/file.utils';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface FileCardProps {
     file: FileAttachmentResponse;
@@ -57,7 +58,14 @@ export default function FileCard({ file, onPreview, onDelete }: FileCardProps) {
                     <span className="text-[9px] text-zinc-600">{formatFileSize(file.fileSize)}</span>
                     <span className="text-[9px] text-zinc-700">{formatFileDate(file.createdAt)}</span>
                 </div>
-                <p className="text-[9px] text-zinc-700 mt-0.5 truncate">{file.uploadedByName}</p>
+                <div className="flex items-center gap-1 mt-0.5 min-w-0">
+                    <UserAvatar
+                        name={file.uploadedByName}
+                        avatarUrl={file.uploadedByAvatarUrl}
+                        className="h-4 w-4 rounded text-[8px]"
+                    />
+                    <p className="text-[9px] text-zinc-700 truncate">{file.uploadedByName}</p>
+                </div>
             </div>
 
             <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -102,6 +102,7 @@ const buildShoot = (overrides: Partial<ShootResponse> = {}): ShootResponse => ({
     status: 'PLANNED',
     photographerId: 'user-1',
     photographerName: 'Photog',
+    photographerAvatarUrl: null,
     notes: null,
     createdById: 'user-1',
     createdByName: 'User',

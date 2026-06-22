@@ -54,9 +54,9 @@ public class InstagramOverviewService {
         try {
             return buildOverview(companyId, token, accessToken, range);
         } catch (Exception exception) {
-            log.error("Instagram overview hatasi, companyId={}: {}", companyId, exception.getMessage());
+            log.error("Instagram overview hatası, companyId={}: {}", companyId, exception.getMessage());
             if (isInvalidToken(exception)) {
-                log.warn("Instagram token gecersiz, baglanti siliniyor companyId={}", companyId);
+                log.warn("Instagram token geçersiz, bağlantı siliniyor companyId={}", companyId);
                 oAuthService.disconnect(companyId);
                 return InstagramOverviewResponse.disabled();
             }

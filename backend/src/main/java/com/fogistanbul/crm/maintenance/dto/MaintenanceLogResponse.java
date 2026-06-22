@@ -17,6 +17,7 @@ public class MaintenanceLogResponse {
     private Instant performedAt;
     private UUID performedById;
     private String performedByName;
+    private String performedByAvatarUrl;
     private Instant createdAt;
     private Instant updatedAt;
 }

@@ -30,7 +30,7 @@ public class MeetingAccessPolicy {
                 || isParticipant(meeting, user.getId())) {
             return;
         }
-        throw new AccessDeniedException("Bu toplantiyi goruntuleme yetkiniz yok");
+        throw new AccessDeniedException("Bu toplantıyı görüntüleme yetkiniz yok");
     }
 
     public void requireManage(Meeting meeting, UserProfile user) {
@@ -38,7 +38,7 @@ public class MeetingAccessPolicy {
         if (isAdmin(user) || isCreator(meeting, user.getId())) {
             return;
         }
-        throw new AccessDeniedException("Bu toplantiyi guncelleme yetkiniz yok");
+        throw new AccessDeniedException("Bu toplantıyı güncelleme yetkiniz yok");
     }
 
     public void requireAddNote(Meeting meeting, UserProfile user) {
@@ -46,7 +46,7 @@ public class MeetingAccessPolicy {
         if (isAdmin(user) || isCreator(meeting, user.getId()) || isParticipant(meeting, user.getId())) {
             return;
         }
-        throw new AccessDeniedException("Bu toplantiya not ekleme yetkiniz yok");
+        throw new AccessDeniedException("Bu toplantıya not ekleme yetkiniz yok");
     }
 
     public void requireCompanyAccess(UserProfile user, UUID companyId) {

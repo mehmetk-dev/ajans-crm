@@ -3,6 +3,7 @@ package com.fogistanbul.crm.meeting.application;
 import com.fogistanbul.crm.entity.Meeting;
 import com.fogistanbul.crm.entity.MeetingNote;
 import com.fogistanbul.crm.entity.MeetingParticipant;
+import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.meeting.dto.MeetingResponse;
 import com.fogistanbul.crm.repository.MeetingNoteRepository;
 import com.fogistanbul.crm.repository.MeetingParticipantRepository;
@@ -35,15 +36,18 @@ public class MeetingMapper {
                 .status(meeting.getStatus().name())
                 .createdById(meeting.getCreatedBy().getId())
                 .createdByName(displayName(meeting.getCreatedBy()))
+                .createdByAvatarUrl(avatarUrl(meeting.getCreatedBy()))
                 .participants(participants.stream().map(participant -> MeetingResponse.ParticipantInfo.builder()
                         .userId(participant.getUser().getId())
                         .fullName(displayName(participant.getUser()))
+                        .avatarUrl(avatarUrl(participant.getUser()))
                         .email(participant.getUser().getEmail())
                         .noteSubmitted(noteUserIds.contains(participant.getUser().getId()))
                         .build()).toList())
                 .notes(notes.stream().map(note -> MeetingResponse.NoteInfo.builder()
                         .userId(note.getUser().getId())
                         .fullName(displayName(note.getUser()))
+                        .avatarUrl(avatarUrl(note.getUser()))
                         .content(note.getContent())
                         .createdAt(note.getCreatedAt())
                         .build()).toList())
@@ -51,7 +55,11 @@ public class MeetingMapper {
                 .build();
     }
 
-    private String displayName(com.fogistanbul.crm.entity.UserProfile user) {
+    private String displayName(UserProfile user) {
         return user.getPerson() != null ? user.getPerson().getFullName() : user.getEmail();
+    }
+
+    private String avatarUrl(UserProfile user) {
+        return user.getPerson() != null ? user.getPerson().getAvatarUrl() : null;
     }
 }

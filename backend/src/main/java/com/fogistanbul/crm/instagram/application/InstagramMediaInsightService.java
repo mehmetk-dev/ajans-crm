@@ -77,7 +77,7 @@ public class InstagramMediaInsightService {
                 }
             } catch (Exception exception) {
                 log.debug(
-                        "Instagram media insight adayi gecersiz, mediaId={}, metric={}: {}",
+                        "Instagram media insight adayı geçersiz, mediaId={}, metric={}: {}",
                         mediaId, metric, exception.getMessage());
             }
         }

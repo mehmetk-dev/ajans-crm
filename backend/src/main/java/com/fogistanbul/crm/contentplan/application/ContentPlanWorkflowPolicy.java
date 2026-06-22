@@ -33,7 +33,7 @@ public class ContentPlanWorkflowPolicy {
                 || current == ContentStatus.APPROVED && target == ContentStatus.PUBLISHED;
         if (!valid) {
             throw new IllegalStateException(
-                    "Gecersiz icerik durumu gecisi: " + current + " -> " + target);
+                    "Geçersiz içerik durumu geçişi: " + current + " -> " + target);
         }
     }
 
@@ -46,7 +46,7 @@ public class ContentPlanWorkflowPolicy {
                 plan.getId(), RequestType.CONTENT_APPROVAL, RequestStatus.PENDING)
                 .ifPresent(request -> {
                     throw new IllegalStateException(
-                            "Bekleyen onay istegi Istekler ekranindan sonuclandirilmalidir");
+                            "Bekleyen onay isteği İstekler ekranından sonuçlandırılmalıdır");
                 });
     }
 }

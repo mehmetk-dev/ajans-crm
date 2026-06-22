@@ -135,17 +135,17 @@ public class MeetingService {
             return null;
         }
         return companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
     }
 
     private Meeting getMeetingOrThrow(UUID meetingId) {
         return meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new RuntimeException("Toplanti bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Toplantı bulunamadı"));
     }
 
     private UserProfile getUserOrThrow(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
 
     private List<UUID> distinctParticipantIds(List<UUID> participantIds) {

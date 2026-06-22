@@ -42,6 +42,7 @@ function buildShoot(overrides: Partial<ShootResponse> = {}): ShootResponse {
         status: 'PLANNED',
         photographerId: 'u-1',
         photographerName: 'Photographer',
+        photographerAvatarUrl: null,
         notes: null,
         createdById: 'u-1',
         createdByName: 'User',

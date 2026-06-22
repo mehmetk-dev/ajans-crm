@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { fileApi } from '../api/fileApi';
 import type { FileAttachmentResponse } from '../api/file.types';
 import { formatFileSize, formatFileDate } from '../model/file.utils';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface FilePreviewModalProps {
     file: FileAttachmentResponse | null;
@@ -51,9 +52,14 @@ export default function FilePreviewModal({ file, onClose }: FilePreviewModalProp
                             <div className="px-4 py-3 border-t border-white/[0.06] flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-white font-medium">{file.originalName}</p>
-                                    <p className="text-[10px] text-zinc-500">
-                                        {formatFileSize(file.fileSize)} · {file.uploadedByName} · {formatFileDate(file.createdAt)}
-                                    </p>
+                                    <div className="mt-1 flex items-center gap-1.5 text-[10px] text-zinc-500">
+                                        <span>{formatFileSize(file.fileSize)}</span>
+                                        <span>·</span>
+                                        <UserAvatar name={file.uploadedByName} avatarUrl={file.uploadedByAvatarUrl} className="h-4 w-4 rounded text-[8px]" />
+                                        <span>{file.uploadedByName}</span>
+                                        <span>·</span>
+                                        <span>{formatFileDate(file.createdAt)}</span>
+                                    </div>
                                 </div>
                                 <a
                                     href={fileApi.getDownloadUrl(file.id)}

@@ -6,6 +6,7 @@ import type { TaskResponse, TaskStatus } from '../api/task.types';
 import { useTaskNotes } from '../hooks/useTasks';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Calendar, Clock, Building2, Trash2, MessageSquare, Send, ChevronRight, Tag, Flag, CheckCircle2 } from 'lucide-react';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 const statusBadge: Record<string, { bg: string; text: string; label: string }> = {
     TODO: { bg: 'bg-zinc-800', text: 'text-zinc-400', label: 'Bekliyor' },
@@ -131,7 +132,10 @@ export default function TaskDetailPanel({ task, onClose, onStatusChange }: TaskD
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-[#0C0C0E] rounded-xl p-3 border border-white/[0.04]">
                                     <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5 flex items-center gap-1"><User className="w-3 h-3" /> Atanan</p>
-                                    <p className="text-sm text-white font-medium">{task.assignedToName}</p>
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <UserAvatar name={task.assignedToName} avatarUrl={task.assignedToAvatarUrl} className="h-6 w-6 rounded-lg text-[10px]" />
+                                        <p className="text-sm text-white font-medium truncate">{task.assignedToName}</p>
+                                    </div>
                                 </div>
                                 <div className="bg-[#0C0C0E] rounded-xl p-3 border border-white/[0.04]">
                                     <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Building2 className="w-3 h-3" /> Şirket</p>
@@ -143,7 +147,10 @@ export default function TaskDetailPanel({ task, onClose, onStatusChange }: TaskD
                                 </div>
                                 <div className="bg-[#0C0C0E] rounded-xl p-3 border border-white/[0.04]">
                                     <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Flag className="w-3 h-3" /> Oluşturan</p>
-                                    <p className="text-sm text-white font-medium">{task.createdByName}</p>
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <UserAvatar name={task.createdByName} avatarUrl={task.createdByAvatarUrl} className="h-6 w-6 rounded-lg text-[10px]" />
+                                        <p className="text-sm text-white font-medium truncate">{task.createdByName}</p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -221,7 +228,10 @@ export default function TaskDetailPanel({ task, onClose, onStatusChange }: TaskD
                                     {notes.map(note => (
                                         <div key={note.id} className="bg-[#0C0C0E] border border-white/[0.04] rounded-xl p-3 group/note">
                                             <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[11px] font-semibold text-pink-400">{note.authorName}</span>
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <UserAvatar name={note.authorName} avatarUrl={note.authorAvatarUrl} className="h-5 w-5 rounded-md text-[9px]" fallbackClassName="bg-pink-500/10 text-pink-400" />
+                                                    <span className="text-[11px] font-semibold text-pink-400 truncate">{note.authorName}</span>
+                                                </div>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-[10px] text-zinc-700">
                                                         {new Date(note.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}

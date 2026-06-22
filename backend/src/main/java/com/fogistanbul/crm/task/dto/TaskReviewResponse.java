@@ -14,6 +14,7 @@ public class TaskReviewResponse {
     private String taskTitle;
     private UUID reviewerId;
     private String reviewerName;
+    private String reviewerAvatarUrl;
     private Integer score;
     private String comment;
     private Instant createdAt;

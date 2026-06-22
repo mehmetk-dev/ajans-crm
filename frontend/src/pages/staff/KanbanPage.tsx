@@ -21,6 +21,7 @@ import {
     formatTime,
     formatDateShort,
 } from '../../features/kanban';
+import { UserAvatar } from '../../components/UserAvatar';
 
 /* ─── Greeting Icon ─── */
 function GreetingIcon({ type }: { type: 'moon' | 'sunrise' | 'sun' | 'coffee' }) {
@@ -77,13 +78,12 @@ export default function KanbanPage() {
                 <div className="relative flex items-start gap-5">
                     {/* Avatar */}
                     <div className="relative shrink-0 group">
-                        {user?.avatarUrl ? (
-                            <img src={user.avatarUrl} alt="" className="h-16 w-16 rounded-2xl object-cover border-2 border-white/[0.08]" />
-                        ) : (
-                            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-pink-500/20 to-pink-500/20 flex items-center justify-center text-pink-400 text-xl font-bold border-2 border-white/[0.08]">
-                                {user?.fullName?.charAt(0) || 'S'}
-                            </div>
-                        )}
+                        <UserAvatar
+                            name={user?.fullName}
+                            avatarUrl={user?.avatarUrl}
+                            className="h-16 w-16 rounded-2xl border-2 border-white/[0.08] text-xl"
+                            fallbackClassName="bg-gradient-to-br from-pink-500/20 to-pink-500/20 text-pink-400"
+                        />
                         <button
                             onClick={() => avatarInputRef.current?.click()}
                             disabled={avatarMutation.isPending}

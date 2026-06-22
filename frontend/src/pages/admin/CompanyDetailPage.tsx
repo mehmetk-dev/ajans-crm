@@ -192,7 +192,7 @@ const SERVICE_META = [
     { category: 'AD_MANAGEMENT',     label: 'Reklam Yönetimi',  desc: 'Google Ads + Meta Ads',           icon: Megaphone, color: 'amber' },
     { category: 'SOCIAL_MEDIA',      label: 'Sosyal Medya',     desc: 'Instagram Analiz + Reels',        icon: Instagram, color: 'pink' },
     { category: 'PRODUCTION',        label: 'Prodüksiyon',      desc: 'Çekim Takvimi',                   icon: Camera, color: 'violet' },
-    { category: 'CONTENT_MARKETING', label: 'Icerik Pazarlama', desc: 'Icerik Plani',                   icon: FileText, color: 'emerald' },
+    { category: 'CONTENT_MARKETING', label: 'İçerik Pazarlama', desc: 'İçerik Planı',                   icon: FileText, color: 'emerald' },
 ];
 
 const COLOR_MAP: Record<string, string> = {
@@ -228,7 +228,7 @@ function ServiceManagementSection({ companyId }: { companyId: string }) {
         <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-5">
                 <ToggleRight className="w-4 h-4 text-orange-400" />
-                <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Hizmet Yonetimi</h3>
+                <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Hizmet Yönetimi</h3>
                 <span className="ml-auto text-[10px] text-zinc-600">
                     {services.filter(s => s.active).length}/{services.length || 6} aktif
                 </span>

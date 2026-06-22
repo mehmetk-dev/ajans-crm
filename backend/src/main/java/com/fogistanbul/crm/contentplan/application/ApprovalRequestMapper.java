@@ -17,6 +17,7 @@ public class ApprovalRequestMapper {
                 .companyId(request.getCompany().getId())
                 .requestedByName(displayName(request.getRequestedBy()))
                 .requestedById(request.getRequestedBy().getId())
+                .requestedByAvatarUrl(avatarUrl(request.getRequestedBy()))
                 .status(request.getStatus().name())
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -30,5 +31,9 @@ public class ApprovalRequestMapper {
 
     private String displayName(UserProfile user) {
         return user.getPerson() != null ? user.getPerson().getFullName() : user.getEmail();
+    }
+
+    private String avatarUrl(UserProfile user) {
+        return user.getPerson() != null ? user.getPerson().getAvatarUrl() : null;
     }
 }

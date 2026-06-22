@@ -105,7 +105,7 @@ export default function InstagramDetailPage() {
                 }
             })
             .catch((err: unknown) =>
-                setError(getApiErrorMessage(err, 'Baglanti hatasi')))
+                setError(getApiErrorMessage(err, 'Bağlantı hatası')))
             .finally(() => setLoading(false));
     }, [companyId]);
 

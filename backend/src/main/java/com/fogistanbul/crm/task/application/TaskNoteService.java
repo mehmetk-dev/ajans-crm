@@ -53,7 +53,7 @@ public class TaskNoteService {
     @Transactional
     public void deleteTaskNote(UUID noteId, UUID userId) {
         TaskNote note = taskNoteRepository.findById(noteId)
-                .orElseThrow(() -> new RuntimeException("Not bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Not bulunamadı"));
         UserProfile user = getUser(userId);
         accessPolicy.requireRead(note.getTask(), user);
         if (!note.getAuthor().getId().equals(userId) && user.getGlobalRole() != GlobalRole.ADMIN) {
@@ -64,11 +64,11 @@ public class TaskNoteService {
 
     private Task getTask(UUID taskId) {
         return taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Görev bulunamadı"));
     }
 
     private UserProfile getUser(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
 }

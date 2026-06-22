@@ -2,6 +2,7 @@ export interface Note {
     id: string;
     userId: string;
     userName: string;
+    userAvatarUrl?: string | null;
     companyId: string | null;
     companyName: string | null;
     content: string;

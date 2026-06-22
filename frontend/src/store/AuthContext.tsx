@@ -7,6 +7,7 @@ interface AuthContextType {
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
     logout: () => void;
+    updateUser: (patch: Partial<UserInfo>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -47,8 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.location.href = '/login';
     };
 
+    const updateUser = (patch: Partial<UserInfo>) => {
+        setUser(current => current ? { ...current, ...patch } : current);
+    };
+
     return (
-        <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+        <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

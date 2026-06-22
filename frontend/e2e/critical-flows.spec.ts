@@ -35,12 +35,12 @@ async function api(request: any, token: string, method: string, url: string, dat
   });
 }
 
-test.describe('Kritik E2E Akislari', () => {
+test.describe('Kritik E2E Akışları', () => {
   test.beforeAll(async ({ request }) => {
     adminToken = await login(request, ADMIN.email, ADMIN.password);
   });
 
-  test('1. Yetkisiz kullanici baska sirket verisine erisemez', async ({ request }) => {
+  test('1. Yetkisiz kullanıcı başka şirket verisine erişemez', async ({ request }) => {
     // No token - should get 401
     const resp = await request.get('/api/admin/companies', {
       headers: { 'X-Request-ID': 'e2e-403-test' },
@@ -50,10 +50,10 @@ test.describe('Kritik E2E Akislari', () => {
     expect(body.code).toBe('UNAUTHORIZED');
   });
 
-  test('2. Admin sirket olusturabilir', async ({ request }) => {
+  test('2. Admin şirket oluşturabilir', async ({ request }) => {
     const timestamp = Date.now();
     const resp = await api(request, adminToken, 'post', '/api/admin/companies', {
-      name: `E2E Test Sirket ${timestamp}`,
+      name: `E2E Test Şirket ${timestamp}`,
       industry: 'Teknoloji',
       email: `e2e-test-${timestamp}@example.com`,
       ownerEmail: `e2e-owner-${timestamp}@example.com`,
@@ -66,19 +66,19 @@ test.describe('Kritik E2E Akislari', () => {
     expect(resp.status()).toBe(201);
     const body = await resp.json();
     expect(body.id).toBeTruthy();
-    expect(body.name).toContain('E2E Test Sirket');
+    expect(body.name).toContain('E2E Test Şirket');
     companyId = body.id;
     clientToken = await login(request, `e2e-owner-${timestamp}@example.com`, 'Test1234!');
   });
 
-  test('3. Staff gorev gorur ve tamamlar', async ({ request }) => {
+  test('3. Staff görev görür ve tamamlar', async ({ request }) => {
     // Login as staff
     staffToken = await login(request, 'staff@example.com', 'Staff123!');
 
     // Staff creates task
     const createResp = await api(request, staffToken, 'post', '/api/staff/tasks', {
-      title: 'E2E Test Gorev',
-      description: 'Bu bir E2E test gorevidir',
+      title: 'E2E Test Görev',
+      description: 'Bu bir E2E test görevidir',
       companyId,
       priority: 'HIGH',
       status: 'ACTIVE',
@@ -87,7 +87,7 @@ test.describe('Kritik E2E Akislari', () => {
 
     expect(createResp.status()).toBe(201);
     const task = await createResp.json();
-    expect(task.title).toBe('E2E Test Gorev');
+    expect(task.title).toBe('E2E Test Görev');
     taskId = task.id;
 
     // Staff views task list (must contain the new task)
@@ -143,7 +143,7 @@ test.describe('Kritik E2E Akislari', () => {
     expect(listResp.status()).toBe(200);
   });
 
-  test('5. Staff ve client mesajlasir', async ({ request }) => {
+  test('5. Staff ve client mesajlaşır', async ({ request }) => {
     // Get contacts
     const contactsResp = await api(request, staffToken, 'get', '/api/staff/messaging/contacts');
     expect(contactsResp.status()).toBe(200);

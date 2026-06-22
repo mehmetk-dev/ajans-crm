@@ -32,12 +32,14 @@ public class ShootMapper {
                 .status(shoot.getStatus().name())
                 .photographerId(shoot.getPhotographer() != null ? shoot.getPhotographer().getId() : null)
                 .photographerName(shoot.getPhotographer() != null ? displayName(shoot.getPhotographer()) : null)
+                .photographerAvatarUrl(shoot.getPhotographer() != null ? avatarUrl(shoot.getPhotographer()) : null)
                 .notes(shoot.getNotes())
                 .createdById(shoot.getCreatedBy().getId())
                 .createdByName(displayName(shoot.getCreatedBy()))
                 .participants(participants.stream().map(participant -> ShootResponse.ParticipantInfo.builder()
                         .userId(participant.getUser().getId())
                         .fullName(displayName(participant.getUser()))
+                        .avatarUrl(avatarUrl(participant.getUser()))
                         .roleInShoot(participant.getRoleInShoot())
                         .build()).toList())
                 .equipment(equipment.stream().map(item -> ShootResponse.EquipmentInfo.builder()
@@ -53,5 +55,9 @@ public class ShootMapper {
 
     private String displayName(UserProfile user) {
         return user.getPerson() != null ? user.getPerson().getFullName() : user.getEmail();
+    }
+
+    private String avatarUrl(UserProfile user) {
+        return user.getPerson() != null ? user.getPerson().getAvatarUrl() : null;
     }
 }

@@ -7,6 +7,7 @@ import GlobalSearch from '../components/GlobalSearch';
 import TimeTracker from '../components/TimeTracker';
 import ThemeToggle from '../components/ThemeToggle';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { UserAvatar } from '../components/UserAvatar';
 import {
     LayoutDashboard, ListTodo, Building2, Calendar,
     LogOut, Briefcase, Camera, Rocket, MessageSquare, Menu, X, BarChart3,
@@ -125,13 +126,12 @@ export default function StaffLayout() {
                         onClick={() => setSidebarOpen(false)}
                         className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer"
                     >
-                        {user?.avatarUrl ? (
-                            <img src={user.avatarUrl} alt="" className="h-8 w-8 rounded-lg object-cover" />
-                        ) : (
-                            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-pink-500/20 to-pink-500/20 flex items-center justify-center text-pink-400 text-xs font-bold">
-                                {user?.fullName?.charAt(0) || 'S'}
-                            </div>
-                        )}
+                        <UserAvatar
+                            name={user?.fullName}
+                            avatarUrl={user?.avatarUrl}
+                            className="h-8 w-8 rounded-lg text-xs"
+                            fallbackClassName="bg-gradient-to-br from-pink-500/20 to-pink-500/20 text-pink-400"
+                        />
                         <div className="flex-1 min-w-0">
                             <p className="text-[13px] text-white font-medium truncate">{user?.fullName}</p>
                             <p className="text-[10px] text-zinc-600 truncate">{user?.email}</p>

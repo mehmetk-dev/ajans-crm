@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import type { PrProjectPhase, PrProjectStatus } from '../api/prProject.types';
 import { formatPrProjectDate } from '../model/prProject.utils';
+import { UserAvatar } from '../../../components/UserAvatar';
 
 interface PrPhaseCardProps {
     phase: PrProjectPhase;
@@ -64,7 +65,11 @@ export function PrPhaseCard({
                     <div className="flex items-center gap-2 mt-0.5">
                         {phase.assignedToName && (
                             <span className="text-[10px] text-zinc-600 flex items-center gap-0.5">
-                                <User className="w-2.5 h-2.5" />
+                                {phase.assignedToAvatarUrl ? (
+                                    <UserAvatar name={phase.assignedToName} avatarUrl={phase.assignedToAvatarUrl} className="h-3.5 w-3.5 rounded text-[7px]" />
+                                ) : (
+                                    <User className="w-2.5 h-2.5" />
+                                )}
                                 {phase.assignedToName}
                             </span>
                         )}
@@ -113,8 +118,9 @@ export function PrPhaseCard({
                                     className="bg-[#0a0a0b] rounded-lg px-2.5 py-1.5 border border-white/[0.03]"
                                 >
                                     <div className="flex justify-between gap-2">
-                                        <span className="text-[10px] text-violet-400">
-                                            {item.authorName}
+                                        <span className="text-[10px] text-violet-400 flex items-center gap-1 min-w-0">
+                                            <UserAvatar name={item.authorName} avatarUrl={item.authorAvatarUrl} className="h-4 w-4 rounded text-[8px]" fallbackClassName="bg-violet-500/10 text-violet-400" />
+                                            <span className="truncate">{item.authorName}</span>
                                         </span>
                                         <span className="text-[9px] text-zinc-700">
                                             {formatPrProjectDate(item.createdAt)}

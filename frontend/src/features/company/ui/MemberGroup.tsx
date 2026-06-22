@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { UserAvatar } from '../../../components/UserAvatar';
 import type { MembershipInfo, MembershipRole } from '../api/company.types';
 
 interface Props {
@@ -59,9 +60,12 @@ export function MemberGroup({
                             onClick={() => onSelect(member)}
                             className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all ${selected ? 'bg-white/5 ring-1 ring-orange-500/30' : 'hover:bg-white/[0.02]'}`}
                         >
-                            <div className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold ${styles.avatar}`}>
-                                {member.fullName?.charAt(0) || 'U'}
-                            </div>
+                            <UserAvatar
+                                name={member.fullName}
+                                avatarUrl={member.avatarUrl}
+                                className="h-9 w-9 rounded-full text-sm"
+                                fallbackClassName={styles.avatar}
+                            />
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-white truncate">{member.fullName}</p>
                                 <p className="text-xs text-zinc-600 truncate">{member.email}</p>

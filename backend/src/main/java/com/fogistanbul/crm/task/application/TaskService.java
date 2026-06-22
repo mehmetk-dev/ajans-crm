@@ -49,7 +49,7 @@ public class TaskService {
         Company company = null;
         if (req.getCompanyId() != null) {
             company = companyRepository.findById(req.getCompanyId())
-                    .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                    .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
         }
         accessPolicy.requireAssignable(creator, assignee, company != null ? company.getId() : null);
 
@@ -130,7 +130,7 @@ public class TaskService {
     @Transactional(readOnly = true)
     public TaskResponse getTaskById(UUID taskId, UUID userId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Görev bulunamadı"));
         accessPolicy.requireRead(task, getUserOrThrow(userId));
         return mapper.toResponse(task);
     }
@@ -138,7 +138,7 @@ public class TaskService {
     @Transactional(readOnly = true)
     public TaskResponse getTaskByIdForUser(UUID taskId, UUID userId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Görev bulunamadı"));
         accessPolicy.requireRead(task, getUserOrThrow(userId));
         return mapper.toResponse(task);
     }
@@ -146,7 +146,7 @@ public class TaskService {
     @Transactional
     public TaskResponse updateTask(UUID taskId, UpdateTaskRequest req, UUID userId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Görev bulunamadı"));
         UserProfile user = getUserOrThrow(userId);
         accessPolicy.requireUpdate(task, user);
 
@@ -189,7 +189,7 @@ public class TaskService {
         }
         if (req.getCompanyId() != null) {
             Company company = companyRepository.findById(req.getCompanyId())
-                    .orElseThrow(() -> new RuntimeException("Sirket bulunamadi"));
+                    .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
             accessPolicy.requireCompanyAccess(user, company.getId());
             accessPolicy.requireAssignable(user, task.getAssignedTo(), company.getId());
             task.setCompany(company);
@@ -199,7 +199,7 @@ public class TaskService {
     @Transactional
     public void deleteTask(UUID taskId, UUID userId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Görev bulunamadı"));
         accessPolicy.requireDelete(task, getUserOrThrow(userId));
         taskReviewRepository.deleteByTaskId(taskId);
         taskNoteRepository.deleteByTaskId(taskId);
@@ -208,6 +208,6 @@ public class TaskService {
 
     private UserProfile getUserOrThrow(UUID userId) {
         return userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi"));
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
     }
 }
