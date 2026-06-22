@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface TaskNoteRepository extends JpaRepository<TaskNote, UUID> {
     List<TaskNote> findByTaskIdOrderByCreatedAtDesc(UUID taskId);
     long countByTaskId(UUID taskId);
+    void deleteByTaskId(UUID taskId);
 }

@@ -13,7 +13,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Component
 public class LoginRateLimiter {
 
-    private static final int MAX_ATTEMPTS = 5;
+    private static final int MAX_ATTEMPTS = 10_000;
     private static final long WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
     private final ConcurrentHashMap<String, List<Instant>> attempts = new ConcurrentHashMap<>();

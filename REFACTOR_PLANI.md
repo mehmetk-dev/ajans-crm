@@ -2519,3 +2519,17 @@ Tüm 1-6 maddeleri tamamlandı:
 - Kritik beş E2E akışının ekip tarafından onaylanması gerekiyor.
 
 **Teknik refactor planındaki yerel kod maddeleri tamamlandı.**
+
+## 45. Client Analitik Paneli Açılış Optimizasyonu - TAMAMLANDI
+
+**Tamamlanma tarihi:** 15 Haziran 2026
+
+### Frontend
+
+- `ClientAnalyticsPage` route dosyası ince bir wrapper haline getirildi; analitik ekranı `features/client-analytics` altında bölüm bazlı bileşenlere ayrıldı.
+- Web Design dışındaki ağır entegrasyon panelleri viewport'a yaklaşınca dinamik import ediliyor. Ekranın altındaki Google Analytics, Search Console, reklam, içerik planı ve Instagram chunk'ları ilk açılışta yüklenmiyor.
+- Aktif olmayan hizmetlerin panel kodu ve veri sorguları artık hiç başlatılmıyor.
+- Bölümlerde `content-visibility` ve tahmini intrinsic size kullanılarak ekran dışı render maliyeti azaltıldı.
+- Çekim zaman çizelgesi ayrı bileşene taşındı; sınıflandırma hesapları memoize edildi ve sorguya beş dakikalık stale süresi eklendi.
+- Global yenileme aktif React Query sorgularını yeniden getiriyor; local state kullanan Web Design, Google Analytics ve Search Console panelleri de kontrollü olarak yeniden mount ediliyor.
+- `DeferredPanel` için viewport ve eager yükleme davranış testleri eklendi.

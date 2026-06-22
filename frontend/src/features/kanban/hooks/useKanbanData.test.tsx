@@ -133,10 +133,13 @@ const buildMeeting = (overrides: Partial<MeetingResponse> = {}): MeetingResponse
 describe('useKanbanData', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-06-13T12:00:00Z'));
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
+        vi.useRealTimers();
     });
 
     function setupEmpty() {

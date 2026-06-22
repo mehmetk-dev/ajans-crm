@@ -11,4 +11,5 @@ public interface TaskReviewRepository extends JpaRepository<TaskReview, UUID> {
     List<TaskReview> findByTaskId(UUID taskId);
     Optional<TaskReview> findByTaskIdAndReviewerId(UUID taskId, UUID reviewerId);
     boolean existsByTaskIdAndReviewerId(UUID taskId, UUID reviewerId);
+    void deleteByTaskId(UUID taskId);
 }

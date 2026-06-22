@@ -83,4 +83,26 @@ class CalendarExportServiceTest {
         verify(taskRepository).findAll();
         verify(membershipRepository, never()).findCompanyIdsByUserId(userId);
     }
+
+    @Test
+    void eventTextIncludesDtstampAndTruncatesLongSummary() {
+        UUID userId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+        String longTitle = "A".repeat(240);
+        Shoot shoot = Shoot.builder()
+                .id(UUID.randomUUID())
+                .title(longTitle)
+                .shootDate(Instant.parse("2026-06-12T09:00:00Z"))
+                .build();
+        when(membershipRepository.findCompanyIdsByUserId(userId)).thenReturn(List.of(companyId));
+        when(meetingRepository.findByCompanyIdIn(List.of(companyId))).thenReturn(List.of());
+        when(shootRepository.findByCompanyIdIn(List.of(companyId))).thenReturn(List.of(shoot));
+        when(taskRepository.findByCompanyIdIn(List.of(companyId))).thenReturn(List.of());
+
+        String calendar = service.export(userId, false);
+
+        assertThat(calendar).containsPattern("DTSTAMP:\\d{8}T\\d{6}Z");
+        assertThat(calendar).contains("SUMMARY:Çekim " + "A".repeat(191) + "...");
+        assertThat(calendar).doesNotContain("SUMMARY:Çekim " + longTitle);
+    }
 }

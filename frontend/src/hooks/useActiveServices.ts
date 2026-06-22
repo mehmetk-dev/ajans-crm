@@ -6,6 +6,9 @@ import { SERVICE_CATEGORIES, type ServiceCategory } from '../features/serviceCat
 export { SERVICE_CATEGORIES };
 export type { ServiceCategory };
 
+export const ACTIVE_SERVICES_STALE_TIME = 5 * 60_000;
+export const ACTIVE_SERVICES_REFETCH_ON_WINDOW_FOCUS = false;
+
 export function useActiveServices() {
     const { user } = useAuth();
     // Only fetch for client users — admins/staff don't have company-scoped services
@@ -15,9 +18,9 @@ export function useActiveServices() {
         queryKey: ['active-services', user?.companyId],
         queryFn: () => clientApi.getActiveServices(),
         enabled: isClientUser,
-        staleTime: 0,              // Her zaman backend'den taze veri al
+        staleTime: ACTIVE_SERVICES_STALE_TIME,
         gcTime: 5 * 60_000,       // 5 dakika cache'de tut
-        refetchOnWindowFocus: true, // Tab'a dönünce yenile
+        refetchOnWindowFocus: ACTIVE_SERVICES_REFETCH_ON_WINDOW_FOCUS,
     });
 
     const activeServices: string[] = data?.activeServices ?? [];

@@ -82,11 +82,14 @@ public class MessagingService {
         Map<UUID, CompanyMembership> convMembershipMap = membershipRepository
                 .findByUserIdIn(otherUserIds).stream()
                 .collect(Collectors.toMap(m -> m.getUser().getId(), m -> m, (a, b) -> a));
+        Map<UUID, Message> lastMessagesByConversation = messageRepository
+                .findLatestByConversationIds(conversationIds).stream()
+                .collect(Collectors.toMap(message -> message.getConversation().getId(), message -> message, (a, b) -> a));
 
         return conversations.stream()
                 .map(c -> {
                     UserProfile otherUser = c.getUser1().getId().equals(userId) ? c.getUser2() : c.getUser1();
-                    Message lastMessage = messageRepository.findFirstByConversationIdOrderByCreatedAtDesc(c.getId()).orElse(null);
+                    Message lastMessage = lastMessagesByConversation.get(c.getId());
                     CompanyMembership mb = convMembershipMap.get(otherUser.getId());
                     return mapper.toConversationResponse(c, userId,
                             messageCounts.getOrDefault(c.getId(), 0L),
@@ -99,7 +102,7 @@ public class MessagingService {
     @Transactional
     public MessageResponse sendMessage(UUID conversationId, SendMessageRequest request, UUID senderId) {
         Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new RuntimeException("Konusma bulunamadi"));
+                .orElseThrow(this::conversationNotFound);
 
         accessPolicy.requireConversationAccess(conversation, senderId);
 
@@ -134,7 +137,7 @@ public class MessagingService {
     @Transactional
     public Page<MessageResponse> getMessages(UUID conversationId, UUID userId, int page, int size) {
         Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new RuntimeException("Konusma bulunamadi"));
+                .orElseThrow(this::conversationNotFound);
 
         accessPolicy.requireConversationAccess(conversation, userId);
 
@@ -151,7 +154,7 @@ public class MessagingService {
     @Transactional
     public void markConversationAsRead(UUID conversationId, UUID userId) {
         Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new RuntimeException("Konusma bulunamadi"));
+                .orElseThrow(this::conversationNotFound);
 
         accessPolicy.requireConversationAccess(conversation, userId);
 
@@ -195,5 +198,9 @@ public class MessagingService {
         return contacts.stream()
                 .map(u -> mapper.toContactResponse(u, membershipMap.get(u.getId())))
                 .collect(Collectors.toList());
+    }
+
+    private ApiException conversationNotFound() {
+        return new ApiException(HttpStatus.NOT_FOUND, "CONVERSATION_NOT_FOUND", "Konuşma bulunamadı");
     }
 }

@@ -34,4 +34,15 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
 
     @Query("SELECT m.conversation.id, COUNT(m) FROM Message m WHERE m.conversation.id IN :conversationIds AND m.isRead = false AND m.sender.id <> :userId GROUP BY m.conversation.id")
     List<Object[]> countUnreadByConversationIds(@Param("conversationIds") List<UUID> conversationIds, @Param("userId") UUID userId);
+
+    @Query("""
+            SELECT m FROM Message m
+            WHERE m.conversation.id IN :conversationIds
+              AND m.createdAt = (
+                  SELECT MAX(lastMessage.createdAt)
+                  FROM Message lastMessage
+                  WHERE lastMessage.conversation.id = m.conversation.id
+              )
+            """)
+    List<Message> findLatestByConversationIds(@Param("conversationIds") List<UUID> conversationIds);
 }

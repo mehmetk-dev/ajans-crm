@@ -32,6 +32,7 @@ public class CalendarExportService {
     @Transactional(readOnly = true)
     public String export(UUID userId, boolean admin) {
         CalendarEntries entries = loadEntries(userId, admin);
+        Instant exportedAt = Instant.now();
         StringBuilder calendar = new StringBuilder()
                 .append("BEGIN:VCALENDAR\r\n")
                 .append("VERSION:2.0\r\n")
@@ -39,9 +40,9 @@ public class CalendarExportService {
                 .append("CALSCALE:GREGORIAN\r\n")
                 .append("METHOD:PUBLISH\r\n");
 
-        entries.meetings().forEach(meeting -> appendMeeting(calendar, meeting));
-        entries.shoots().forEach(shoot -> appendShoot(calendar, shoot));
-        entries.tasks().forEach(task -> appendTask(calendar, task));
+        entries.meetings().forEach(meeting -> appendMeeting(calendar, meeting, exportedAt));
+        entries.shoots().forEach(shoot -> appendShoot(calendar, shoot, exportedAt));
+        entries.tasks().forEach(task -> appendTask(calendar, task, exportedAt));
         return calendar.append("END:VCALENDAR\r\n").toString();
     }
 
@@ -64,10 +65,11 @@ public class CalendarExportService {
         );
     }
 
-    private void appendMeeting(StringBuilder calendar, Meeting meeting) {
+    private void appendMeeting(StringBuilder calendar, Meeting meeting, Instant exportedAt) {
         if (meeting.getMeetingDate() == null) return;
         calendar.append("BEGIN:VEVENT\r\n")
                 .append("UID:meeting-").append(meeting.getId()).append("@fogistanbul.com\r\n")
+                .append("DTSTAMP:").append(ICAL_DT.format(exportedAt)).append("\r\n")
                 .append("DTSTART:").append(ICAL_DT.format(meeting.getMeetingDate())).append("\r\n");
         if (meeting.getDurationMinutes() != null) {
             Instant endTime = meeting.getMeetingDate().plusSeconds(meeting.getDurationMinutes() * 60L);
@@ -80,10 +82,11 @@ public class CalendarExportService {
                 .append("END:VEVENT\r\n");
     }
 
-    private void appendShoot(StringBuilder calendar, Shoot shoot) {
+    private void appendShoot(StringBuilder calendar, Shoot shoot, Instant exportedAt) {
         if (shoot.getShootDate() == null) return;
         calendar.append("BEGIN:VEVENT\r\n")
                 .append("UID:shoot-").append(shoot.getId()).append("@fogistanbul.com\r\n")
+                .append("DTSTAMP:").append(ICAL_DT.format(exportedAt)).append("\r\n")
                 .append("DTSTART:").append(ICAL_DT.format(shoot.getShootDate())).append("\r\n");
         appendText(calendar, "SUMMARY", "Çekim " + shoot.getTitle());
         appendText(calendar, "LOCATION", shoot.getLocation());
@@ -91,10 +94,11 @@ public class CalendarExportService {
         calendar.append("END:VEVENT\r\n");
     }
 
-    private void appendTask(StringBuilder calendar, Task task) {
+    private void appendTask(StringBuilder calendar, Task task, Instant exportedAt) {
         if (task.getStartDate() == null && task.getEndDate() == null) return;
         calendar.append("BEGIN:VEVENT\r\n")
-                .append("UID:task-").append(task.getId()).append("@fogistanbul.com\r\n");
+                .append("UID:task-").append(task.getId()).append("@fogistanbul.com\r\n")
+                .append("DTSTAMP:").append(ICAL_DT.format(exportedAt)).append("\r\n");
         if (task.getStartDate() != null) {
             calendar.append("DTSTART:").append(ICAL_DT.format(task.getStartDate())).append("\r\n");
         }
@@ -108,7 +112,8 @@ public class CalendarExportService {
 
     private void appendText(StringBuilder calendar, String property, String value) {
         if (value != null && !value.isBlank()) {
-            calendar.append(property).append(':').append(escapeIcal(value)).append("\r\n");
+            String normalized = value.length() > 200 ? value.substring(0, 197) + "..." : value;
+            calendar.append(property).append(':').append(escapeIcal(normalized)).append("\r\n");
         }
     }
 

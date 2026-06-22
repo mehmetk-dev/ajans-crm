@@ -20,27 +20,23 @@ const StaffSettingsPage = lazy(() => import('../../pages/staff/StaffSettingsPage
 const ContentPlansPage = lazy(() => import('../../pages/staff/ContentPlansPage'));
 const StaffRequestsPage = lazy(() => import('../../pages/staff/StaffRequestsPage'));
 
-export function StaffRoutes() {
-    return (
-        <>
-            <Route index element={<StaffDashboard />} />
-            <Route path="analytics" element={<StaffAnalyticsPage />} />
-            <Route path="tasks" element={<TasksPage />} />
-            <Route path="kanban" element={<KanbanPage />} />
-            <Route path="time-tracking" element={<TimeTrackingPage />} />
-            <Route path="messaging" element={<MessagingPage />} />
-            <Route path="notes" element={<NotesPage />} />
-            <Route path="companies" element={<StaffCompaniesPage />} />
-            <Route path="companies/:id" element={<StaffCompanyDetailPage />} />
-            <Route path="calendar" element={<StaffCalendarPage />} />
-            <Route path="pr" element={<PRProjectsPage />} />
-            <Route path="shoots" element={<ShootsPage />} />
-            <Route path="content-plans" element={<ContentPlansPage />} />
-            <Route path="requests" element={<StaffRequestsPage />} />
-            <Route path="meetings" element={<MeetingsPage />} />
-            <Route path="media" element={<StaffMediaLibraryPage />} />
-            <Route path="completed" element={<CompletedTasksPage />} />
-            <Route path="settings" element={<StaffSettingsPage />} />
-        </>
-    );
-}
+export const staffRoutes = [
+    <Route index key="dashboard" element={<StaffDashboard />} />,
+    <Route path="analytics" key="analytics" element={<StaffAnalyticsPage />} />,
+    <Route path="tasks" key="tasks" element={<TasksPage />} />,
+    <Route path="kanban" key="kanban" element={<KanbanPage />} />,
+    <Route path="time-tracking" key="time-tracking" element={<TimeTrackingPage />} />,
+    <Route path="messaging" key="messaging" element={<MessagingPage />} />,
+    <Route path="notes" key="notes" element={<NotesPage />} />,
+    <Route path="companies" key="companies" element={<StaffCompaniesPage />} />,
+    <Route path="companies/:id" key="company-detail" element={<StaffCompanyDetailPage />} />,
+    <Route path="calendar" key="calendar" element={<StaffCalendarPage />} />,
+    <Route path="pr" key="pr" element={<PRProjectsPage />} />,
+    <Route path="shoots" key="shoots" element={<ShootsPage />} />,
+    <Route path="content-plans" key="content-plans" element={<ContentPlansPage />} />,
+    <Route path="requests" key="requests" element={<StaffRequestsPage />} />,
+    <Route path="meetings" key="meetings" element={<MeetingsPage />} />,
+    <Route path="media" key="media" element={<StaffMediaLibraryPage />} />,
+    <Route path="completed" key="completed" element={<CompletedTasksPage />} />,
+    <Route path="settings" key="settings" element={<StaffSettingsPage />} />,
+];

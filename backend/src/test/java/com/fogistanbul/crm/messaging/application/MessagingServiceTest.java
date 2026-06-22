@@ -4,6 +4,8 @@ import com.fogistanbul.crm.entity.Conversation;
 import com.fogistanbul.crm.entity.Message;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
+import com.fogistanbul.crm.exception.ApiException;
+import com.fogistanbul.crm.messaging.dto.ConversationResponse;
 import com.fogistanbul.crm.messaging.dto.MessageResponse;
 import com.fogistanbul.crm.messaging.dto.SendMessageRequest;
 import com.fogistanbul.crm.repository.*;
@@ -15,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -88,10 +91,72 @@ class MessagingServiceTest {
                 () -> service.getOrStartConversation(userId, userId));
     }
 
+    @Test
+    void missingConversationUsesApiExceptionWhenSendingMessage() {
+        UUID convId = UUID.randomUUID();
+        UUID senderId = UUID.randomUUID();
+        when(conversationRepository.findById(convId)).thenReturn(Optional.empty());
+
+        ApiException ex = assertThrows(
+                ApiException.class,
+                () -> service.sendMessage(convId, new SendMessageRequest(), senderId)
+        );
+
+        assertEquals("CONVERSATION_NOT_FOUND", ex.getCode());
+    }
+
+    @Test
+    void conversationListLoadsLastMessagesInOneBatch() {
+        UUID currentUserId = UUID.randomUUID();
+        UserProfile currentUser = makeUser(currentUserId, GlobalRole.AGENCY_STAFF);
+        UserProfile firstOtherUser = makeUser(UUID.randomUUID(), GlobalRole.AGENCY_STAFF);
+        UserProfile secondOtherUser = makeUser(UUID.randomUUID(), GlobalRole.AGENCY_STAFF);
+        Conversation first = conversation(UUID.randomUUID(), currentUser, firstOtherUser);
+        Conversation second = conversation(UUID.randomUUID(), currentUser, secondOtherUser);
+        Message firstLastMessage = message(first);
+        Message secondLastMessage = message(second);
+        List<UUID> conversationIds = List.of(first.getId(), second.getId());
+
+        when(conversationRepository.findByUserId(currentUserId)).thenReturn(List.of(first, second));
+        when(messageRepository.countByConversationIds(conversationIds)).thenReturn(List.of());
+        when(messageRepository.countUnreadByConversationIds(conversationIds, currentUserId)).thenReturn(List.of());
+        when(membershipRepository.findByUserIdIn(List.of(firstOtherUser.getId(), secondOtherUser.getId())))
+                .thenReturn(List.of());
+        when(messageRepository.findLatestByConversationIds(conversationIds))
+                .thenReturn(List.of(firstLastMessage, secondLastMessage));
+        when(mapper.toConversationResponse(first, currentUserId, 0L, 0L, firstLastMessage, null))
+                .thenReturn(ConversationResponse.builder().id(first.getId().toString()).build());
+        when(mapper.toConversationResponse(second, currentUserId, 0L, 0L, secondLastMessage, null))
+                .thenReturn(ConversationResponse.builder().id(second.getId().toString()).build());
+
+        List<ConversationResponse> result = service.getMyConversations(currentUserId);
+
+        assertEquals(2, result.size());
+        verify(messageRepository).findLatestByConversationIds(conversationIds);
+        verify(messageRepository, never()).findFirstByConversationIdOrderByCreatedAtDesc(first.getId());
+        verify(messageRepository, never()).findFirstByConversationIdOrderByCreatedAtDesc(second.getId());
+    }
+
     private UserProfile makeUser(UUID id, GlobalRole role) {
         UserProfile u = new UserProfile();
         u.setId(id);
         u.setGlobalRole(role);
         return u;
+    }
+
+    private Conversation conversation(UUID id, UserProfile user1, UserProfile user2) {
+        Conversation conversation = new Conversation();
+        conversation.setId(id);
+        conversation.setUser1(user1);
+        conversation.setUser2(user2);
+        return conversation;
+    }
+
+    private Message message(Conversation conversation) {
+        Message message = new Message();
+        message.setId(UUID.randomUUID());
+        message.setConversation(conversation);
+        message.setCreatedAt(Instant.now());
+        return message;
     }
 }

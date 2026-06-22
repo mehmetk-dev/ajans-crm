@@ -8,7 +8,9 @@ import com.fogistanbul.crm.entity.enums.TaskCategory;
 import com.fogistanbul.crm.entity.enums.TaskStatus;
 import com.fogistanbul.crm.prproject.application.PrProjectProgressService;
 import com.fogistanbul.crm.repository.CompanyRepository;
+import com.fogistanbul.crm.repository.TaskNoteRepository;
 import com.fogistanbul.crm.repository.TaskRepository;
+import com.fogistanbul.crm.repository.TaskReviewRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
 import com.fogistanbul.crm.task.dto.CreateTaskRequest;
 import com.fogistanbul.crm.task.dto.TaskResponse;
@@ -30,6 +32,8 @@ import java.util.UUID;
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final TaskNoteRepository taskNoteRepository;
+    private final TaskReviewRepository taskReviewRepository;
     private final CompanyRepository companyRepository;
     private final UserProfileRepository userProfileRepository;
     private final TaskAccessPolicy accessPolicy;
@@ -197,6 +201,8 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Gorev bulunamadi"));
         accessPolicy.requireDelete(task, getUserOrThrow(userId));
+        taskReviewRepository.deleteByTaskId(taskId);
+        taskNoteRepository.deleteByTaskId(taskId);
         taskRepository.delete(task);
     }
 

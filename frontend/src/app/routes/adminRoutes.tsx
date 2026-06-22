@@ -14,21 +14,17 @@ const RoutineManagementPage = lazy(() => import('../../pages/admin/RoutineManage
 const MessagingPage = lazy(() => import('../../pages/staff/MessagingPage'));
 const StaffRequestsPage = lazy(() => import('../../pages/staff/StaffRequestsPage'));
 
-export function AdminRoutes() {
-    return (
-        <>
-            <Route index element={<AdminDashboard />} />
-            <Route path="analytics" element={<AdminAnalyticsPage />} />
-            <Route path="companies" element={<CompaniesPage />} />
-            <Route path="companies/:id" element={<CompanyDetailPage />} />
-            <Route path="staff" element={<StaffPage />} />
-            <Route path="staff/:id" element={<StaffDetailPage />} />
-            <Route path="users" element={<UsersPage />} />
-            <Route path="messaging" element={<MessagingPage />} />
-            <Route path="activity-log" element={<ActivityLogPage />} />
-            <Route path="routines" element={<RoutineManagementPage />} />
-            <Route path="requests" element={<StaffRequestsPage />} />
-            <Route path="settings" element={<AdminSettingsPage />} />
-        </>
-    );
-}
+export const adminRoutes = [
+    <Route index key="dashboard" element={<AdminDashboard />} />,
+    <Route path="analytics" key="analytics" element={<AdminAnalyticsPage />} />,
+    <Route path="companies" key="companies" element={<CompaniesPage />} />,
+    <Route path="companies/:id" key="company-detail" element={<CompanyDetailPage />} />,
+    <Route path="staff" key="staff" element={<StaffPage />} />,
+    <Route path="staff/:id" key="staff-detail" element={<StaffDetailPage />} />,
+    <Route path="users" key="users" element={<UsersPage />} />,
+    <Route path="messaging" key="messaging" element={<MessagingPage />} />,
+    <Route path="activity-log" key="activity-log" element={<ActivityLogPage />} />,
+    <Route path="routines" key="routines" element={<RoutineManagementPage />} />,
+    <Route path="requests" key="requests" element={<StaffRequestsPage />} />,
+    <Route path="settings" key="settings" element={<AdminSettingsPage />} />,
+];

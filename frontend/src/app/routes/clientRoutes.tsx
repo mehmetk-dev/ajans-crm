@@ -24,30 +24,26 @@ const GoogleAdsDetailPage = lazy(() => import('../../pages/client/GoogleAdsDetai
 const MetaAdsDetailPage = lazy(() => import('../../pages/client/MetaAdsDetailPage'));
 const OnboardingPage = lazy(() => import('../../pages/client/OnboardingPage'));
 
-export function ClientRoutes() {
-    return (
-        <>
-            <Route index element={<ClientDashboard />} />
-            <Route path="analytics" element={<ClientAnalyticsPage />} />
-            <Route path="google-analytics" element={<ServicePageGate service="DIGITAL_MARKETING"><GoogleAnalyticsDetailPage /></ServicePageGate>} />
-            <Route path="search-console" element={<ServicePageGate service="DIGITAL_MARKETING"><SearchConsoleDetailPage /></ServicePageGate>} />
-            <Route path="instagram" element={<ServicePageGate service="SOCIAL_MEDIA"><InstagramDetailPage /></ServicePageGate>} />
-            <Route path="instagram/reels" element={<ServicePageGate service="SOCIAL_MEDIA"><InstagramReelsPage /></ServicePageGate>} />
-            <Route path="instagram/posts" element={<ServicePageGate service="SOCIAL_MEDIA"><InstagramPostsPage /></ServicePageGate>} />
-            <Route path="web-design" element={<ServicePageGate service="WEB_DESIGN"><PageSpeedDetailPage /></ServicePageGate>} />
-            <Route path="media" element={<MediaLibraryPage />} />
-            <Route path="tasks" element={<ClientTasksPage />} />
-            <Route path="completed" element={<Navigate to="/client/tasks" replace />} />
-            <Route path="services" element={<ProtectedRoute membershipRoles={['OWNER']}><ServicesPage /></ProtectedRoute>} />
-            <Route path="messaging" element={<ClientMessagingPage />} />
-            <Route path="team" element={<ProtectedRoute membershipRoles={['OWNER']}><ClientTeamPage /></ProtectedRoute>} />
-            <Route path="surveys" element={<ProtectedRoute membershipRoles={['OWNER']}><SurveyPage /></ProtectedRoute>} />
-            <Route path="onboarding" element={<ProtectedRoute membershipRoles={['OWNER']}><OnboardingPage /></ProtectedRoute>} />
-            <Route path="shoots" element={<ServicePageGate service="PRODUCTION"><ClientShootsPage /></ServicePageGate>} />
-            <Route path="content-plans" element={<ServicePageGate service="CONTENT_MARKETING"><ClientContentPlanPage /></ServicePageGate>} />
-            <Route path="google-ads" element={<ServicePageGate service="AD_MANAGEMENT"><GoogleAdsDetailPage /></ServicePageGate>} />
-            <Route path="meta-ads" element={<ServicePageGate service="AD_MANAGEMENT"><MetaAdsDetailPage /></ServicePageGate>} />
-            <Route path="settings" element={<ClientSettingsPage />} />
-        </>
-    );
-}
+export const clientRoutes = [
+    <Route index key="dashboard" element={<ClientDashboard />} />,
+    <Route path="analytics" key="analytics" element={<ClientAnalyticsPage />} />,
+    <Route path="google-analytics" key="google-analytics" element={<ServicePageGate service="DIGITAL_MARKETING"><GoogleAnalyticsDetailPage /></ServicePageGate>} />,
+    <Route path="search-console" key="search-console" element={<ServicePageGate service="DIGITAL_MARKETING"><SearchConsoleDetailPage /></ServicePageGate>} />,
+    <Route path="instagram" key="instagram" element={<ServicePageGate service="SOCIAL_MEDIA"><InstagramDetailPage /></ServicePageGate>} />,
+    <Route path="instagram/reels" key="instagram-reels" element={<ServicePageGate service="SOCIAL_MEDIA"><InstagramReelsPage /></ServicePageGate>} />,
+    <Route path="instagram/posts" key="instagram-posts" element={<ServicePageGate service="SOCIAL_MEDIA"><InstagramPostsPage /></ServicePageGate>} />,
+    <Route path="web-design" key="web-design" element={<ServicePageGate service="WEB_DESIGN"><PageSpeedDetailPage /></ServicePageGate>} />,
+    <Route path="media" key="media" element={<MediaLibraryPage />} />,
+    <Route path="tasks" key="tasks" element={<ClientTasksPage />} />,
+    <Route path="completed" key="completed" element={<Navigate to="/client/tasks" replace />} />,
+    <Route path="services" key="services" element={<ProtectedRoute membershipRoles={['OWNER']}><ServicesPage /></ProtectedRoute>} />,
+    <Route path="messaging" key="messaging" element={<ClientMessagingPage />} />,
+    <Route path="team" key="team" element={<ProtectedRoute membershipRoles={['OWNER']}><ClientTeamPage /></ProtectedRoute>} />,
+    <Route path="surveys" key="surveys" element={<ProtectedRoute membershipRoles={['OWNER']}><SurveyPage /></ProtectedRoute>} />,
+    <Route path="onboarding" key="onboarding" element={<ProtectedRoute membershipRoles={['OWNER']}><OnboardingPage /></ProtectedRoute>} />,
+    <Route path="shoots" key="shoots" element={<ServicePageGate service="PRODUCTION"><ClientShootsPage /></ServicePageGate>} />,
+    <Route path="content-plans" key="content-plans" element={<ServicePageGate service="CONTENT_MARKETING"><ClientContentPlanPage /></ServicePageGate>} />,
+    <Route path="google-ads" key="google-ads" element={<ServicePageGate service="AD_MANAGEMENT"><GoogleAdsDetailPage /></ServicePageGate>} />,
+    <Route path="meta-ads" key="meta-ads" element={<ServicePageGate service="AD_MANAGEMENT"><MetaAdsDetailPage /></ServicePageGate>} />,
+    <Route path="settings" key="settings" element={<ClientSettingsPage />} />,
+];

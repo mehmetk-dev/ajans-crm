@@ -1,0 +1,255 @@
+
+> frontend@0.0.0 knip
+> knip
+
+Unused files (2)
+src/pages/client/ClientCompletedPage.tsx
+src/sockjs-client.d.ts                  
+Unused dependencies (2)
+@hookform/resolvers  package.json:24:6
+react-hook-form      package.json:36:6
+Unused exports (158)
+calendarApi                              src/api/features.ts:143:14                                      
+notificationPreferenceApi                src/api/features.ts:147:14                                      
+default                        function  src/components/analytics/HeatmapCard.tsx:19:25                  
+LineChartCard                            src/components/analytics/index.ts:9:21                          
+MiniTrend                                src/components/analytics/index.ts:11:21                         
+HeatmapCard                              src/components/analytics/index.ts:15:21                         
+default                        function  src/components/analytics/LineChartCard.tsx:33:25                
+default                        function  src/components/analytics/MiniTrend.tsx:39:25                    
+fmt                                      src/features/client-dashboard/index.ts:3:10                     
+pct                                      src/features/client-dashboard/index.ts:3:15                     
+dur                                      src/features/client-dashboard/index.ts:3:20                     
+dashboardRefreshKeys                     src/features/client-dashboard/index.ts:4:10                     
+useRefreshDashboard                      src/features/client-dashboard/index.ts:5:30                     
+OverviewTab                              src/features/client-dashboard/index.ts:7:10                     
+WebAnalyticsTab                          src/features/client-dashboard/index.ts:8:10                     
+SocialTab                                src/features/client-dashboard/index.ts:9:10                     
+ScheduleTab                              src/features/client-dashboard/index.ts:10:10                    
+MetricCard                               src/features/client-dashboard/index.ts:11:10                    
+MiniStat                                 src/features/client-dashboard/index.ts:11:22                    
+ChartCard                                src/features/client-dashboard/index.ts:11:32                    
+ListCard                                 src/features/client-dashboard/index.ts:11:43                    
+QuickLink                                src/features/client-dashboard/index.ts:11:53                    
+EmptyState                               src/features/client-dashboard/index.ts:11:64                    
+DashboardLoader                          src/features/client-dashboard/index.ts:11:76                    
+DashboardLoader                function  src/features/client-dashboard/ui/DashboardCards.tsx:145:17      
+useAdminCompanies              function  src/features/company/hooks/useCompanies.ts:6:17                 
+useAdminCompany                function  src/features/company/hooks/useCompanies.ts:13:17                
+useAddEmployee                           src/features/company/index.ts:21:5                              
+useAdminCompanies                        src/features/company/index.ts:22:5                              
+useAdminCompany                          src/features/company/index.ts:23:5                              
+useCompanyPermissions                    src/features/company/index.ts:24:5                              
+useRemoveEmployee                        src/features/company/index.ts:26:5                              
+useUpdatePermission                      src/features/company/index.ts:29:5                              
+contentPlanApi                           src/features/content-plans/index.ts:2:10                        
+approvalApi                              src/features/content-plans/index.ts:2:26                        
+contentPlanKeys                          src/features/content-plans/index.ts:3:10                        
+approvalKeys                             src/features/content-plans/index.ts:3:27                        
+contentPlatforms                         src/features/content-plans/index.ts:5:10                        
+contentSizes                             src/features/content-plans/index.ts:5:28                        
+contentStatusMeta                        src/features/content-plans/index.ts:5:42                        
+encodeContentApprovalMetadata            src/features/content-plans/index.ts:6:10                        
+ContentPlanCard                          src/features/content-plans/index.ts:8:10                        
+ContentPlanDetailPanel                   src/features/content-plans/index.ts:9:10                        
+ContentApprovalDialog                    src/features/content-plans/index.ts:10:10                       
+useFilesByEntity               function  src/features/files/hooks/useFiles.ts:20:17                      
+fileApi                                  src/features/files/index.ts:1:10                                
+fileKeys                                 src/features/files/index.ts:2:10                                
+useFilesByEntity                         src/features/files/index.ts:4:50                                
+FileUploader                             src/features/files/index.ts:5:21                                
+FileCard                                 src/features/files/index.ts:6:21                                
+FilePreviewModal                         src/features/files/index.ts:8:21                                
+formatFileSize                           src/features/files/index.ts:9:10                                
+formatFileDate                           src/features/files/index.ts:9:26                                
+getFileIcon                              src/features/files/index.ts:9:42                                
+isPreviewable                            src/features/files/index.ts:9:55                                
+getPageTotalPages              function  src/features/files/model/file.utils.ts:41:17                    
+GoogleAdsPanel                           src/features/google-ads/index.ts:17:21                          
+analyticsKeys                            src/features/google-analytics/index.ts:13:10                    
+googleAnalyticsApi                       src/features/google-analytics/index.ts:16:10                    
+SOURCE_COLORS                            src/features/google-analytics/index.ts:20:5                     
+COUNTRY_COLORS                           src/features/google-analytics/index.ts:21:5                     
+DATE_PRESETS                             src/features/google-analytics/index.ts:22:5                     
+PANEL_PRESETS                            src/features/google-analytics/index.ts:23:5                     
+formatDuration                           src/features/google-analytics/index.ts:24:5                     
+formatNum                                src/features/google-analytics/index.ts:25:5                     
+computeEngagementRate                    src/features/google-analytics/index.ts:26:5                     
+computeSessionsPerUser                   src/features/google-analytics/index.ts:27:5                     
+buildSourcePieData                       src/features/google-analytics/index.ts:28:5                     
+buildCountryBarData                      src/features/google-analytics/index.ts:29:5                     
+ChartTooltip                             src/features/google-analytics/index.ts:33:10                    
+BigMetricCard                            src/features/google-analytics/index.ts:33:24                    
+MetricCard                               src/features/google-analytics/index.ts:33:39                    
+SectionHeader                            src/features/google-analytics/index.ts:33:51                    
+GoogleAnalyticsPanel                     src/features/google-analytics/index.ts:34:21                    
+InstagramPanel                           src/features/instagram/index.ts:18:16                           
+PostsColumn                              src/features/instagram/index.ts:19:5                            
+ReelsColumn                              src/features/instagram/index.ts:20:5                            
+StatsColumn                              src/features/instagram/index.ts:21:5                            
+default                        function  src/features/instagram/ui/InstagramPanel.tsx:387:25             
+STATUS_BADGE                             src/features/kanban/index.ts:3:23                               
+isToday                                  src/features/kanban/index.ts:3:97                               
+isFuture                                 src/features/kanban/index.ts:3:106                              
+isOverdue                                src/features/kanban/index.ts:3:116                              
+STATUS_BADGE                             src/features/kanban/model/index.ts:1:23                         
+isToday                                  src/features/kanban/model/index.ts:1:97                         
+isFuture                                 src/features/kanban/model/index.ts:1:106                        
+isOverdue                                src/features/kanban/model/index.ts:1:116                        
+maintenanceLogApi                        src/features/maintenance-log/index.ts:6:10                      
+maintenanceLogKeys                       src/features/maintenance-log/index.ts:7:10                      
+useCreateMaintenanceLog                  src/features/maintenance-log/index.ts:9:5                       
+useDeleteMaintenanceLog                  src/features/maintenance-log/index.ts:10:5                      
+useMaintenanceLog                        src/features/maintenance-log/index.ts:11:5                      
+useUpdateMaintenanceLog                  src/features/maintenance-log/index.ts:12:5                      
+maintenanceLogSchema                     src/features/maintenance-log/model/maintenanceLog.schema.ts:4:14
+useUpdateMeetingStatus         function  src/features/meetings/hooks/useMeetings.ts:23:17                
+messagingKeys                            src/features/messaging/api/messagingKeys.ts:1:14                
+timeAgo                                  src/features/messaging/index.ts:6:10                            
+formatMessageTime                        src/features/messaging/index.ts:6:19                            
+getRoleLabel                             src/features/messaging/index.ts:6:38                            
+MetaAdsPanel                             src/features/meta-ads/index.ts:16:21                            
+noteKeys                                 src/features/notes/index.ts:2:10                                
+useCreateNote                            src/features/notes/index.ts:3:10                                
+useDeleteNote                            src/features/notes/index.ts:3:25                                
+useNotes                                 src/features/notes/index.ts:3:40                                
+useToggleNote                            src/features/notes/index.ts:3:50                                
+createNoteSchema                         src/features/notes/model/note.schema.ts:4:14                    
+useUpdatePrProject             function  src/features/pr-projects/hooks/usePrProjects.ts:23:17           
+prProjectApi                             src/features/pr-projects/index.ts:2:10                          
+prProjectKeys                            src/features/pr-projects/index.ts:3:10                          
+prProjectStatusMeta                      src/features/pr-projects/index.ts:5:10                          
+prProjectFormSchema                      src/features/pr-projects/index.ts:6:10                          
+COUNTRY_COLORS                           src/features/search-console/index.ts:17:5                       
+DATE_PRESETS                             src/features/search-console/index.ts:18:5                       
+DEVICE_COLORS                            src/features/search-console/index.ts:19:5                       
+PANEL_PRESETS                            src/features/search-console/index.ts:20:5                       
+buildCountryBarData                      src/features/search-console/index.ts:21:5                       
+buildDevicePieData                       src/features/search-console/index.ts:22:5                       
+computeClickThroughRate                  src/features/search-console/index.ts:23:5                       
+formatNum                                src/features/search-console/index.ts:24:5                       
+getPositionLabel                         src/features/search-console/index.ts:25:5                       
+BigMetricCard                            src/features/search-console/index.ts:28:5                       
+ChartTooltip                             src/features/search-console/index.ts:29:5                       
+MetricCard                               src/features/search-console/index.ts:30:5                       
+SectionHeader                            src/features/search-console/index.ts:31:5                       
+SearchConsolePanel                       src/features/search-console/index.ts:33:21                      
+SERVICE_CATALOG                          src/features/serviceCatalog.ts:35:14                            
+CLIENT_SERVICE_NAV_ITEMS                 src/features/serviceCatalog.ts:105:14                           
+shootStatusMeta                          src/features/shoots/index.ts:5:10                               
+formatDateKey                            src/features/staff-calendar/index.ts:2:10                       
+formatMeetingTime                        src/features/staff-calendar/index.ts:2:25                       
+getMonthDays                             src/features/staff-calendar/index.ts:2:44                       
+dateRange                                src/features/staff-calendar/index.ts:2:58                       
+getWeekRange                             src/features/staff-calendar/index.ts:2:69                       
+getMonthRange                            src/features/staff-calendar/index.ts:2:83                       
+isDateInRange                            src/features/staff-calendar/index.ts:2:98                       
+getSelection                             src/features/staff-calendar/index.ts:2:113                      
+selectionLabel                           src/features/staff-calendar/index.ts:2:127                      
+DAYS                                     src/features/staff-calendar/index.ts:2:143                      
+MONTHS                                   src/features/staff-calendar/index.ts:2:149                      
+indexTasks                               src/features/staff-calendar/index.ts:3:10                       
+indexMeetings                            src/features/staff-calendar/index.ts:3:22                       
+indexShoots                              src/features/staff-calendar/index.ts:3:37                       
+collectAgenda                            src/features/staff-calendar/index.ts:3:50                       
+ShootAgenda                              src/features/staff-calendar/index.ts:6:10                       
+MeetingAgenda                            src/features/staff-calendar/index.ts:7:10                       
+TaskAgenda                               src/features/staff-calendar/index.ts:8:10                       
+getWeekRange                   function  src/features/staff-calendar/model/calendar.utils.ts:42:17       
+getMonthRange                  function  src/features/staff-calendar/model/calendar.utils.ts:49:17       
+useClientTasks                 function  src/features/tasks/hooks/useTasks.ts:15:17                      
+KanbanBoard                              src/features/tasks/index.ts:7:21                                
+TASK_STATUS_META                         src/features/tasks/model/task.constants.ts:3:14                 
+default                        function  src/features/tasks/ui/KanbanBoard.tsx:121:25                    
+WebDesignPanel                           src/features/web-design/index.ts:1:21                           
+toneStyles                               src/features/web-design/index.ts:13:10                          
+webDesignKeys                            src/features/web-design/index.ts:15:10                          
+webDesignKeys                            src/features/web-design/webDesignKeys.ts:1:14                   
+SERVICE_CATEGORIES                       src/hooks/useActiveServices.ts:6:10                             
+default                                  src/i18n/index.ts:25:16                                         
+Unused exported types (85)
+UserCompanyInfo                 interface  src/api/admin.ts:13:18                                  
+NotificationPreferenceResponse  interface  src/api/features.ts:58:18                               
+ShootResponse                   type       src/features/client-dashboard/dashboard.types.ts:7:75   
+TaskResponse                    type       src/features/client-dashboard/dashboard.types.ts:7:90   
+DashboardViewModel              interface  src/features/client-dashboard/dashboard.types.ts:11:18  
+DashboardRefreshKeys            type       src/features/client-dashboard/dashboard.types.ts:23:13  
+TabKey                          type       src/features/client-dashboard/index.ts:1:15             
+DashboardViewModel              type       src/features/client-dashboard/index.ts:1:23             
+GaOverviewResponse              type       src/features/client-dashboard/index.ts:2:15             
+ScOverviewResponse              type       src/features/client-dashboard/index.ts:2:35             
+IgOverviewResponse              type       src/features/client-dashboard/index.ts:2:55             
+ShootResponse                   type       src/features/client-dashboard/index.ts:2:75             
+TaskResponse                    type       src/features/client-dashboard/index.ts:2:90             
+GlobalRole                      type       src/features/company/api/company.types.ts:1:13          
+AssignedCompany                 interface  src/features/company/api/company.types.ts:118:18        
+AddEmployeeInput                type       src/features/company/index.ts:2:5                       
+CompanyInfrastructureInput      type       src/features/company/index.ts:3:5                       
+GlobalRole                      type       src/features/company/index.ts:7:5                       
+MembershipRole                  type       src/features/company/index.ts:9:5                       
+PermissionLevel                 type       src/features/company/index.ts:10:5                      
+PermissionResponse              type       src/features/company/index.ts:11:5                      
+TeamResponse                    type       src/features/company/index.ts:14:5                      
+UpdatePermissionInput           type       src/features/company/index.ts:16:5                      
+ApprovalStatus                  type       src/features/content-plans/api/contentPlan.types.ts:6:13
+ApprovalType                    type       src/features/content-plans/api/contentPlan.types.ts:7:13
+FileEntityType                  type       src/features/files/api/file.types.ts:27:13              
+FileAttachmentResponse          type       src/features/files/index.ts:3:15                        
+PageResponse                    type       src/features/files/index.ts:3:54                        
+GoogleAdsDailyRow               interface  src/features/google-ads/googleAds.types.ts:13:18        
+GoogleAdsCampaignRow            type       src/features/google-ads/index.ts:2:5                    
+GoogleAdsDailyRow               type       src/features/google-ads/index.ts:3:5                    
+GoogleAdsOverviewResponse       type       src/features/google-ads/index.ts:4:5                    
+GoogleAdsStatusResponse         type       src/features/google-ads/index.ts:6:5                    
+GaDailyRow                      type       src/features/google-analytics/index.ts:3:5              
+GaNamedMetric                   type       src/features/google-analytics/index.ts:4:5              
+GaOverviewResponse              type       src/features/google-analytics/index.ts:5:5              
+GaStatusResponse                type       src/features/google-analytics/index.ts:6:5              
+DatePreset                      type       src/features/google-analytics/index.ts:7:5              
+SourcePieEntry                  type       src/features/google-analytics/index.ts:8:5              
+CountryBarEntry                 type       src/features/google-analytics/index.ts:9:5              
+IgDailyRow                      type       src/features/instagram/index.ts:2:5                     
+IgMediaRow                      type       src/features/instagram/index.ts:3:5                     
+IgDailyRow                      interface  src/features/instagram/instagram.types.ts:1:18          
+IgMediaRow                      interface  src/features/instagram/instagram.types.ts:8:18          
+KanbanStatus                    type       src/features/kanban/hooks/useKanbanData.ts:24:13        
+MaintenanceCategory             type       src/features/maintenance-log/index.ts:2:5               
+MaintenanceLogEntry             type       src/features/maintenance-log/index.ts:3:5               
+MaintenanceLogInput             type       src/features/maintenance-log/index.ts:4:5               
+MeetingParticipant              interface  src/features/meetings/api/meeting.types.ts:3:18         
+MeetingNote                     interface  src/features/meetings/api/meeting.types.ts:10:18        
+GroupMemberInfo                 interface  src/features/messaging/api/messaging.types.ts:53:18     
+MessagingState                  interface  src/features/messaging/hooks/useMessaging.ts:8:18       
+MetaAdsCampaignRow              type       src/features/meta-ads/index.ts:2:5                      
+MetaAdsDailyRow                 type       src/features/meta-ads/index.ts:3:5                      
+MetaAdsOverviewResponse         type       src/features/meta-ads/index.ts:4:5                      
+MetaAdsStatusResponse           type       src/features/meta-ads/index.ts:6:5                      
+MetaAdsDailyRow                 interface  src/features/meta-ads/metaAds.types.ts:15:18            
+Note                            type       src/features/notes/index.ts:1:15                        
+NoteCompanyOption               type       src/features/notes/index.ts:1:21                        
+NoteFilters                     type       src/features/notes/index.ts:1:40                        
+PrPhaseNote                     interface  src/features/pr-projects/api/prProject.types.ts:11:18   
+PrProjectPhaseInput             interface  src/features/pr-projects/api/prProject.types.ts:57:18   
+ScDailyRow                      type       src/features/search-console/index.ts:2:5                
+ScNamedMetric                   type       src/features/search-console/index.ts:3:5                
+ScOverviewResponse              type       src/features/search-console/index.ts:4:5                
+ScPageRow                       type       src/features/search-console/index.ts:5:5                
+ScQueryRow                      type       src/features/search-console/index.ts:6:5                
+ScSite                          type       src/features/search-console/index.ts:7:5                
+ScStatusResponse                type       src/features/search-console/index.ts:8:5                
+SearchConsoleBarEntry           type       src/features/search-console/index.ts:9:5                
+SearchConsoleDatePreset         type       src/features/search-console/index.ts:10:5               
+SearchConsolePieEntry           type       src/features/search-console/index.ts:11:5               
+ServiceCatalogItem              interface  src/features/serviceCatalog.ts:24:18                    
+ClientServiceNavItem            interface  src/features/serviceCatalog.ts:98:18                    
+ShootParticipant                interface  src/features/shoots/api/shoot.types.ts:5:18             
+ShootEquipment                  interface  src/features/shoots/api/shoot.types.ts:11:18            
+QuickFilter                     type       src/features/staff-calendar/index.ts:1:15               
+CalendarDay                     type       src/features/staff-calendar/index.ts:1:28               
+DateIndex                       type       src/features/staff-calendar/index.ts:1:41               
+AgendaItems                     type       src/features/staff-calendar/index.ts:1:52               
+CalendarDay                     interface  src/features/staff-calendar/model/calendar.types.ts:7:18
+TaskPriority                    type       src/features/tasks/api/task.types.ts:3:13               
+HealthTone                      type       src/features/web-design/index.ts:12:58                  
+PageSpeedReport                 type       src/features/web-design/ui/PageSpeedCards.tsx:336:15    
+ApiErrorPayload                 interface  src/lib/apiError.ts:3:18                                

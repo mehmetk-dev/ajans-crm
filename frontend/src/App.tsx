@@ -4,9 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './store/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import RouteBoundary, { RouteLoadingFallback } from './components/routing/RouteBoundary';
-import { AdminRoutes } from './app/routes/adminRoutes';
-import { StaffRoutes } from './app/routes/staffRoutes';
-import { ClientRoutes } from './app/routes/clientRoutes';
+import { adminRoutes } from './app/routes/adminRoutes';
+import { staffRoutes } from './app/routes/staffRoutes';
+import { clientRoutes } from './app/routes/clientRoutes';
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
@@ -47,13 +47,13 @@ export default function App() {
                                 <Route path="/login" element={<LoginPage />} />
                                 <Route path="/" element={<RoleRedirect />} />
                                 <Route path="/admin" element={<ProtectedRoute roles={['ADMIN']}><AdminLayout /></ProtectedRoute>}>
-                                    <AdminRoutes />
+                                    {adminRoutes}
                                 </Route>
                                 <Route path="/staff" element={<ProtectedRoute roles={['ADMIN', 'AGENCY_STAFF']}><StaffLayout /></ProtectedRoute>}>
-                                    <StaffRoutes />
+                                    {staffRoutes}
                                 </Route>
                                 <Route path="/client" element={<ProtectedRoute roles={['ADMIN', 'COMPANY_USER']}><ClientLayout /></ProtectedRoute>}>
-                                    <ClientRoutes />
+                                    {clientRoutes}
                                 </Route>
                                 <Route path="*" element={<Navigate to="/" replace />} />
                             </Routes>

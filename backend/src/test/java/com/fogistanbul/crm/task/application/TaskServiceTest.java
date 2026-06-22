@@ -7,7 +7,9 @@ import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.PrProjectPhaseRepository;
 import com.fogistanbul.crm.repository.PrProjectRepository;
+import com.fogistanbul.crm.repository.TaskNoteRepository;
 import com.fogistanbul.crm.repository.TaskRepository;
+import com.fogistanbul.crm.repository.TaskReviewRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
 import com.fogistanbul.crm.prproject.application.PrProjectProgressService;
 import com.fogistanbul.crm.service.NotificationService;
@@ -25,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +36,10 @@ class TaskServiceTest {
 
     @Mock
     private TaskRepository taskRepository;
+    @Mock
+    private TaskNoteRepository taskNoteRepository;
+    @Mock
+    private TaskReviewRepository taskReviewRepository;
     @Mock
     private CompanyRepository companyRepository;
     @Mock
@@ -51,6 +58,8 @@ class TaskServiceTest {
     private TaskMapper mapper;
     @Mock
     private PrProjectProgressService prProjectProgressService;
+    @Mock
+    private TaskNotificationPublisher notificationPublisher;
 
     @InjectMocks
     private TaskService taskService;
@@ -87,5 +96,23 @@ class TaskServiceTest {
         taskService.getClientTasks(userId, TaskStatus.DONE, pageable);
 
         verify(taskRepository).findByCompanyIdInAndStatus(companyIds, TaskStatus.DONE, pageable);
+    }
+
+    @Test
+    void deleteTaskRemovesReviewsAndNotesBeforeTask() {
+        UUID taskId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UserProfile user = UserProfile.builder().id(userId).build();
+        Task task = Task.builder().id(taskId).build();
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(userProfileRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        taskService.deleteTask(taskId, userId);
+
+        verify(accessPolicy).requireDelete(task, user);
+        var order = inOrder(taskReviewRepository, taskNoteRepository, taskRepository);
+        order.verify(taskReviewRepository).deleteByTaskId(taskId);
+        order.verify(taskNoteRepository).deleteByTaskId(taskId);
+        order.verify(taskRepository).delete(task);
     }
 }

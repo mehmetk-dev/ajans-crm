@@ -22,6 +22,10 @@ import {
     useSubmitContentApproval,
     useUpdateContentPlan,
 } from '../hooks/useContentPlans';
+import {
+    getContentPlanHiddenCount,
+    getContentPlanPageSize,
+} from '../model/contentPlanPreview';
 import { contentStatusMeta } from '../model/contentPlan.constants';
 import { ContentApprovalDialog } from './ContentApprovalDialog';
 import { ContentPlanCard } from './ContentPlanCard';
@@ -48,7 +52,13 @@ export function ContentPlanPanel({
     const [approving, setApproving] = useState<ContentPlanResponse | null>(null);
     const [shootId, setShootId] = useState<string>();
 
-    const plansQuery = useContentPlans(scope, companyId, status, 0, 200);
+    const plansQuery = useContentPlans(
+        scope,
+        companyId,
+        status,
+        0,
+        getContentPlanPageSize(limit, showAll),
+    );
     const createPlan = useCreateContentPlan();
     const updatePlan = useUpdateContentPlan();
     const deletePlan = useDeleteContentPlan();
@@ -60,6 +70,11 @@ export function ContentPlanPanel({
 
     const plans = plansQuery.data?.content ?? [];
     const visiblePlans = limit && !showAll ? plans.slice(0, limit) : plans;
+    const hiddenPlanCount = getContentPlanHiddenCount(
+        plansQuery.data?.totalElements,
+        limit,
+        plans.length,
+    );
     const plannedShoots = useMemo(() => {
         const source = readOnly ? clientShoots.data?.content : staffShoots.data?.content;
         return (source ?? []).filter(shoot =>
@@ -156,10 +171,10 @@ export function ContentPlanPanel({
                         ))}
                     </div>
                 )}
-                {limit && plans.length > limit && (
+                {limit && hiddenPlanCount > 0 && (
                     <button onClick={() => setShowAll(value => !value)}
                         className="mt-3 w-full border-t border-white/[0.04] pt-3 text-xs text-zinc-500">
-                        {showAll ? 'Daha az göster' : `${plans.length - limit} içerik daha göster`}
+                        {showAll ? 'Daha az göster' : `${hiddenPlanCount} içerik daha göster`}
                     </button>
                 )}
             </section>
