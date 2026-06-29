@@ -17,7 +17,7 @@ public class CompanyAccessPolicy {
     private final CompanyMembershipRepository membershipRepository;
 
     public void requireAccess(UserProfile user, UUID companyId) {
-        if (user.getGlobalRole() == GlobalRole.ADMIN) {
+        if (user.getGlobalRole() == GlobalRole.ADMIN || user.getGlobalRole() == GlobalRole.AGENCY_STAFF) {
             return;
         }
         requireMembership(user.getId(), companyId);

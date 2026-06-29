@@ -23,6 +23,8 @@ public class CompanyResponse {
     private String logoUrl;
     private String contractStatus;
     private String notes;
+    private String vision;
+    private String mission;
 
     private String socialInstagram;
     private String socialFacebook;
@@ -53,6 +55,9 @@ public class CompanyResponse {
         private String userId;
         private String fullName;
         private String email;
+        private String phone;
+        private String position;
+        private String department;
         private String membershipRole;
         private String globalRole;
         private String avatarUrl;

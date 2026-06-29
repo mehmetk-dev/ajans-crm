@@ -4,14 +4,13 @@ import { useAuth } from '../store/AuthContext';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import NotificationBell from '../components/NotificationBell';
 import GlobalSearch from '../components/GlobalSearch';
-import TimeTracker from '../components/TimeTracker';
 import ThemeToggle from '../components/ThemeToggle';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { UserAvatar } from '../components/UserAvatar';
 import {
     LayoutDashboard, ListTodo, Building2, Calendar,
     LogOut, Briefcase, Camera, Rocket, MessageSquare, Menu, X, BarChart3,
-    User, Clock, FileText, Search, Settings, Image, Users, PenLine, Inbox
+    FileText, Search, Settings, Image, Users, PenLine, Inbox
 } from 'lucide-react';
 import { usePendingApprovalCount } from '../features/content-plans';
 import FloatingTaskFab from '../components/FloatingTaskFab';
@@ -20,8 +19,6 @@ const navItems = [
     { to: '/staff', icon: LayoutDashboard, label: 'Ana Panel', end: true },
     { to: '/staff/analytics', icon: BarChart3, label: 'Performansım' },
     { to: '/staff/tasks', icon: ListTodo, label: 'Görevler' },
-    { to: '/staff/kanban', icon: User, label: 'Benim Alanım' },
-    { to: '/staff/time-tracking', icon: Clock, label: 'Zaman Takibi' },
     { to: '/staff/messaging', icon: MessageSquare, label: 'Mesajlar' },
     { to: '/staff/notes', icon: FileText, label: 'Notlar' },
     { to: '/staff/companies', icon: Building2, label: 'Şirketler' },
@@ -122,7 +119,8 @@ export default function StaffLayout() {
                 {/* User info */}
                 <div className="px-3 pb-4 space-y-2">
                     <NavLink
-                        to="/staff/kanban"
+                        to="/staff"
+                        end
                         onClick={() => setSidebarOpen(false)}
                         className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer"
                     >
@@ -151,7 +149,6 @@ export default function StaffLayout() {
             <main className="flex-1 overflow-auto relative pt-14 md:pt-0">
                 {/* Desktop Header Bar */}
                 <div className="hidden md:flex items-center justify-end gap-2 px-8 py-3 border-b border-white/[0.06]">
-                    <TimeTracker />
                     <div className="flex-1" />
                     <button
                         onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}

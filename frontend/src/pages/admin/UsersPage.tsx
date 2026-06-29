@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { getApiErrorMessage } from '../../lib/apiError';
 import { adminApi } from '../../api/admin';
-import type { AllUserResponse } from '../../api/admin';
+import type { AllUserResponse, UpdateUserInput } from '../../api/admin';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, X, Search, Shield, Briefcase, Building2, ChevronDown, Trash2 } from 'lucide-react';
+import { Users, X, Search, Shield, Briefcase, Building2, ChevronDown, Trash2, Phone, Pencil, Calendar } from 'lucide-react';
 import { UserAvatar } from '../../components/UserAvatar';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -35,6 +35,11 @@ export default function UsersPage() {
     const [error, setError] = useState('');
     const [deleteConfirm, setDeleteConfirm] = useState<AllUserResponse | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [detailUser, setDetailUser] = useState<AllUserResponse | null>(null);
+    const [profileEditing, setProfileEditing] = useState(false);
+    const [profileForm, setProfileForm] = useState<UpdateUserInput>({ fullName: '' });
+    const [profileSaving, setProfileSaving] = useState(false);
+    const [profileError, setProfileError] = useState('');
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/immutability
@@ -71,6 +76,43 @@ export default function UsersPage() {
         setEditingUser(user);
         setNewRole(user.globalRole);
         setError('');
+    };
+
+    const openDetail = (user: AllUserResponse) => {
+        setDetailUser(user);
+        setProfileEditing(false);
+        setProfileError('');
+    };
+
+    const openProfileEdit = () => {
+        if (!detailUser) return;
+        setProfileForm({
+            fullName: detailUser.fullName,
+            phone: detailUser.phone ?? '',
+            position: detailUser.position ?? '',
+            department: detailUser.department ?? '',
+        });
+        setProfileError('');
+        setProfileEditing(true);
+    };
+
+    const handleProfileField = (field: string, value: string) =>
+        setProfileForm(prev => ({ ...prev, [field]: value }));
+
+    const handleProfileSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!detailUser) return;
+        setProfileSaving(true);
+        setProfileError('');
+        try {
+            const updated = await adminApi.updateUser(detailUser.id, profileForm);
+            setDetailUser(updated);
+            setProfileEditing(false);
+            loadUsers();
+        } catch (err: unknown) {
+            setProfileError(getApiErrorMessage(err, 'Kullanıcı güncellenemedi'));
+        }
+        setProfileSaving(false);
     };
 
     const handleDeleteUser = async () => {
@@ -189,7 +231,8 @@ export default function UsersPage() {
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         transition={{ delay: i * 0.02 }}
-                                        className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+                                        onClick={() => openDetail(u)}
+                                        className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors cursor-pointer"
                                     >
                                         <td className="p-4">
                                             <div className="flex items-center gap-3">
@@ -244,7 +287,7 @@ export default function UsersPage() {
                                                 {new Date(u.createdAt).toLocaleDateString('tr-TR')}
                                             </span>
                                         </td>
-                                        <td className="p-4">
+                                        <td className="p-4" onClick={e => e.stopPropagation()}>
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     onClick={() => openEditModal(u)}
@@ -360,6 +403,150 @@ export default function UsersPage() {
                                     {saving ? <div className="h-5 w-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : 'Rolü Güncelle'}
                                 </button>
                             </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* User Detail Modal */}
+            <AnimatePresence>
+                {detailUser && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+                        onClick={() => { setDetailUser(null); setProfileEditing(false); }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.95 }}
+                            className="glass-panel rounded-2xl w-full max-w-lg max-h-[90vh] overflow-auto"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="p-6 border-b border-white/[0.06] flex items-center justify-between sticky top-0 bg-[#0C0C0E] z-10 rounded-t-2xl">
+                                <h2 className="text-lg font-bold text-white">Kullanıcı Detayı</h2>
+                                <button onClick={() => { setDetailUser(null); setProfileEditing(false); }} className="text-zinc-500 hover:text-white transition-colors">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {!profileEditing ? (
+                                <div className="p-6 space-y-5">
+                                    <div className="flex items-center gap-4">
+                                        <UserAvatar name={detailUser.fullName} avatarUrl={detailUser.avatarUrl} className="h-14 w-14 rounded-2xl text-xl" />
+                                        <div className="min-w-0">
+                                            <p className="text-base font-bold text-white truncate">{detailUser.fullName}</p>
+                                            <p className="text-sm text-zinc-500 truncate">{detailUser.email}</p>
+                                            <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg border mt-1.5 ${ROLE_COLORS[detailUser.globalRole] || 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
+                                                <Shield className="w-3 h-3" />
+                                                {ROLE_LABELS[detailUser.globalRole] || detailUser.globalRole}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {detailUser.phone && (
+                                            <div className="flex items-center gap-2 text-sm bg-white/[0.02] rounded-xl px-3 py-2.5">
+                                                <Phone className="w-4 h-4 text-zinc-600" />
+                                                <span className="text-zinc-400">Telefon:</span>
+                                                <span className="text-white">{detailUser.phone}</span>
+                                            </div>
+                                        )}
+                                        {detailUser.position && (
+                                            <div className="flex items-center gap-2 text-sm bg-white/[0.02] rounded-xl px-3 py-2.5">
+                                                <Briefcase className="w-4 h-4 text-zinc-600" />
+                                                <span className="text-zinc-400">Pozisyon:</span>
+                                                <span className="text-white">{detailUser.position}</span>
+                                            </div>
+                                        )}
+                                        {detailUser.department && (
+                                            <div className="flex items-center gap-2 text-sm bg-white/[0.02] rounded-xl px-3 py-2.5">
+                                                <Briefcase className="w-4 h-4 text-zinc-600" />
+                                                <span className="text-zinc-400">Departman:</span>
+                                                <span className="text-white">{detailUser.department}</span>
+                                            </div>
+                                        )}
+                                        {detailUser.createdAt && (
+                                            <div className="flex items-center gap-2 text-sm bg-white/[0.02] rounded-xl px-3 py-2.5">
+                                                <Calendar className="w-4 h-4 text-zinc-600" />
+                                                <span className="text-zinc-400">Kayıt:</span>
+                                                <span className="text-white">{new Date(detailUser.createdAt).toLocaleDateString('tr-TR')}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {detailUser.companies.length > 0 && (
+                                        <div>
+                                            <h3 className="text-xs font-medium text-zinc-400 mb-2">Bağlı Şirketler</h3>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {detailUser.companies.map(c => (
+                                                    <span key={c.companyId} className="inline-flex items-center gap-1 text-[11px] bg-[#18181b] text-zinc-300 px-2.5 py-1.5 rounded-lg border border-white/[0.04]">
+                                                        <Building2 className="w-3 h-3 text-zinc-500" />
+                                                        {c.companyName}
+                                                        <span className="text-zinc-600">·</span>
+                                                        <span className="text-zinc-500">{MEMBERSHIP_LABELS[c.membershipRole] || c.membershipRole}</span>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            onClick={openProfileEdit}
+                                            className="flex-1 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-[13px] transition-all"
+                                        >
+                                            <Pencil className="w-4 h-4" /> Profili Düzenle
+                                        </button>
+                                        <button
+                                            onClick={() => { openEditModal(detailUser); setDetailUser(null); }}
+                                            className="flex-1 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-300 font-semibold rounded-xl flex items-center justify-center gap-2 text-[13px] transition-all"
+                                        >
+                                            <Shield className="w-4 h-4" /> Rol Değiştir
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleProfileSubmit} className="p-6 space-y-4">
+                                    {profileError && (
+                                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs">{profileError}</div>
+                                    )}
+                                    <div>
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Ad Soyad</label>
+                                        <input value={profileForm.fullName ?? ''} onChange={e => handleProfileField('fullName', e.target.value)}
+                                            className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none" placeholder="Ad Soyad" required />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Telefon</label>
+                                            <input value={profileForm.phone ?? ''} onChange={e => handleProfileField('phone', e.target.value)}
+                                                className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none" placeholder="Telefon" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Pozisyon</label>
+                                            <input value={profileForm.position ?? ''} onChange={e => handleProfileField('position', e.target.value)}
+                                                className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none" placeholder="Pozisyon" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Departman</label>
+                                        <input value={profileForm.department ?? ''} onChange={e => handleProfileField('department', e.target.value)}
+                                            className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none" placeholder="Departman" />
+                                    </div>
+                                    <div className="flex gap-3 pt-2">
+                                        <button type="button" onClick={() => setProfileEditing(false)}
+                                            className="flex-1 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-400 font-medium rounded-xl text-[13px] transition-all">
+                                            İptal
+                                        </button>
+                                        <button type="submit" disabled={profileSaving}
+                                            className="flex-1 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-[13px] transition-all disabled:opacity-50">
+                                            {profileSaving ? <div className="h-5 w-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : 'Kaydet'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
                         </motion.div>
                     </motion.div>
                 )}

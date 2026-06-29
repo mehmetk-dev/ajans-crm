@@ -2,9 +2,11 @@ package com.fogistanbul.crm.controller;
 
 import com.fogistanbul.crm.dto.AuthResponse;
 import com.fogistanbul.crm.dto.LoginRequest;
+import com.fogistanbul.crm.entity.enums.ActivityAction;
 import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.security.CurrentUser;
 import com.fogistanbul.crm.security.LoginRateLimiter;
+import com.fogistanbul.crm.service.ActivityLogService;
 import com.fogistanbul.crm.service.AuthService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +22,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
+import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -29,6 +33,7 @@ public class AuthController {
     private final AuthService authService;
     private final LoginRateLimiter rateLimiter;
     private final CurrentUser currentUser;
+    private final ActivityLogService activityLogService;
 
     @Value("${app.cookie.secure:true}")
     private boolean cookieSecure;
@@ -57,6 +62,13 @@ public class AuthController {
         try {
             AuthResponse authResponse = authService.login(request);
             addTokenCookies(httpResponse, authResponse.getAccessToken(), authResponse.getRefreshToken());
+            if (authResponse.getUser() != null && authResponse.getUser().getId() != null) {
+                activityLogService.log(
+                        UUID.fromString(authResponse.getUser().getId()),
+                        ActivityAction.LOGIN, "AUTH",
+                        null, authResponse.getUser().getEmail(),
+                        Map.of("ip", clientIp));
+            }
             return ResponseEntity.ok(authResponse.getUser());
         } catch (ApiException ex) {
             if ("INVALID_CREDENTIALS".equals(ex.getCode())) {

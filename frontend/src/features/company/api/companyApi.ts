@@ -10,6 +10,7 @@ import type {
     TeamResponse,
     UpdateCompanyInput,
     UpdatePermissionInput,
+    UpdateStaffInput,
 } from './company.types';
 
 export const companyApi = {
@@ -38,6 +39,8 @@ export const companyApi = {
     listStaff: () => api.get<StaffResponse[]>('/admin/staff').then(response => response.data),
     getStaff: (staffId: string) =>
         api.get<StaffResponse>(`/admin/staff/${staffId}`).then(response => response.data),
+    updateStaff: (staffId: string, input: UpdateStaffInput) =>
+        api.put<StaffResponse>(`/admin/staff/${staffId}`, input).then(response => response.data),
     createStaff: (input: CreateStaffInput) =>
         api.post<StaffResponse>('/admin/staff', input).then(response => response.data),
     deleteStaff: (staffId: string) => api.delete<void>(`/admin/staff/${staffId}`),

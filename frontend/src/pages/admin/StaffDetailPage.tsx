@@ -1,12 +1,24 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { companyApi, companyKeys, type CompanyResponse, type StaffResponse } from '../../features/company';
 import {
-    ArrowLeft, User, Mail, Phone, Briefcase, Building2,
-    Plus, Trash2
+    companyApi,
+    companyKeys,
+    type CompanyResponse,
+    type StaffResponse,
+    type UpdateStaffInput,
+} from '../../features/company';
+import { getApiErrorMessage } from '../../lib/apiError';
+import { motion } from 'framer-motion';
+import {
+    ArrowLeft, User, Mail, Phone, Briefcase, Building2, MapPin, Calendar,
+    Cake, FileText, Pencil, Plus, Trash2, X
 } from 'lucide-react';
 import { UserAvatar } from '../../components/UserAvatar';
+
+const EMPTY_EDIT: UpdateStaffInput = {
+    fullName: '', phone: '', position: '', department: '', address: '', birthDate: '', notes: '',
+};
 
 export default function StaffDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -15,6 +27,9 @@ export default function StaffDetailPage() {
 
     const [showAssign, setShowAssign] = useState(false);
     const [selectedCompanyId, setSelectedCompanyId] = useState('');
+    const [editing, setEditing] = useState(false);
+    const [editForm, setEditForm] = useState<UpdateStaffInput>(EMPTY_EDIT);
+    const [editError, setEditError] = useState('');
 
     const { data: staff, isLoading } = useQuery<StaffResponse>({
         queryKey: ['staff', id],
@@ -43,6 +58,45 @@ export default function StaffDetailPage() {
             queryClient.invalidateQueries({ queryKey: ['staff', id] });
         },
     });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ staffId, input }: { staffId: string; input: UpdateStaffInput }) =>
+            companyApi.updateStaff(staffId, input),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['staff', id] });
+            queryClient.invalidateQueries({ queryKey: ['admin-staff-list'] });
+            setEditing(false);
+        },
+        onError: (err: unknown) => setEditError(getApiErrorMessage(err, 'Çalışan güncellenemedi')),
+    });
+
+    const openEdit = () => {
+        if (!staff) return;
+        setEditForm({
+            fullName: staff.fullName,
+            phone: staff.phone ?? '',
+            position: staff.position ?? '',
+            department: staff.department ?? '',
+            address: staff.address ?? '',
+            birthDate: staff.birthDate ? staff.birthDate.slice(0, 10) : '',
+            notes: staff.notes ?? '',
+        });
+        setEditError('');
+        setEditing(true);
+    };
+
+    const handleEditField = (field: string, value: string) =>
+        setEditForm(prev => ({ ...prev, [field]: value }));
+
+    const handleEditSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!staff) return;
+        const payload: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(editForm)) {
+            payload[key] = typeof value === 'string' && value.trim() === '' ? undefined : value;
+        }
+        updateMutation.mutate({ staffId: staff.id, input: payload as unknown as UpdateStaffInput });
+    };
 
     if (isLoading) {
         return (
@@ -77,6 +131,12 @@ export default function StaffDetailPage() {
                         <p className="text-sm text-zinc-500">Ajans Çalışanı</p>
                     </div>
                 </div>
+                <button
+                    onClick={openEdit}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold rounded-xl text-[13px] shadow-lg shadow-orange-500/20 transition-all"
+                >
+                    <Pencil className="w-4 h-4" /> Düzenle
+                </button>
             </div>
 
             {/* Info Cards */}
@@ -109,6 +169,27 @@ export default function StaffDetailPage() {
                                 <span className="text-white">{staff.department}</span>
                             </div>
                         )}
+                        {staff.address && (
+                            <div className="flex items-start gap-2 text-sm">
+                                <MapPin className="w-4 h-4 text-zinc-600 mt-0.5" />
+                                <span className="text-zinc-400">Adres:</span>
+                                <span className="text-zinc-300">{staff.address}</span>
+                            </div>
+                        )}
+                        {staff.birthDate && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <Cake className="w-4 h-4 text-zinc-600" />
+                                <span className="text-zinc-400">Doğum Tarihi:</span>
+                                <span className="text-white">{new Date(staff.birthDate).toLocaleDateString('tr-TR')}</span>
+                            </div>
+                        )}
+                        {staff.createdAt && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <Calendar className="w-4 h-4 text-zinc-600" />
+                                <span className="text-zinc-400">Kayıt:</span>
+                                <span className="text-white">{new Date(staff.createdAt).toLocaleDateString('tr-TR')}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -127,6 +208,16 @@ export default function StaffDetailPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Notes */}
+            {staff.notes && (
+                <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
+                    <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <FileText className="w-4 h-4" /> Notlar
+                    </h3>
+                    <p className="text-zinc-300 text-sm whitespace-pre-wrap">{staff.notes}</p>
+                </div>
+            )}
 
             {/* Assigned Companies */}
             <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
@@ -194,6 +285,77 @@ export default function StaffDetailPage() {
                     )}
                 </div>
             </div>
+
+            {editing && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+                    onClick={() => setEditing(false)}
+                >
+                    <motion.div
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.95, opacity: 0 }}
+                        className="glass-panel rounded-2xl w-full max-w-lg max-h-[90vh] overflow-auto"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="p-6 border-b border-white/[0.06] flex items-center justify-between sticky top-0 bg-[#0C0C0E] z-10 rounded-t-2xl">
+                            <h2 className="text-lg font-bold text-white">Çalışanı Düzenle</h2>
+                            <button onClick={() => setEditing(false)} className="text-zinc-500 hover:text-white transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+                            {editError && (
+                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs">{editError}</div>
+                            )}
+                            <div>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Ad Soyad *</label>
+                                <input value={editForm.fullName} onChange={e => handleEditField('fullName', e.target.value)}
+                                    className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none" placeholder="Ad Soyad" required />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Telefon</label>
+                                    <input value={editForm.phone ?? ''} onChange={e => handleEditField('phone', e.target.value)}
+                                        className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none" placeholder="Telefon" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Pozisyon</label>
+                                    <input value={editForm.position ?? ''} onChange={e => handleEditField('position', e.target.value)}
+                                        className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none" placeholder="Pozisyon" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Departman</label>
+                                    <input value={editForm.department ?? ''} onChange={e => handleEditField('department', e.target.value)}
+                                        className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none" placeholder="Departman" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Doğum Tarihi</label>
+                                    <input type="date" value={editForm.birthDate ?? ''} onChange={e => handleEditField('birthDate', e.target.value)}
+                                        className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Adres</label>
+                                <input value={editForm.address ?? ''} onChange={e => handleEditField('address', e.target.value)}
+                                    className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none" placeholder="Adres" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-1">Notlar</label>
+                                <textarea value={editForm.notes ?? ''} onChange={e => handleEditField('notes', e.target.value)}
+                                    className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none resize-none" rows={3} placeholder="Notlar" />
+                            </div>
+                            <button type="submit" disabled={updateMutation.isPending}
+                                className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-[13px] shadow-lg shadow-orange-500/20 transition-all disabled:opacity-50">
+                                {updateMutation.isPending ? <div className="h-5 w-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : 'Değişiklikleri Kaydet'}
+                            </button>
+                        </form>
+                    </motion.div>
+                </motion.div>
+            )}
         </div>
     );
 }

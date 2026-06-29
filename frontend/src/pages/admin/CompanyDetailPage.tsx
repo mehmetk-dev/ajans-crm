@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, type CompanyServiceItem } from '../../api/admin';
@@ -5,25 +6,82 @@ import {
     companyApi,
     companyKeys,
     CompanyMembersPanel,
+    EditCompanyForm,
     type CompanyResponse,
+    type UpdateCompanyInput,
 } from '../../features/company';
+import { getApiErrorMessage } from '../../lib/apiError';
 import {
     ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Calendar,
-    Briefcase, ExternalLink,
-    Instagram, Facebook, Twitter, Linkedin, Youtube,
+    Briefcase, ExternalLink, Pencil, Target, Users,
+    Instagram, Facebook, Twitter, Linkedin, Youtube, Music2,
     BarChart3, Megaphone, Camera, FileText, LayoutTemplate, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import WebDesignAdminSection from '../../components/admin/WebDesignAdminSection';
+import { motion } from 'framer-motion';
 
 export default function CompanyDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const [editing, setEditing] = useState(false);
+    const [editForm, setEditForm] = useState<UpdateCompanyInput>({ name: '' });
+    const [editError, setEditError] = useState('');
 
     const { data: company, isLoading } = useQuery<CompanyResponse>({
         queryKey: companyKeys.detail('admin', id ?? ''),
         queryFn: () => companyApi.getAdmin(id!),
         enabled: !!id,
     });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ companyId, input }: { companyId: string; input: UpdateCompanyInput }) =>
+            companyApi.update(companyId, input),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: companyKeys.detail('admin', id ?? '') });
+            queryClient.invalidateQueries({ queryKey: companyKeys.adminList() });
+            setEditing(false);
+        },
+        onError: (err: unknown) => setEditError(getApiErrorMessage(err, 'Şirket güncellenemedi')),
+    });
+
+    const openEdit = () => {
+        if (!company) return;
+        setEditForm({
+            name: company.name,
+            industry: company.industry || '',
+            email: company.email || '',
+            phone: company.phone || '',
+            address: company.address || '',
+            website: company.website || '',
+            notes: company.notes || '',
+            taxId: company.taxId || '',
+            foundedYear: company.foundedYear ?? undefined,
+            vision: company.vision || '',
+            mission: company.mission || '',
+            socialInstagram: company.socialInstagram || '',
+            socialFacebook: company.socialFacebook || '',
+            socialTwitter: company.socialTwitter || '',
+            socialLinkedin: company.socialLinkedin || '',
+            socialYoutube: company.socialYoutube || '',
+            socialTiktok: company.socialTiktok || '',
+        });
+        setEditError('');
+        setEditing(true);
+    };
+
+    const handleEditField = (field: string, value: string | number) =>
+        setEditForm(prev => ({ ...prev, [field]: value }));
+
+    const handleEditSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!company) return;
+        const payload: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(editForm)) {
+            payload[key] = typeof value === 'string' && value.trim() === '' ? undefined : value;
+        }
+        updateMutation.mutate({ companyId: company.id, input: payload as unknown as UpdateCompanyInput });
+    };
 
     if (isLoading) {
         return (
@@ -59,6 +117,12 @@ export default function CompanyDetailPage() {
                         </div>
                     </div>
                 </div>
+                <button
+                    onClick={openEdit}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold rounded-xl text-[13px] shadow-lg shadow-orange-500/20 transition-all"
+                >
+                    <Pencil className="w-4 h-4" /> Düzenle
+                </button>
             </div>
 
             {/* Info Cards */}
@@ -119,6 +183,24 @@ export default function CompanyDetailPage() {
                         <span className="text-zinc-400">Görev:</span>
                         <span className="text-white font-medium">{company.taskCount}</span>
                     </div>
+                    {company.vision && (
+                        <div className="flex items-start gap-2 text-sm pt-2 border-t border-white/[0.04]">
+                            <Target className="w-4 h-4 text-zinc-600 mt-0.5" />
+                            <div>
+                                <span className="text-zinc-400">Vizyon:</span>
+                                <p className="text-zinc-300 mt-0.5">{company.vision}</p>
+                            </div>
+                        </div>
+                    )}
+                    {company.mission && (
+                        <div className="flex items-start gap-2 text-sm">
+                            <Users className="w-4 h-4 text-zinc-600 mt-0.5" />
+                            <div>
+                                <span className="text-zinc-400">Misyon:</span>
+                                <p className="text-zinc-300 mt-0.5">{company.mission}</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Socials */}
@@ -155,8 +237,14 @@ export default function CompanyDetailPage() {
                                 <Youtube className="w-4 h-4" />
                             </a>
                         )}
+                        {company.socialTiktok && (
+                            <a href={`https://tiktok.com/@${company.socialTiktok.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer"
+                                className="p-2 rounded-lg bg-zinc-500/10 text-zinc-300 hover:bg-zinc-500/20 transition-colors">
+                                <Music2 className="w-4 h-4" />
+                            </a>
+                        )}
                         {!company.socialInstagram && !company.socialFacebook && !company.socialTwitter &&
-                            !company.socialLinkedin && !company.socialYoutube && (
+                            !company.socialLinkedin && !company.socialYoutube && !company.socialTiktok && (
                                 <p className="text-zinc-600 text-sm">Sosyal medya bağlantısı eklenmemiş</p>
                             )}
                     </div>
@@ -178,6 +266,33 @@ export default function CompanyDetailPage() {
             <ServiceManagementSection companyId={company.id} />
 
             <CompanyMembersPanel company={company} />
+
+            {editing && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+                    onClick={() => setEditing(false)}
+                >
+                    <motion.div
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.95, opacity: 0 }}
+                        className="glass-panel rounded-2xl w-full max-w-xl max-h-[90vh] overflow-auto"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <EditCompanyForm
+                            form={editForm}
+                            saving={updateMutation.isPending}
+                            error={editError}
+                            onFieldChange={handleEditField}
+                            onSubmit={handleEditSubmit}
+                            onClose={() => setEditing(false)}
+                        />
+                    </motion.div>
+                </motion.div>
+            )}
         </div>
     );
 }

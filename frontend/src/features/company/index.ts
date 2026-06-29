@@ -14,6 +14,7 @@ export type {
     TeamResponse,
     UpdateCompanyInput,
     UpdatePermissionInput,
+    UpdateStaffInput,
 } from './api/company.types';
 export { companyApi } from './api/companyApi';
 export { companyKeys } from './api/companyKeys';

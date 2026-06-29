@@ -11,6 +11,7 @@ const UsersPage = lazy(() => import('../../pages/admin/UsersPage'));
 const ActivityLogPage = lazy(() => import('../../pages/admin/ActivityLogPage'));
 const AdminSettingsPage = lazy(() => import('../../pages/admin/AdminSettingsPage'));
 const RoutineManagementPage = lazy(() => import('../../pages/admin/RoutineManagementPage'));
+const AdminTasksPage = lazy(() => import('../../pages/admin/AdminTasksPage'));
 const MessagingPage = lazy(() => import('../../pages/staff/MessagingPage'));
 const StaffRequestsPage = lazy(() => import('../../pages/staff/StaffRequestsPage'));
 
@@ -21,6 +22,7 @@ export const adminRoutes = [
     <Route path="companies/:id" key="company-detail" element={<CompanyDetailPage />} />,
     <Route path="staff" key="staff" element={<StaffPage />} />,
     <Route path="staff/:id" key="staff-detail" element={<StaffDetailPage />} />,
+    <Route path="tasks" key="tasks" element={<AdminTasksPage />} />,
     <Route path="users" key="users" element={<UsersPage />} />,
     <Route path="messaging" key="messaging" element={<MessagingPage />} />,
     <Route path="activity-log" key="activity-log" element={<ActivityLogPage />} />,

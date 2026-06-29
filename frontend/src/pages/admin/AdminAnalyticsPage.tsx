@@ -1,57 +1,65 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     Building2, Users, ListTodo, CheckCircle2, Clock, TrendingUp,
-    Activity, BarChart3, Target, Zap
+    Activity, Target, Zap, BarChart3, AlertTriangle, Timer
 } from 'lucide-react';
-import { StatCard, AreaChartCard, BarChartCard, DonutChartCard, ProgressListCard } from '../../components/analytics';
+import {
+    StatCard, AreaChartCard, BarChartCard, DonutChartCard, ProgressListCard
+} from '../../components/analytics';
+import { adminApi, type AdminAnalyticsResponse, type StaffAnalyticsResponse } from '../../api/admin';
+import { companyApi, type StaffResponse } from '../../features/company';
+import { UserAvatar } from '../../components/UserAvatar';
 
-// Mock data - backend API entegrasyonunda gerçek verilerle değiştirilecek
-const monthlyData = [
-    { name: 'Oca', görevler: 45, tamamlanan: 38 },
-    { name: 'Şub', görevler: 52, tamamlanan: 44 },
-    { name: 'Mar', görevler: 61, tamamlanan: 55 },
-    { name: 'Nis', görevler: 48, tamamlanan: 42 },
-    { name: 'May', görevler: 73, tamamlanan: 65 },
-    { name: 'Haz', görevler: 68, tamamlanan: 58 },
-    { name: 'Tem', görevler: 82, tamamlanan: 74 },
-    { name: 'Ağu', görevler: 56, tamamlanan: 48 },
-    { name: 'Eyl', görevler: 91, tamamlanan: 83 },
-    { name: 'Eki', görevler: 78, tamamlanan: 70 },
-    { name: 'Kas', görevler: 85, tamamlanan: 76 },
-    { name: 'Ara', görevler: 64, tamamlanan: 55 },
-];
-
-const companyPerformance = [
-    { name: 'ABC Tech', görevler: 28, tamamlanan: 24 },
-    { name: 'XYZ Media', görevler: 35, tamamlanan: 22 },
-    { name: 'Delta Corp', görevler: 19, tamamlanan: 17 },
-    { name: 'Mega Dijital', görevler: 42, tamamlanan: 38 },
-    { name: 'Star İletişim', görevler: 31, tamamlanan: 25 },
-];
-
-const taskDistribution = [
-    { name: 'Sosyal Medya', value: 35, color: '#3b82f6' },
-    { name: 'Web Geliştirme', value: 25, color: '#f97316' },
-    { name: 'Grafik Tasarım', value: 20, color: '#10b981' },
-    { name: 'SEO / SEM', value: 12, color: '#8b5cf6' },
-    { name: 'PR & İletişim', value: 8, color: '#ec4899' },
-];
-
-const staffPerformance = [
-    { label: 'Ahmet Yılmaz', value: 42, max: 48, color: '#3b82f6' },
-    { label: 'Elif Kaya', value: 38, max: 45, color: '#10b981' },
-    { label: 'Mehmet Demir', value: 35, max: 40, color: '#f97316' },
-    { label: 'Zeynep Çelik', value: 28, max: 35, color: '#8b5cf6' },
-    { label: 'Can Aksoy', value: 22, max: 30, color: '#ec4899' },
-];
+const CATEGORY_LABELS: Record<string, string> = {
+    REELS: 'Reels', BLOG: 'Blog', PAYLASIM: 'Paylaşım', SEO: 'SEO',
+    TASARIM: 'Tasarım', TOPLANTI: 'Toplantı', OTHER: 'Diğer',
+};
 
 export default function AdminAnalyticsPage() {
+    const { data, isLoading, isError } = useQuery<AdminAnalyticsResponse>({
+        queryKey: ['admin-analytics'],
+        queryFn: () => adminApi.getAnalytics(),
+    });
+
+    const [selectedStaffId, setSelectedStaffId] = useState<string>('');
+
+    const { data: staffList = [] } = useQuery<StaffResponse[]>({
+        queryKey: ['admin-staff-list'],
+        queryFn: () => companyApi.listStaff(),
+    });
+
+    const { data: staffAnalytics, isLoading: staffLoading } = useQuery<StaffAnalyticsResponse>({
+        queryKey: ['admin-staff-analytics', selectedStaffId],
+        queryFn: () => adminApi.getStaffAnalytics(selectedStaffId),
+        enabled: Boolean(selectedStaffId),
+    });
+
+    if (isError) {
+        return (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                Analitik verileri yüklenemedi.
+            </div>
+        );
+    }
+
+    if (isLoading || !data) {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <div className="animate-spin h-8 w-8 border-2 border-orange-500 border-t-transparent rounded-full" />
+            </div>
+        );
+    }
+
+    const totalDist = data.taskDistribution.reduce((a, b) => a + b.value, 0);
+
     const stats = [
-        { label: 'Toplam Şirket', value: 12, change: '+2', icon: Building2, color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
-        { label: 'Aktif Çalışan', value: 8, change: '+1', icon: Users, color: 'text-pink-400', bgColor: 'bg-pink-500/10' },
-        { label: 'Aylık Görev', value: 85, change: '+12%', icon: ListTodo, color: 'text-amber-400', bgColor: 'bg-amber-500/10' },
-        { label: 'Tamamlanma Oranı', value: '%89', change: '+3%', icon: CheckCircle2, color: 'text-green-400', bgColor: 'bg-green-500/10' },
-        { label: 'Ortalama Süre', value: '2.4g', change: '-0.3g', icon: Clock, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10' },
-        { label: 'Verimlilik', value: '%94', change: '+5%', icon: Zap, color: 'text-orange-400', bgColor: 'bg-orange-500/10' },
+        { label: 'Toplam Şirket', value: data.totalCompanies, icon: Building2, color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
+        { label: 'Aktif Çalışan', value: data.totalStaff, icon: Users, color: 'text-pink-400', bgColor: 'bg-pink-500/10' },
+        { label: 'Aylık Görev', value: data.monthlyTasks, icon: ListTodo, color: 'text-amber-400', bgColor: 'bg-amber-500/10' },
+        { label: 'Tamamlanma Oranı', value: `%${data.completionRate}`, icon: CheckCircle2, color: 'text-green-400', bgColor: 'bg-green-500/10' },
+        { label: 'Ortalama Süre', value: `${data.avgCompletionDays}g`, icon: Clock, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10' },
+        { label: 'Verimlilik', value: `%${data.efficiency}`, icon: Zap, color: 'text-orange-400', bgColor: 'bg-orange-500/10' },
     ];
 
     return (
@@ -63,8 +71,8 @@ export default function AdminAnalyticsPage() {
                     <p className="text-zinc-500 text-[13px] mt-1">Ajans performansı ve iş analitiği</p>
                 </div>
                 <div className="flex items-center gap-2 bg-[#0C0C0E] border border-white/[0.06] rounded-xl px-3 py-2">
-                    <Activity className="w-4 h-4 text-pink-400" />
-                    <span className="text-xs text-zinc-400">Son 30 Gün</span>
+                    <Activity className="w-4 h-4 text-orange-400" />
+                    <span className="text-xs text-zinc-400">Güncel Veriler</span>
                 </div>
             </div>
 
@@ -81,7 +89,8 @@ export default function AdminAnalyticsPage() {
                     <AreaChartCard
                         title="Aylık Görev Trendleri"
                         icon={TrendingUp}
-                        data={monthlyData}
+                        iconColor="text-orange-400"
+                        data={data.monthlyTrend}
                         dataKey="görevler"
                         secondaryDataKey="tamamlanan"
                         color="#3b82f6"
@@ -92,9 +101,14 @@ export default function AdminAnalyticsPage() {
                 <DonutChartCard
                     title="Görev Dağılımı"
                     icon={Target}
-                    data={taskDistribution}
+                    iconColor="text-purple-400"
+                    data={data.taskDistribution.map(d => ({
+                        name: CATEGORY_LABELS[d.name] ?? d.name,
+                        value: d.value,
+                        color: d.color,
+                    }))}
                     centerLabel="Toplam"
-                    centerValue={taskDistribution.reduce((a, b) => a + b.value, 0)}
+                    centerValue={totalDist}
                 />
             </div>
 
@@ -103,18 +117,159 @@ export default function AdminAnalyticsPage() {
                 <BarChartCard
                     title="Şirket Performansı"
                     icon={BarChart3}
-                    data={companyPerformance}
+                    iconColor="text-emerald-400"
+                    data={data.companyPerformance}
                     dataKey="tamamlanan"
                     secondaryDataKey="görevler"
                     color="#10b981"
-                    secondaryColor="rgba(59,130,246,0.3)"
+                    secondaryColor="rgba(59,130,246,0.4)"
                 />
-                <ProgressListCard
-                    title="Çalışan Performansı"
-                    icon={Users}
-                    items={staffPerformance}
-                />
+                {data.staffPerformance.length > 0 ? (
+                    <ProgressListCard
+                        title="Çalışan Performansı"
+                        icon={Users}
+                        iconColor="text-pink-400"
+                        items={data.staffPerformance}
+                    />
+                ) : (
+                    <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6 flex flex-col items-center justify-center">
+                        <Users className="w-8 h-8 text-zinc-700 mb-2" />
+                        <p className="text-sm text-zinc-500">Henüz çalışan performans verisi yok</p>
+                    </div>
+                )}
             </div>
+
+            {/* Staff Analytics Picker */}
+            <StaffAnalyticsSection
+                staffList={staffList}
+                selectedStaffId={selectedStaffId}
+                onSelect={setSelectedStaffId}
+                data={staffAnalytics}
+                loading={staffLoading}
+            />
+        </div>
+    );
+}
+
+interface StaffAnalyticsSectionProps {
+    staffList: StaffResponse[];
+    selectedStaffId: string;
+    onSelect: (id: string) => void;
+    data?: StaffAnalyticsResponse;
+    loading: boolean;
+}
+
+function StaffAnalyticsSection({ staffList, selectedStaffId, onSelect, data, loading }: StaffAnalyticsSectionProps) {
+    const selectedStaff = staffList.find(s => s.id === selectedStaffId);
+
+    return (
+        <div className="space-y-4">
+            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-2">
+                        <Users className="w-5 h-5 text-pink-400" />
+                        <h2 className="text-base font-semibold text-white">Çalışan Analitiği</h2>
+                    </div>
+                    <select
+                        value={selectedStaffId}
+                        onChange={e => onSelect(e.target.value)}
+                        className="px-4 py-2.5 bg-white/[0.04] border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-orange-500/50 transition-colors min-w-[220px]"
+                    >
+                        <option value="">Çalışan seçiniz...</option>
+                        {staffList.map(s => (
+                            <option key={s.id} value={s.id}>{s.fullName}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            {!selectedStaffId ? (
+                <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-12 flex flex-col items-center justify-center text-center">
+                    <Users className="w-10 h-10 text-zinc-700 mb-3" />
+                    <p className="text-zinc-500 text-sm">Detaylı analitik için bir çalışan seçin</p>
+                </div>
+            ) : loading || !data ? (
+                <div className="flex items-center justify-center py-16">
+                    <div className="animate-spin h-7 w-7 border-2 border-pink-400 border-t-transparent rounded-full" />
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3 bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-4">
+                        {selectedStaff && (
+                            <UserAvatar
+                                name={selectedStaff.fullName}
+                                avatarUrl={selectedStaff.avatarUrl}
+                                className="h-10 w-10 rounded-xl text-xs"
+                                fallbackClassName="bg-pink-500/10 text-pink-400"
+                            />
+                        )}
+                        <div>
+                            <p className="text-white font-semibold text-sm">{selectedStaff?.fullName}</p>
+                            <p className="text-zinc-500 text-xs">{selectedStaff?.position || selectedStaff?.email}</p>
+                        </div>
+                    </div>
+
+                    <StaffStatsGrid data={data} />
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="lg:col-span-2">
+                            <AreaChartCard
+                                title="Haftalık Görev Akışı"
+                                icon={TrendingUp}
+                                iconColor="text-pink-400"
+                                data={data.weeklyFlow}
+                                dataKey="tamamlanan"
+                                secondaryDataKey="yeni"
+                                color="#10b981"
+                                secondaryColor="#3b82f6"
+                                gradientId="adminStaffWeekly"
+                            />
+                        </div>
+                        {data.companyTasks.length > 0 ? (
+                            <ProgressListCard
+                                title="Şirket Bazlı Görevler"
+                                icon={Target}
+                                iconColor="text-purple-400"
+                                items={data.companyTasks}
+                            />
+                        ) : (
+                            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6 flex flex-col items-center justify-center">
+                                <Target className="w-8 h-8 text-zinc-700 mb-2" />
+                                <p className="text-sm text-zinc-500">Şirket bazlı görev yok</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <BarChartCard
+                        title="Aylık Çalışma Saatleri"
+                        icon={BarChart3}
+                        iconColor="text-cyan-400"
+                        data={data.monthlyHours}
+                        dataKey="saat"
+                        color="#06b6d4"
+                    />
+                </div>
+            )}
+        </div>
+    );
+}
+
+function StaffStatsGrid({ data }: { data: StaffAnalyticsResponse }) {
+    const hours = Math.floor(data.totalMinutesThisMonth / 60);
+    const mins = data.totalMinutesThisMonth % 60;
+    const items = [
+        { label: 'Aktif Görevler', value: data.activeTasks, icon: ListTodo, color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
+        { label: 'Bu Hafta Tamamlanan', value: data.completedThisWeek, icon: CheckCircle2, color: 'text-pink-400', bgColor: 'bg-pink-500/10' },
+        { label: 'Bekleyen', value: data.pendingTasks, icon: Clock, color: 'text-amber-400', bgColor: 'bg-amber-500/10' },
+        { label: 'Tamamlanma Oranı', value: `%${data.completionRate}`, icon: TrendingUp, color: 'text-green-400', bgColor: 'bg-green-500/10' },
+        { label: 'Bu Ay Çalışma', value: `${hours}s ${mins}d`, icon: Timer, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10' },
+        { label: 'Geciken', value: data.overdueTasks, icon: AlertTriangle, color: 'text-red-400', bgColor: 'bg-red-500/10' },
+    ];
+    return (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {items.map((stat, i) => (
+                <StatCard key={stat.label} {...stat} delay={i} />
+            ))}
         </div>
     );
 }

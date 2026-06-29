@@ -2,6 +2,7 @@ package com.fogistanbul.crm.company.application;
 
 import com.fogistanbul.crm.company.dto.CreateStaffRequest;
 import com.fogistanbul.crm.company.dto.StaffResponse;
+import com.fogistanbul.crm.company.dto.UpdateStaffRequest;
 import com.fogistanbul.crm.company.infrastructure.CompanyDataCleanup;
 import com.fogistanbul.crm.entity.*;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
@@ -86,6 +87,34 @@ public class StaffService {
         if (user.getGlobalRole() != GlobalRole.AGENCY_STAFF) {
             throw new ApiException(HttpStatus.FORBIDDEN, "NOT_AGENCY_STAFF", "Bu kullanıcı bir ajans çalışanı değil");
         }
+        return toResponse(user);
+    }
+
+    @Transactional
+    public StaffResponse updateStaff(UUID id, UpdateStaffRequest req) {
+        UserProfile user = userProfileRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "STAFF_NOT_FOUND", "Çalışan bulunamadı"));
+        if (user.getGlobalRole() != GlobalRole.AGENCY_STAFF) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "NOT_AGENCY_STAFF", "Bu kullanıcı bir ajans çalışanı değil");
+        }
+        Person person = user.getPerson();
+        if (person == null) {
+            person = new Person();
+            person.setCompany(companyRepository.findById(AGENCY_ID).orElse(null));
+            person.setEmail(user.getEmail());
+        }
+        person.setFullName(req.getFullName());
+        person.setPhone(req.getPhone());
+        person.setPositionTitle(req.getPosition());
+        person.setDepartment(req.getDepartment());
+        person.setAddress(req.getAddress());
+        if (req.getBirthDate() != null) {
+            person.setBirthDate(req.getBirthDate());
+        }
+        person.setNotes(req.getNotes());
+        person = personRepository.save(person);
+        user.setPerson(person);
+        userProfileRepository.save(user);
         return toResponse(user);
     }
 
@@ -179,8 +208,12 @@ public class StaffService {
                 .phone(p != null ? p.getPhone() : null)
                 .position(p != null ? p.getPositionTitle() : null)
                 .department(p != null ? p.getDepartment() : null)
+                .address(p != null ? p.getAddress() : null)
+                .birthDate(p != null ? p.getBirthDate() : null)
+                .notes(p != null ? p.getNotes() : null)
                 .avatarUrl(p != null ? p.getAvatarUrl() : null)
                 .globalRole(user.getGlobalRole().name())
+                .createdAt(user.getCreatedAt())
                 .assignedCompanies(assigned)
                 .build();
     }

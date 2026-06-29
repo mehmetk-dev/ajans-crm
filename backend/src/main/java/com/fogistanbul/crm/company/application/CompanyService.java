@@ -119,7 +119,7 @@ public class CompanyService {
     @Transactional(readOnly = true)
     public List<CompanyResponse> getAllClientsForUser(UUID userId) {
         UserProfile user = getUser(userId);
-        if (user.getGlobalRole() == GlobalRole.ADMIN) {
+        if (user.getGlobalRole() == GlobalRole.ADMIN || user.getGlobalRole() == GlobalRole.AGENCY_STAFF) {
             return getAllClients();
         }
 

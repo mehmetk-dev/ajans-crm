@@ -62,4 +62,14 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
     List<Task> findCreatedForUserInRange(@Param("userId") UUID userId, @Param("from") Instant from, @Param("to") Instant to);
 
     List<Task> findByAssignedToIdAndStatusNot(UUID userId, TaskStatus status);
+
+    // ─── Admin Analytics ───
+
+    @Query("SELECT t FROM Task t WHERE t.createdAt >= :from AND t.createdAt < :to")
+    List<Task> findCreatedInRange(@Param("from") Instant from, @Param("to") Instant to);
+
+    @Query("SELECT t FROM Task t WHERE t.status = 'DONE' AND t.completedAt >= :from AND t.completedAt < :to")
+    List<Task> findCompletedInRange(@Param("from") Instant from, @Param("to") Instant to);
+
+    List<Task> findAll();
 }

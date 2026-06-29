@@ -82,10 +82,10 @@ export default function ActivityLogPage() {
         return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     };
 
-    const entityTypes = ['ALL', 'TASK', 'COMPANY', 'USER', 'MEETING', 'SHOOT', 'NOTE'];
+    const entityTypes = ['ALL', 'TASK', 'COMPANY', 'USER', 'AUTH', 'MEETING', 'SHOOT', 'NOTE'];
     const entityLabels: Record<string, string> = {
         ALL: 'Tümü', TASK: 'Görev', COMPANY: 'Şirket', USER: 'Kullanıcı',
-        MEETING: 'Toplantı', SHOOT: 'Çekim', NOTE: 'Not',
+        AUTH: 'Oturum', MEETING: 'Toplantı', SHOOT: 'Çekim', NOTE: 'Not',
     };
 
     return (
@@ -147,7 +147,7 @@ export default function ActivityLogPage() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="text-[13px] font-medium text-white">{log.userName}</span>
+                                            <span className="text-[13px] font-medium text-white">{log.userName ?? 'Sistem'}</span>
                                             <span className={`text-[11px] px-1.5 py-0.5 rounded ${bgColor} ${textColor}`}>
                                                 {actionLabels[log.action] || log.action}
                                             </span>
@@ -160,6 +160,15 @@ export default function ActivityLogPage() {
                                                 {entityLabels[log.entityType] || log.entityType}
                                                 {log.entityId && ` #${log.entityId.substring(0, 8)}`}
                                             </p>
+                                        )}
+                                        {log.details && Object.keys(log.details).length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 mt-1">
+                                                {Object.entries(log.details).map(([k, v]) => (
+                                                    <span key={k} className="text-[10px] text-zinc-600 bg-white/[0.02] px-1.5 py-0.5 rounded">
+                                                        {k}: {String(v)}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         )}
                                     </div>
                                     <span className="text-[10px] text-zinc-700 whitespace-nowrap mt-0.5">{formatDate(log.createdAt)}</span>

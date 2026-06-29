@@ -30,11 +30,24 @@ export interface AllUserResponse {
     createdAt: string;
 }
 
+export interface UpdateUserInput {
+    fullName?: string;
+    phone?: string | null;
+    position?: string | null;
+    department?: string | null;
+}
+
 export const adminApi = {
     getStats: () => api.get<DashboardStats>('/admin/dashboard/stats').then(r => r.data),
 
+    getAnalytics: () => api.get<AdminAnalyticsResponse>('/admin/analytics').then(r => r.data),
+    getStaffAnalytics: (userId: string) =>
+        api.get<StaffAnalyticsResponse>(`/admin/analytics/staff/${userId}`).then(r => r.data),
+
     // Users
     getAllUsers: () => api.get<AllUserResponse[]>('/admin/users').then(r => r.data),
+    updateUser: (userId: string, input: UpdateUserInput) =>
+        api.put<AllUserResponse>(`/admin/users/${userId}`, input).then(r => r.data),
     updateUserRole: (userId: string, globalRole: string) =>
         api.put(`/admin/users/${userId}/role`, { globalRole }).then(r => r.data),
     deleteUser: (userId: string) => api.delete(`/admin/users/${userId}`),
@@ -62,6 +75,34 @@ export interface CompanyServiceItem {
     id: string | null;
     category: string;
     active: boolean;
+}
+
+
+// --- Admin Analytics Types ---
+export interface AdminAnalyticsResponse {
+    totalCompanies: number;
+    totalStaff: number;
+    monthlyTasks: number;
+    monthlyCompleted: number;
+    completionRate: number;
+    avgCompletionDays: number;
+    efficiency: number;
+    monthlyTrend: { name: string; görevler: number; tamamlanan: number }[];
+    companyPerformance: { name: string; görevler: number; tamamlanan: number }[];
+    taskDistribution: { name: string; value: number; color: string }[];
+    staffPerformance: { label: string; value: number; max: number; color: string }[];
+}
+
+export interface StaffAnalyticsResponse {
+    activeTasks: number;
+    completedThisWeek: number;
+    pendingTasks: number;
+    completionRate: number;
+    totalMinutesThisMonth: number;
+    overdueTasks: number;
+    weeklyFlow: { name: string; tamamlanan: number; yeni: number }[];
+    monthlyHours: { name: string; saat: number }[];
+    companyTasks: { label: string; companyId?: string | null; value: number; max: number; color: string }[];
 }
 
 

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { staffApi } from '../../api/staff';
 import type { StaffAnalyticsResponse } from '../../api/staff';
 import {
@@ -8,6 +9,7 @@ import {
 import { StatCard, AreaChartCard, BarChartCard, ProgressListCard } from '../../components/analytics';
 
 export default function StaffAnalyticsPage() {
+    const navigate = useNavigate();
     const { data, isLoading } = useQuery<StaffAnalyticsResponse>({
         queryKey: ['staff-analytics'],
         queryFn: () => staffApi.getMyAnalytics(),
@@ -25,12 +27,12 @@ export default function StaffAnalyticsPage() {
     const minsThisMonth = data.totalMinutesThisMonth % 60;
 
     const stats = [
-        { label: 'Aktif Görevler', value: data.activeTasks, icon: ListTodo, color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
-        { label: 'Bu Hafta Tamamlanan', value: data.completedThisWeek, icon: CheckCircle2, color: 'text-pink-400', bgColor: 'bg-pink-500/10' },
-        { label: 'Bekleyen', value: data.pendingTasks, icon: Clock, color: 'text-amber-400', bgColor: 'bg-amber-500/10' },
-        { label: 'Tamamlanma Oranı', value: `%${data.completionRate}`, icon: TrendingUp, color: 'text-green-400', bgColor: 'bg-green-500/10' },
-        { label: 'Bu Ay Çalışma', value: `${hoursThisMonth}s ${minsThisMonth}d`, icon: Timer, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10' },
-        { label: 'Geciken', value: data.overdueTasks, icon: AlertTriangle, color: 'text-red-400', bgColor: 'bg-red-500/10' },
+        { label: 'Aktif Görevler', value: data.activeTasks, icon: ListTodo, color: 'text-blue-400', bgColor: 'bg-blue-500/10', to: '/staff/tasks?status=ACTIVE' },
+        { label: 'Bu Hafta Tamamlanan', value: data.completedThisWeek, icon: CheckCircle2, color: 'text-pink-400', bgColor: 'bg-pink-500/10', to: '/staff/tasks?status=DONE' },
+        { label: 'Bekleyen', value: data.pendingTasks, icon: Clock, color: 'text-amber-400', bgColor: 'bg-amber-500/10', to: '/staff/tasks?status=TODO' },
+        { label: 'Tamamlanma Oranı', value: `%${data.completionRate}`, icon: TrendingUp, color: 'text-green-400', bgColor: 'bg-green-500/10', to: '' },
+        { label: 'Bu Ay Çalışma', value: `${hoursThisMonth}s ${minsThisMonth}d`, icon: Timer, color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', to: '' },
+        { label: 'Geciken', value: data.overdueTasks, icon: AlertTriangle, color: 'text-red-400', bgColor: 'bg-red-500/10', to: '/staff/tasks?status=OVERDUE' },
     ];
 
     return (
@@ -49,9 +51,14 @@ export default function StaffAnalyticsPage() {
 
             {/* Stat Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {stats.map((stat, i) => (
-                    <StatCard key={stat.label} {...stat} delay={i} />
-                ))}
+                {stats.map((stat, i) => {
+                    const { to, ...cardProps } = stat;
+                    return (
+                        <div key={stat.label} onClick={() => to && navigate(to)} className={to ? 'cursor-pointer' : ''}>
+                            <StatCard {...cardProps} delay={i} />
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Charts Row 1 */}
@@ -90,6 +97,10 @@ export default function StaffAnalyticsPage() {
                         icon={Target}
                         iconColor="text-purple-400"
                         items={data.companyTasks}
+                        onItemClick={(idx) => {
+                            const c = data.companyTasks[idx];
+                            if (c?.companyId) navigate(`/staff/tasks?company=${c.companyId}`);
+                        }}
                     />
                 ) : (
                     <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5 flex flex-col items-center justify-center">

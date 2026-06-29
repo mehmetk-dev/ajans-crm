@@ -5,6 +5,7 @@ import com.fogistanbul.crm.dto.LoginRequest;
 import com.fogistanbul.crm.entity.CompanyMembership;
 import com.fogistanbul.crm.entity.RefreshToken;
 import com.fogistanbul.crm.entity.UserProfile;
+import com.fogistanbul.crm.entity.enums.ActivityAction;
 import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.RefreshTokenRepository;
@@ -23,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -35,6 +37,7 @@ public class AuthService {
         private final CompanyMembershipRepository companyMembershipRepository;
         private final JwtTokenProvider jwtTokenProvider;
         private final PasswordEncoder passwordEncoder;
+        private final ActivityLogService activityLogService;
 
         @Value("${app.jwt.refresh-token-expiration-ms}")
         private long refreshTokenExpirationMs;
@@ -87,12 +90,17 @@ public class AuthService {
         @Transactional
         public void revokeRefreshToken(String refreshTokenStr) {
                 if (refreshTokenStr != null && jwtTokenProvider.validateToken(refreshTokenStr)) {
+                        UUID userId = jwtTokenProvider.getUserIdFromToken(refreshTokenStr);
                         String tokenHash = hashToken(refreshTokenStr);
-                        refreshTokenRepository.findByTokenHashAndRevokedFalse(tokenHash)
-                                        .ifPresent(token -> {
-                                                token.setRevoked(true);
-                                                refreshTokenRepository.save(token);
-                                        });
+refreshTokenRepository.findByTokenHashAndRevokedFalse(tokenHash)
+                                .ifPresent(token -> {
+                                        token.setRevoked(true);
+                                        refreshTokenRepository.save(token);
+                                        if (userId != null) {
+                                                activityLogService.log(userId, ActivityAction.LOGOUT, "AUTH",
+                                                                null, null, Map.of());
+                                        }
+                                });
                 }
         }
 

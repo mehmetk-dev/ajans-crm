@@ -174,6 +174,13 @@ export default function LandingPage() {
     navigate('/dashboard');
   };
 
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <div className="relative min-h-screen bg-[#08080A] text-white overflow-hidden font-sans select-none">
       {/* Background Decorative Gradients & Grid */}
@@ -203,10 +210,19 @@ export default function LandingPage() {
           
           {/* Desktop Menu */}
           <div className="hidden items-center gap-9 text-sm font-medium text-white/62 md:flex">
-            <a className="transition hover:text-white" href="#nasil-calisir">Nasıl Çalışır?</a>
-            <a className="transition hover:text-white" href="#ozellikler">Özellikler</a>
-            <a className="transition hover:text-white" href="#referanslar">Referanslar</a>
-            <a className="transition hover:text-white" href="#sss">SSS</a>
+            <button onClick={() => scrollTo("nasil-calisir")} className="transition hover:text-white cursor-pointer">Nasıl Çalışır?</button>
+            <button onClick={() => scrollTo("ozellikler")} className="transition hover:text-white cursor-pointer">Özellikler</button>
+            <button onClick={() => scrollTo("referanslar")} className="transition hover:text-white cursor-pointer">Referanslar</button>
+            <button onClick={() => scrollTo("sss")} className="transition hover:text-white cursor-pointer">SSS</button>
+            <button
+              onClick={() => scrollTo("iletisim")}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#e84978]/40 bg-[#e84978]/10 px-3 py-1 text-xs font-bold text-[#ff9db8] transition hover:border-[#e84978] hover:bg-[#e84978]/20 hover:text-white cursor-pointer"
+            >
+              <span>İletişim</span>
+              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13 1.05.37 2.07.7 3.05a2 2 0 0 1-.45 2.11L8.09 10.91a16 16 0 0 0 6 6l2.03-1.27a2 2 0 0 1 2.11-.45c.98.33 2 .57 3.05.7A2 2 0 0 1 22 16.92z" />
+              </svg>
+            </button>
           </div>
           
           {/* Desktop CTA */}
@@ -239,10 +255,11 @@ export default function LandingPage() {
               className="absolute top-20 left-0 w-full bg-[#07050a]/95 border-b border-white/[0.08] backdrop-blur-xl md:hidden overflow-hidden"
             >
               <div className="px-6 py-8 flex flex-col gap-6 text-sm font-medium text-left">
-                <a href="#nasil-calisir" onClick={() => setMobileMenuOpen(false)} className="text-zinc-400 hover:text-white transition-colors">Nasıl Çalışır?</a>
-                <a href="#ozellikler" onClick={() => setMobileMenuOpen(false)} className="text-zinc-400 hover:text-white transition-colors">Özellikler</a>
-                <a href="#referanslar" onClick={() => setMobileMenuOpen(false)} className="text-zinc-400 hover:text-white transition-colors">Referanslar</a>
-                <a href="#sss" onClick={() => setMobileMenuOpen(false)} className="text-zinc-400 hover:text-white transition-colors">SSS</a>
+                <button onClick={() => { setMobileMenuOpen(false); scrollTo("nasil-calisir"); }} className="text-zinc-400 hover:text-white transition-colors text-left cursor-pointer">Nasıl Çalışır?</button>
+                <button onClick={() => { setMobileMenuOpen(false); scrollTo("ozellikler"); }} className="text-zinc-400 hover:text-white transition-colors text-left cursor-pointer">Özellikler</button>
+                <button onClick={() => { setMobileMenuOpen(false); scrollTo("referanslar"); }} className="text-zinc-400 hover:text-white transition-colors text-left cursor-pointer">Referanslar</button>
+                <button onClick={() => { setMobileMenuOpen(false); scrollTo("sss"); }} className="text-zinc-400 hover:text-white transition-colors text-left cursor-pointer">SSS</button>
+                <button onClick={() => { setMobileMenuOpen(false); scrollTo("iletisim"); }} className="text-zinc-400 hover:text-white transition-colors text-left cursor-pointer">İletişim</button>
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
@@ -3021,7 +3038,7 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ SECTION */}
-      <section id="faq" className="relative z-10 py-24 max-w-7xl mx-auto px-6 border-t border-white/[0.04]">
+      <section id="sss" className="relative z-10 py-24 max-w-7xl mx-auto px-6 border-t border-white/[0.04]">
         {/* Switcher */}
         <div className="flex flex-col items-center gap-3 mb-12">
           <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest font-mono">SSS Tasarım Felsefesi:</span>

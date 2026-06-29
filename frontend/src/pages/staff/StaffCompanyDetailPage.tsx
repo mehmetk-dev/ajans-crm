@@ -2,8 +2,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useStaffCompany, type MembershipInfo } from '../../features/company';
 import {
     ArrowLeft, Building2, Users, Mail, Phone, Globe, MapPin, Calendar,
-    ChevronDown, ChevronUp, Briefcase, ExternalLink,
-    Instagram, Facebook, Twitter, Linkedin, Youtube
+    ChevronDown, ChevronUp, Briefcase, ExternalLink, Server, ShieldCheck, LayoutTemplate,
+    Instagram, Facebook, Twitter, Linkedin, Youtube, Music2, Target
 } from 'lucide-react';
 import { useState } from 'react';
 import { ContentPlanPanel } from '../../features/content-plans';
@@ -115,6 +115,67 @@ export default function StaffCompanyDetailPage() {
                         <span className="text-zinc-400">Görev:</span>
                         <span className="text-white font-medium">{company.taskCount}</span>
                     </div>
+                    {company.vision && (
+                        <div className="flex items-start gap-2 text-sm pt-2 border-t border-white/[0.04]">
+                            <Target className="w-4 h-4 text-zinc-600 mt-0.5" />
+                            <div>
+                                <span className="text-zinc-400">Vizyon:</span>
+                                <p className="text-zinc-300 mt-0.5">{company.vision}</p>
+                            </div>
+                        </div>
+                    )}
+                    {company.mission && (
+                        <div className="flex items-start gap-2 text-sm">
+                            <Users className="w-4 h-4 text-zinc-600 mt-0.5" />
+                            <div>
+                                <span className="text-zinc-400">Misyon:</span>
+                                <p className="text-zinc-300 mt-0.5">{company.mission}</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Infrastructure */}
+                <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5 space-y-3">
+                    <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Altyapı</h3>
+                    {company.hostingProvider && (
+                        <div className="flex items-center gap-2 text-sm">
+                            <Server className="w-4 h-4 text-zinc-600" />
+                            <span className="text-zinc-400">Hosting:</span>
+                            <span className="text-white">{company.hostingProvider}</span>
+                        </div>
+                    )}
+                    {company.cmsType && (
+                        <div className="flex items-center gap-2 text-sm">
+                            <LayoutTemplate className="w-4 h-4 text-zinc-600" />
+                            <span className="text-zinc-400">CMS:</span>
+                            <span className="text-white">{company.cmsType}{company.cmsVersion ? ` (${company.cmsVersion})` : ''}</span>
+                        </div>
+                    )}
+                    {company.themeName && (
+                        <div className="flex items-center gap-2 text-sm">
+                            <LayoutTemplate className="w-4 h-4 text-zinc-600" />
+                            <span className="text-zinc-400">Tema:</span>
+                            <span className="text-white">{company.themeName}</span>
+                        </div>
+                    )}
+                    {company.domainExpiry && (
+                        <div className="flex items-center gap-2 text-sm">
+                            <ShieldCheck className="w-4 h-4 text-zinc-600" />
+                            <span className="text-zinc-400">Domain:</span>
+                            <span className="text-white">{new Date(company.domainExpiry).toLocaleDateString('tr-TR')}</span>
+                        </div>
+                    )}
+                    {company.sslExpiry && (
+                        <div className="flex items-center gap-2 text-sm">
+                            <ShieldCheck className="w-4 h-4 text-zinc-600" />
+                            <span className="text-zinc-400">SSL:</span>
+                            <span className="text-white">{new Date(company.sslExpiry).toLocaleDateString('tr-TR')}</span>
+                        </div>
+                    )}
+                    {!company.hostingProvider && !company.cmsType && !company.themeName && !company.domainExpiry && !company.sslExpiry && (
+                        <p className="text-zinc-600 text-sm">Altyapı bilgisi eklenmemiş</p>
+                    )}
                 </div>
 
                 {/* Socials */}
@@ -151,8 +212,14 @@ export default function StaffCompanyDetailPage() {
                                 <Youtube className="w-4 h-4" />
                             </a>
                         )}
+                        {company.socialTiktok && (
+                            <a href={`https://tiktok.com/@${company.socialTiktok.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer"
+                                className="p-2 rounded-lg bg-zinc-500/10 text-zinc-300 hover:bg-zinc-500/20 transition-colors">
+                                <Music2 className="w-4 h-4" />
+                            </a>
+                        )}
                         {!company.socialInstagram && !company.socialFacebook && !company.socialTwitter &&
-                            !company.socialLinkedin && !company.socialYoutube && (
+                            !company.socialLinkedin && !company.socialYoutube && !company.socialTiktok && (
                                 <p className="text-zinc-600 text-sm">Sosyal medya bağlantısı eklenmemiş</p>
                             )}
                     </div>
@@ -257,7 +324,7 @@ export default function StaffCompanyDetailPage() {
                     <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">
                         {selectedMember.fullName} — Detay
                     </h3>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 mb-4">
                         <UserAvatar
                             name={selectedMember.fullName}
                             avatarUrl={selectedMember.avatarUrl}
@@ -275,6 +342,36 @@ export default function StaffCompanyDetailPage() {
                                 </span>
                             </div>
                         </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-white/[0.04]">
+                        {selectedMember.phone && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <Phone className="w-4 h-4 text-zinc-600" />
+                                <span className="text-zinc-400">Telefon:</span>
+                                <span className="text-white">{selectedMember.phone}</span>
+                            </div>
+                        )}
+                        {selectedMember.position && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <Briefcase className="w-4 h-4 text-zinc-600" />
+                                <span className="text-zinc-400">Pozisyon:</span>
+                                <span className="text-white">{selectedMember.position}</span>
+                            </div>
+                        )}
+                        {selectedMember.department && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <Users className="w-4 h-4 text-zinc-600" />
+                                <span className="text-zinc-400">Departman:</span>
+                                <span className="text-white">{selectedMember.department}</span>
+                            </div>
+                        )}
+                        {selectedMember.email && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <Mail className="w-4 h-4 text-zinc-600" />
+                                <span className="text-zinc-400">Email:</span>
+                                <span className="text-white">{selectedMember.email}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

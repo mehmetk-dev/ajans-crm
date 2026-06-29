@@ -13,9 +13,10 @@ interface ProgressListCardProps {
     icon: LucideIcon;
     iconColor?: string;
     items: ProgressItem[];
+    onItemClick?: (index: number) => void;
 }
 
-export default function ProgressListCard({ title, icon: Icon, iconColor = 'text-pink-400', items }: ProgressListCardProps) {
+export default function ProgressListCard({ title, icon: Icon, iconColor = 'text-pink-400', items, onItemClick }: ProgressListCardProps) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -30,12 +31,18 @@ export default function ProgressListCard({ title, icon: Icon, iconColor = 'text-
             <div className="space-y-4">
                 {items.map((item, i) => {
                     const pct = item.max > 0 ? Math.round((item.value / item.max) * 100) : 0;
+                    const interactive = Boolean(onItemClick);
                     return (
                         <div key={i}>
-                            <div className="flex items-center justify-between mb-1.5">
+                            <button
+                                type="button"
+                                disabled={!interactive}
+                                onClick={() => onItemClick?.(i)}
+                                className={`w-full flex items-center justify-between mb-1.5 ${interactive ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+                            >
                                 <span className="text-[13px] text-zinc-300">{item.label}</span>
                                 <span className="text-[13px] text-zinc-500">{item.value}/{item.max} <span className="text-zinc-600">(%{pct})</span></span>
-                            </div>
+                            </button>
                             <div className="h-2 bg-white/[0.04] rounded-full overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}

@@ -49,6 +49,7 @@ public class StaffAnalyticsResponse {
     @Data @Builder
     public static class CompanyTaskStat {
         private String label;
+        private String companyId;
         private long value;  // completed
         private long max;    // total
         private String color;

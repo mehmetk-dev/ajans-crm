@@ -7,6 +7,9 @@ export interface MembershipInfo {
     userId: string;
     fullName: string;
     email: string;
+    phone?: string | null;
+    position?: string | null;
+    department?: string | null;
     membershipRole: MembershipRole;
     globalRole: GlobalRole;
     avatarUrl: string | null;
@@ -32,6 +35,8 @@ export interface CompanyResponse {
     address?: string | null;
     website?: string | null;
     notes?: string | null;
+    vision?: string | null;
+    mission?: string | null;
     socialInstagram?: string | null;
     socialFacebook?: string | null;
     socialTwitter?: string | null;
@@ -129,9 +134,23 @@ export interface StaffResponse {
     phone?: string | null;
     position?: string | null;
     department?: string | null;
+    address?: string | null;
+    birthDate?: string | null;
+    notes?: string | null;
     avatarUrl?: string | null;
     globalRole: GlobalRole;
+    createdAt?: string | null;
     assignedCompanies: AssignedCompany[];
+}
+
+export interface UpdateStaffInput {
+    fullName: string;
+    phone?: string;
+    position?: string;
+    department?: string;
+    address?: string;
+    birthDate?: string;
+    notes?: string;
 }
 
 export interface CreateStaffInput {

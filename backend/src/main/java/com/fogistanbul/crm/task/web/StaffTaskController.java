@@ -1,7 +1,9 @@
 package com.fogistanbul.crm.task.web;
 
 import com.fogistanbul.crm.messaging.dto.ContactResponse;
+import com.fogistanbul.crm.entity.enums.ActivityAction;
 import com.fogistanbul.crm.entity.enums.TaskStatus;
+import com.fogistanbul.crm.service.ActivityLogService;
 import com.fogistanbul.crm.task.application.TaskNoteService;
 import com.fogistanbul.crm.task.application.TaskAssignableUserService;
 import com.fogistanbul.crm.task.application.TaskService;
@@ -21,6 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -31,14 +34,20 @@ public class StaffTaskController {
     private final TaskService taskService;
     private final TaskNoteService taskNoteService;
     private final TaskAssignableUserService assignableUserService;
+    private final ActivityLogService activityLogService;
 
     @PostMapping
     public ResponseEntity<TaskResponse> create(
             @Valid @RequestBody CreateTaskRequest request,
             Authentication auth) {
         UUID userId = (UUID) auth.getPrincipal();
+        TaskResponse created = taskService.createTask(request, userId);
+        activityLogService.log(userId, ActivityAction.CREATE, "TASK",
+                created.getId(), created.getTitle(),
+                Map.of("assignedTo", created.getAssignedToName(),
+                        "company", created.getCompanyName() == null ? "" : created.getCompanyName()));
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(taskService.createTask(request, userId));
+                .body(created);
     }
 
     @GetMapping
@@ -82,12 +91,20 @@ public class StaffTaskController {
             @Valid @RequestBody UpdateTaskRequest request,
             Authentication auth) {
         UUID userId = (UUID) auth.getPrincipal();
-        return taskService.updateTask(id, request, userId);
+        TaskResponse updated = taskService.updateTask(id, request, userId);
+        ActivityAction action = request.getStatus() != null ? ActivityAction.STATUS_CHANGE : ActivityAction.UPDATE;
+        Map<String, Object> details = request.getStatus() != null
+                ? Map.of("status", request.getStatus().name(), "title", updated.getTitle())
+                : Map.of("title", updated.getTitle());
+        activityLogService.log(userId, action, "TASK",
+                id, updated.getTitle(), details);
+        return updated;
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id, Authentication auth) {
         UUID userId = (UUID) auth.getPrincipal();
+        activityLogService.log(userId, ActivityAction.DELETE, "TASK", id, null, Map.of());
         taskService.deleteTask(id, userId);
         return ResponseEntity.noContent().build();
     }

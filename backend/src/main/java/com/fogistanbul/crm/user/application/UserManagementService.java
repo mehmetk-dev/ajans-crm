@@ -1,10 +1,12 @@
 package com.fogistanbul.crm.user.application;
 
 import com.fogistanbul.crm.entity.CompanyMembership;
+import com.fogistanbul.crm.entity.Person;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
 import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
+import com.fogistanbul.crm.repository.PersonRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
 import com.fogistanbul.crm.user.infrastructure.UserAccountCleanupRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,38 @@ public class UserManagementService {
     private final UserProfileRepository userProfileRepository;
     private final CompanyMembershipRepository membershipRepository;
     private final UserAccountCleanupRepository cleanupRepository;
+    private final PersonRepository personRepository;
+
+    @Transactional
+    public UserResponse updateUser(UUID userId, UpdateUserRequest req) {
+        UserProfile user = requireUser(userId);
+        List<CompanyMembership> memberships = membershipRepository.findByUserId(userId);
+        Person person = user.getPerson();
+        if (person == null) {
+            person = new Person();
+            person.setEmail(user.getEmail());
+            if (!memberships.isEmpty()) {
+                person.setCompany(memberships.get(0).getCompany());
+            }
+        }
+        if (req.fullName() != null && !req.fullName().isBlank()) {
+            person.setFullName(req.fullName());
+        }
+        person.setPhone(req.phone());
+        person.setPositionTitle(req.position());
+        person.setDepartment(req.department());
+        person = personRepository.save(person);
+        user.setPerson(person);
+        userProfileRepository.save(user);
+        return toResponse(user, memberships);
+    }
+
+    public record UpdateUserRequest(
+            String fullName,
+            String phone,
+            String position,
+            String department
+    ) {}
 
     @Transactional(readOnly = true)
     public List<UserResponse> getAllUsers() {

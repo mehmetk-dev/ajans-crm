@@ -1,7 +1,6 @@
 import { lazy } from 'react';
 import { Route } from 'react-router-dom';
 
-const StaffDashboard = lazy(() => import('../../pages/staff/StaffDashboard'));
 const TasksPage = lazy(() => import('../../pages/staff/TasksPage'));
 const StaffCompaniesPage = lazy(() => import('../../pages/staff/StaffCompaniesPage'));
 const StaffCompanyDetailPage = lazy(() => import('../../pages/staff/StaffCompanyDetailPage'));
@@ -13,7 +12,6 @@ const MeetingsPage = lazy(() => import('../../pages/staff/MeetingsPage'));
 const MessagingPage = lazy(() => import('../../pages/staff/MessagingPage'));
 const StaffAnalyticsPage = lazy(() => import('../../pages/staff/StaffAnalyticsPage'));
 const KanbanPage = lazy(() => import('../../pages/staff/KanbanPage'));
-const TimeTrackingPage = lazy(() => import('../../pages/staff/TimeTrackingPage'));
 const NotesPage = lazy(() => import('../../pages/staff/NotesPage'));
 const StaffMediaLibraryPage = lazy(() => import('../../pages/staff/StaffMediaLibraryPage'));
 const StaffSettingsPage = lazy(() => import('../../pages/staff/StaffSettingsPage'));
@@ -21,11 +19,10 @@ const ContentPlansPage = lazy(() => import('../../pages/staff/ContentPlansPage')
 const StaffRequestsPage = lazy(() => import('../../pages/staff/StaffRequestsPage'));
 
 export const staffRoutes = [
-    <Route index key="dashboard" element={<StaffDashboard />} />,
+    <Route index key="dashboard" element={<KanbanPage />} />,
     <Route path="analytics" key="analytics" element={<StaffAnalyticsPage />} />,
     <Route path="tasks" key="tasks" element={<TasksPage />} />,
     <Route path="kanban" key="kanban" element={<KanbanPage />} />,
-    <Route path="time-tracking" key="time-tracking" element={<TimeTrackingPage />} />,
     <Route path="messaging" key="messaging" element={<MessagingPage />} />,
     <Route path="notes" key="notes" element={<NotesPage />} />,
     <Route path="companies" key="companies" element={<StaffCompaniesPage />} />,

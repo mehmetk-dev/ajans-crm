@@ -8,7 +8,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { UserAvatar } from '../components/UserAvatar';
 import {
-    LayoutDashboard, Building2, Users, LogOut, MessageSquare, Zap, Menu, X, BarChart3, Activity, Search, Settings, UserCog, RefreshCw, Inbox
+    LayoutDashboard, Building2, Users, LogOut, MessageSquare, Zap, Menu, X, BarChart3, Activity, Search, Settings, UserCog, RefreshCw, Inbox, ListTodo
 } from 'lucide-react';
 import { usePendingApprovalCount } from '../features/content-plans';
 
@@ -17,6 +17,7 @@ const navItems = [
     { to: '/admin/analytics', icon: BarChart3, label: 'Analitik' },
     { to: '/admin/companies', icon: Building2, label: 'Şirketler' },
     { to: '/admin/staff', icon: Users, label: 'Çalışanlar' },
+    { to: '/admin/tasks', icon: ListTodo, label: 'Görevler' },
     { to: '/admin/users', icon: UserCog, label: 'Kullanıcılar' },
     { to: '/admin/messaging', icon: MessageSquare, label: 'Mesajlar' },
     { to: '/admin/routines', icon: RefreshCw, label: 'Rutin Görevler' },

@@ -174,6 +174,18 @@ export default function PrivacyPolicyPage() {
                 <li><strong>Hukuki Dayanak:</strong> Kullanıcının Google hesabı üzerinden verdiği açık OAuth onayı</li>
                 <li><strong>Not:</strong> Platform hiçbir zaman kullanıcının Google şifresini görmez veya saklamaz.</li>
               </ul>
+
+              <p className="font-semibold">Google Ads API (Limited Use)</p>
+              <p className="mb-3">Platformumuz, Google Ads API'ını yalnızca aşağıdaki sınırlı amaçlar için kullanmaktadır ve Google'ın <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-[#e84978] underline">API Hizmetleri Kullanıcı Verileri Politikası</a>'na (Limited Use Requirements) tam uyumluluk içindedir:</p>
+              <ul className="list-disc list-inside space-y-1 pl-4 mb-4">
+                <li><strong>Erişilen Veri Kapsamı:</strong> Google Ads hesaplarından yalnızca kampanya (campaigns), reklam grupları (ad groups), reklamlar (ads), anahtar kelimeler (keywords), dönüşüm verileri (conversions), hedef kitle sinyalleri (audience signals) ve harcama verileri (spend metrics) okunur. Reklam yaratma, düzenleme veya silme işlemi için yazma izni kesinlikle talep edilmez.</li>
+                <li><strong>Veri Kullanım Amacı:</strong> Google Ads verileri yalnızca FOG Müşteri Portalı içinde müşteriye özel performans raporları oluşturmak, bütçe ve teklif önerileri sunmak, otomatik içerik zamanlama önerileri sağlamak ve ajans-müşteri şeffaflığını sağlamak amacıyla kullanılır.</li>
+                <li><strong>Veri Aktarımı Yasağı:</strong> Google API'sinden elde edilen kullanıcı verileri, reklam/pazarlama ajansları, veri aracıları, üçüncü taraf hizmet sağlayıcılar veya başka herhangi bir dış tarafla paylaşılmaz, satılmaz veya devredilmez. Veriler yalnızca ilgili kullanıcının (müşteri/marka sahibi) kendi portal hesabında görüntülenir.</li>
+                <li><strong>İnsan İncelemesi Yasağı:</strong> Platformumuz Google Ads verilerini kullanarak bireysel kullanıcıları tanımlayan, profillemeye yönelik veya kredi değerlendirmesi gibi amaçlara yönelik modeller oluşturmaz.</li>
+                <li><strong>OAuth Erişiminin İptali:</strong> Kullanıcılar, Google hesap ayarları (myaccount.google.com/permissions) üzerinden FOG İstanbul'a verdikleri OAuth erişimini istedikleri zaman geri çekebilir. Erişim iptal edildiğinde, ilgili Google verileri 24 saat içinde senkronizasyondan çıkarılır ve silme talebi üzerine 30 gün içinde sistemden kaldırılır.</li>
+                <li><strong>Minimum Kapsam İlkesi:</strong> Platform, OAuth sürecinde yalnızca hizmetin gerektirdiği minimum scope'ları (ör. <code>adwords.readonly</code>, <code>analytics.readonly</code>) talep eder. Yazma veya yönetim izinleri talep edilmez.</li>
+                <li><strong>Saklama:</strong> Google Ads API'sinden çekilen veriler, müşteri panelinde ilgili rapor süresi boyunca (varsayılan 24 ay) saklanır. Müşteri silme talebinde 90 gün içinde tüm türetilmiş Google Ads verileri sistemden kalıcı olarak silinir.</li>
+              </ul>
             </section>
 
             <section>

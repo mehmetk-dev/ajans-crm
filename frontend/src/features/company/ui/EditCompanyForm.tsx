@@ -71,6 +71,17 @@ export function EditCompanyForm({ form, saving, error, onFieldChange, onSubmit, 
                     ))}
                 </FormSection>
 
+                <FormSection title="Kurumsal Bilgiler">
+                    <div className="col-span-1 sm:col-span-2">
+                        <textarea value={form.vision ?? ''} onChange={e => onFieldChange('vision', e.target.value)}
+                            className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none resize-none" rows={2} placeholder="Vizyon" />
+                    </div>
+                    <div className="col-span-1 sm:col-span-2">
+                        <textarea value={form.mission ?? ''} onChange={e => onFieldChange('mission', e.target.value)}
+                            className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none resize-none" rows={2} placeholder="Misyon" />
+                    </div>
+                </FormSection>
+
                 <button type="submit" disabled={saving}
                     className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-[13px] shadow-lg shadow-orange-500/20 transition-all disabled:opacity-50">
                     {saving ? <div className="h-5 w-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : 'Değişiklikleri Kaydet'}

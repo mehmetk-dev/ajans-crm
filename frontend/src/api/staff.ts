@@ -25,5 +25,5 @@ export interface StaffAnalyticsResponse {
     overdueTasks: number;
     weeklyFlow: { name: string; tamamlanan: number; yeni: number }[];
     monthlyHours: { name: string; saat: number }[];
-    companyTasks: { label: string; value: number; max: number; color: string }[];
+    companyTasks: { label: string; companyId?: string | null; value: number; max: number; color: string }[];
 }

@@ -116,6 +116,8 @@ public class StaffAnalyticsService {
             long done = entry.getValue().stream().filter(t -> t.getStatus() == TaskStatus.DONE).count();
             companyTasks.add(CompanyTaskStat.builder()
                     .label(entry.getKey())
+                    .companyId(entry.getValue().stream().map(t -> t.getCompany()).filter(Objects::nonNull)
+                            .map(c -> c.getId().toString()).findFirst().orElse(null))
                     .value(done)
                     .max(total)
                     .color(COMPANY_COLORS[colorIdx % COMPANY_COLORS.length])
