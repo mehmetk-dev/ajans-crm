@@ -9,9 +9,14 @@ import { staffRoutes } from './app/routes/staffRoutes';
 import { clientRoutes } from './app/routes/clientRoutes';
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const StaffLayout = lazy(() => import('./layouts/StaffLayout'));
 const ClientLayout = lazy(() => import('./layouts/ClientLayout'));
+const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'));
+const TermsOfServicePage = lazy(() => import('./pages/legal/TermsOfServicePage'));
+const CookiePolicyPage = lazy(() => import('./pages/legal/CookiePolicyPage'));
+const DataProcessingAgreementPage = lazy(() => import('./pages/legal/DataProcessingAgreementPage'));
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -44,8 +49,13 @@ export default function App() {
                     <RouteBoundary>
                         <Suspense fallback={<RouteLoadingFallback />}>
                             <Routes>
+                                <Route path="/" element={<LandingPage />} />
+                                <Route path="/dashboard" element={<RoleRedirect />} />
                                 <Route path="/login" element={<LoginPage />} />
-                                <Route path="/" element={<RoleRedirect />} />
+                                <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                                <Route path="/terms" element={<TermsOfServicePage />} />
+                                <Route path="/cookie-policy" element={<CookiePolicyPage />} />
+                                <Route path="/dpa" element={<DataProcessingAgreementPage />} />
                                 <Route path="/admin" element={<ProtectedRoute roles={['ADMIN']}><AdminLayout /></ProtectedRoute>}>
                                     {adminRoutes}
                                 </Route>
@@ -55,7 +65,7 @@ export default function App() {
                                 <Route path="/client" element={<ProtectedRoute roles={['ADMIN', 'COMPANY_USER']}><ClientLayout /></ProtectedRoute>}>
                                     {clientRoutes}
                                 </Route>
-                                <Route path="*" element={<Navigate to="/" replace />} />
+                                <Route path="*" element={<Navigate to="/dashboard" replace />} />
                             </Routes>
                         </Suspense>
                     </RouteBoundary>

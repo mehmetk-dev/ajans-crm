@@ -365,3 +365,53 @@ html.light .glass-input:focus {
     animation: none !important;
   }
 }
+
+/* Hero Rise & Floating Dashboard Animations */
+.hero-rise {
+  animation: hero-rise 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.dashboard-float {
+  animation: dashboard-float 9s ease-in-out infinite alternate;
+}
+
+.dashboard-float-slow {
+  animation: dashboard-float-slow 12s ease-in-out infinite alternate;
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dashboard-float {
+  from {
+    transform: translate(-50%, -50%) rotate(-8deg) translate3d(-14px, 12px, 0);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(-8deg) translate3d(16px, -18px, 0);
+  }
+}
+
+@keyframes dashboard-float-slow {
+  from {
+    transform: translate(-50%, -50%) rotate(-8deg) translate3d(10px, -8px, 0);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(-8deg) translate3d(-18px, 18px, 0);
+  }
+}
+
+code {
+  color: inherit !important;
+  background-color: rgba(255, 255, 255, 0.06);
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+}

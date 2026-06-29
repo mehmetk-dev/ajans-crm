@@ -1,6 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import fs from 'fs'
+
+const isDocker = fs.existsSync('/.dockerenv') || (fs.existsSync('/proc/1/cgroup') && fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'));
+const backendTarget = isDocker ? 'http://backend:8080' : 'http://localhost:8080';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -61,11 +65,11 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://backend:8080',
+        target: backendTarget,
         changeOrigin: true,
       },
       '/ws': {
-        target: 'http://backend:8080',
+        target: backendTarget,
         ws: true,
       },
     },

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useId } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { useAuth } from '../../store/AuthContext';
 import { parseApiError } from '../../lib/apiError';
 import { useNavigate } from 'react-router-dom';
@@ -27,7 +27,7 @@ export default function LoginPage() {
         setLoading(true);
         try {
             await login(email, password);
-            setTimeout(() => navigate('/'), 600);
+            setTimeout(() => navigate('/dashboard'), 600);
         } catch (err: unknown) {
             const apiError = parseApiError(err, 'Beklenmeyen bir hata oluştu.');
             if (apiError.code === 'NETWORK_ERROR') {
