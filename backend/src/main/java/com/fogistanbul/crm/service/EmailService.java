@@ -1,45 +1,28 @@
 package com.fogistanbul.crm.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class EmailService {
 
     private final JavaMailSender mailSender;
-    private final RestTemplate restTemplate;
-    private final String workerUrl;
-    private final String apiSecret;
 
     @Value("${app.mail.from:noreply@fogistanbul.com}")
     private String fromAddress;
 
     @Value("${app.mail.enabled:false}")
     private boolean emailEnabled;
-
-    public EmailService(
-            JavaMailSender mailSender,
-            RestTemplate restTemplate,
-            @Value("${app.mailchannels.worker-url:}") String workerUrl,
-            @Value("${app.mailchannels.api-secret:}") String apiSecret) {
-        this.mailSender = mailSender;
-        this.restTemplate = restTemplate;
-        this.workerUrl = workerUrl;
-        this.apiSecret = apiSecret;
-    }
 
     @Async
     public void sendEmail(String to, String subject, String htmlContent) {
@@ -48,31 +31,6 @@ public class EmailService {
             return;
         }
 
-        String text = stripHtml(htmlContent);
-
-        if (workerUrl != null && !workerUrl.isBlank()) {
-            sendViaWorker(to, subject, text);
-        } else {
-            sendViaSmtp(to, subject, htmlContent);
-        }
-    }
-
-    private void sendViaWorker(String to, String subject, String text) {
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            if (apiSecret != null && !apiSecret.isBlank()) {
-                headers.setBearerAuth(apiSecret);
-            }
-            Map<String, String> body = Map.of("to", to, "subject", subject, "text", text);
-            restTemplate.postForEntity(workerUrl, new HttpEntity<>(body, headers), String.class);
-            log.info("Email sent via Worker to {}: {}", to, subject);
-        } catch (Exception e) {
-            log.error("MailChannels Worker failed for {}: {}", to, e.getMessage());
-        }
-    }
-
-    private void sendViaSmtp(String to, String subject, String htmlContent) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -81,17 +39,10 @@ public class EmailService {
             helper.setSubject(subject);
             helper.setText(htmlContent, true);
             mailSender.send(message);
-            log.info("Email sent via SMTP to {}: {}", to, subject);
+            log.info("Email sent to {}: {}", to, subject);
         } catch (MessagingException e) {
             log.error("Failed to send email to {}: {}", to, e.getMessage());
         }
-    }
-
-    private String stripHtml(String html) {
-        return html.replaceAll("<[^>]*>", " ")
-                .replaceAll("&nbsp;", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
     }
 
     public void sendTaskAssignedEmail(String to, String assigneeName, String taskTitle, String companyName) {
