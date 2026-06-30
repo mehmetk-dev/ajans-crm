@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +29,12 @@ public class InstagramOAuthService {
 
     private static final String AUTH_URL  = "https://www.facebook.com/v21.0/dialog/oauth";
     private static final String SCOPE = "pages_show_list,pages_read_engagement,ads_read,ads_management";
+    private static final String DEFAULT_RETURN_PATH = "/client/analytics";
+    private static final Set<String> ALLOWED_RETURN_PATHS = Set.of(
+            DEFAULT_RETURN_PATH,
+            "/client/instagram",
+            "/client/instagram/reels",
+            "/client/instagram/posts");
 
     @Value("${app.instagram.app-id:}")
     private String appId;
@@ -50,20 +57,26 @@ public class InstagramOAuthService {
     }
 
     public String buildAuthorizationUrl(UUID companyId) {
+        return buildAuthorizationUrl(companyId, DEFAULT_RETURN_PATH);
+    }
+
+    public String buildAuthorizationUrl(UUID companyId, String returnPath) {
+        String state = buildState(companyId, returnPath);
         return UriComponentsBuilder.fromHttpUrl(AUTH_URL)
                 .queryParam("client_id", appId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("scope", SCOPE)
                 .queryParam("response_type", "code")
-                .queryParam("state", companyId.toString())
+                .queryParam("state", state)
                 .build()
                 .toUriString();
     }
 
     @Transactional
     @SuppressWarnings("unchecked")
-    public void handleCallback(String code, String state) {
-        UUID companyId = UUID.fromString(state);
+    public String handleCallback(String code, String state) {
+        UUID companyId = parseCompanyId(state);
+        String returnPath = resolveReturnPath(state);
 
         String shortLivedToken = graphClient.exchangeCodeForToken(code, redirectUri);
 
@@ -93,6 +106,7 @@ public class InstagramOAuthService {
 
         tokenRepository.save(token);
         log.info("Instagram token kaydedildi, company={}, igUser={}", companyId, igInfo.get("username"));
+        return returnPath;
     }
 
     @Transactional
@@ -122,6 +136,38 @@ public class InstagramOAuthService {
 
     public String getFrontendUrl() {
         return frontendUrl;
+    }
+
+    public String resolveReturnPath(String state) {
+        if (state == null || state.isBlank() || !state.contains(":")) {
+            return DEFAULT_RETURN_PATH;
+        }
+        String[] parts = state.split(":", 2);
+        return safeReturnPath(parts.length > 1 ? parts[1] : "");
+    }
+
+    private String buildState(UUID companyId, String returnPath) {
+        String safeReturnPath = safeReturnPath(returnPath);
+        if (DEFAULT_RETURN_PATH.equals(safeReturnPath)) {
+            return companyId.toString();
+        }
+        return companyId + ":" + safeReturnPath;
+    }
+
+    private UUID parseCompanyId(String state) {
+        String rawCompanyId = state != null && state.contains(":")
+                ? state.split(":", 2)[0]
+                : state;
+        return UUID.fromString(rawCompanyId);
+    }
+
+    private String safeReturnPath(String returnPath) {
+        if (returnPath == null || returnPath.isBlank()) {
+            return DEFAULT_RETURN_PATH;
+        }
+        return ALLOWED_RETURN_PATHS.contains(returnPath)
+                ? returnPath
+                : DEFAULT_RETURN_PATH;
     }
 
     private String refreshLongLivedToken(InstagramToken token) {

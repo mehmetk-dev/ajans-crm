@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, MousePointerClick, Eye, Target, AlertTriangle, Loader2, ExternalLink, ChevronRight } from 'lucide-react';
+import { TrendingUp, MousePointerClick, Eye, Target, AlertTriangle, Loader2, ExternalLink, ChevronRight, Unlink } from 'lucide-react';
 import { googleAdsApi } from '../api/googleAdsApi';
 import { googleAdsKeys } from '../googleAdsKeys';
 import { formatCurrency, formatMetric } from '../model/googleAds.utils';
@@ -9,10 +9,18 @@ interface Props { companyId: string; }
 
 export default function GoogleAdsPanel({ companyId }: Props) {
     const navigate = useNavigate();
+    const qc = useQueryClient();
     const { data, isLoading } = useQuery({
         queryKey: googleAdsKeys.overview(companyId),
         queryFn: () => googleAdsApi.getOverview(companyId),
         staleTime: 5 * 60 * 1000,
+    });
+
+    const disconnectMut = useMutation({
+        mutationFn: () => googleAdsApi.disconnect(companyId),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: googleAdsKeys.all });
+        },
     });
 
     if (isLoading) return (
@@ -100,11 +108,27 @@ export default function GoogleAdsPanel({ companyId }: Props) {
                 </div>
             )}
 
-            {/* Detail link */}
-            <button onClick={() => navigate('/client/google-ads')}
-                className="w-full flex items-center justify-center gap-1.5 py-2 text-[11px] text-zinc-500 hover:text-zinc-300 border-t border-white/[0.04] transition-colors">
-                Detaylı rapor <ExternalLink className="w-3 h-3" />
-            </button>
+            {/* Footer actions */}
+            <div className="flex items-center border-t border-white/[0.04]">
+                <button onClick={() => navigate('/client/google-ads')}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors">
+                    Detaylı rapor <ExternalLink className="w-3 h-3" />
+                </button>
+                <div className="w-px h-5 bg-white/[0.06]" />
+                <button
+                    onClick={() => {
+                        if (confirm('Google Ads bağlantısını kesmek istediğinizden emin misiniz?')) {
+                            disconnectMut.mutate();
+                        }
+                    }}
+                    disabled={disconnectMut.isPending}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2 text-[11px] text-zinc-500 hover:text-red-400 transition-colors disabled:opacity-50"
+                    title="Bağlantıyı Kes"
+                >
+                    {disconnectMut.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
+                    Kes
+                </button>
+            </div>
         </div>
     );
 }

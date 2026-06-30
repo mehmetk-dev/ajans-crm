@@ -5,7 +5,7 @@ import { authApi, type UserInfo } from '../api/auth';
 interface AuthContextType {
     user: UserInfo | null;
     isLoading: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
     logout: () => void;
     updateUser: (patch: Partial<UserInfo>) => void;
 }
@@ -32,9 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .finally(() => setIsLoading(false));
     }, []);
 
-    const login = async (email: string, password: string) => {
+    const login = async (email: string, password: string, rememberMe = false) => {
         await authApi.csrf();
-        const userInfo = await authApi.login({ email, password });
+        const userInfo = await authApi.login({ email, password, rememberMe });
         setUser(userInfo);
     };
 

@@ -12,4 +12,6 @@ public class LoginRequest {
 
     @NotBlank(message = "Şifre zorunludur")
     private String password;
+
+    private boolean rememberMe;
 }

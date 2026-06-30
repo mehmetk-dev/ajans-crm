@@ -59,14 +59,6 @@ export default function GoogleAnalyticsPanel({ companyId }: Props) {
 
     useEffect(() => { load(); }, [load]);
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('ga') === 'connected') {
-            load();
-            window.history.replaceState({}, '', window.location.pathname);
-        }
-    }, [load]);
-
     const handleSaveProperty = async () => {
         if (!propertyInput.trim()) return;
         setSavingProperty(true);

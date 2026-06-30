@@ -55,9 +55,9 @@ public class AuthService {
                                 user.getId(), user.getEmail(), user.getGlobalRole().name());
                 String refreshTokenStr = jwtTokenProvider.generateRefreshToken(user.getId());
 
-                storeRefreshToken(refreshTokenStr, user);
+                storeRefreshToken(refreshTokenStr, user, request.isRememberMe());
 
-                return buildAuthResponse(user, accessToken, refreshTokenStr);
+                return buildAuthResponse(user, accessToken, refreshTokenStr, request.isRememberMe());
         }
 
         @Transactional
@@ -69,6 +69,7 @@ public class AuthService {
                 String tokenHash = hashToken(refreshTokenStr);
                 RefreshToken stored = refreshTokenRepository.findByTokenHashAndRevokedFalse(tokenHash)
                                 .orElseThrow(this::invalidRefreshToken);
+                boolean rememberMe = stored.isRememberMe();
 
                 // Revoke old token (rotation)
                 stored.setRevoked(true);
@@ -82,9 +83,9 @@ public class AuthService {
                                 user.getId(), user.getEmail(), user.getGlobalRole().name());
                 String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-                storeRefreshToken(newRefreshToken, user);
+                storeRefreshToken(newRefreshToken, user, rememberMe);
 
-                return buildAuthResponse(user, newAccessToken, newRefreshToken);
+                return buildAuthResponse(user, newAccessToken, newRefreshToken, rememberMe);
         }
 
         @Transactional
@@ -117,19 +118,21 @@ refreshTokenRepository.findByTokenHashAndRevokedFalse(tokenHash)
                 refreshTokenRepository.deleteExpiredAndRevoked(Instant.now());
         }
 
-        private void storeRefreshToken(String tokenStr, UserProfile user) {
+        private void storeRefreshToken(String tokenStr, UserProfile user, boolean rememberMe) {
                 RefreshToken token = RefreshToken.builder()
                                 .tokenHash(hashToken(tokenStr))
                                 .user(user)
                                 .expiresAt(Instant.now().plusMillis(refreshTokenExpirationMs))
+                                .rememberMe(rememberMe)
                                 .build();
                 refreshTokenRepository.save(token);
         }
 
-        private AuthResponse buildAuthResponse(UserProfile user, String accessToken, String refreshToken) {
+        private AuthResponse buildAuthResponse(UserProfile user, String accessToken, String refreshToken, boolean rememberMe) {
                 return AuthResponse.builder()
                                 .accessToken(accessToken)
                                 .refreshToken(refreshToken)
+                                .rememberMe(rememberMe)
                                 .user(buildUserInfo(user))
                                 .build();
         }

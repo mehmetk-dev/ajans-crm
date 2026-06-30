@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import {
     TrendingUp, MousePointerClick, Eye, Target, AlertTriangle,
-    Loader2, Link, Check, RefreshCw, ChevronUp, ChevronDown
+    Loader2, Link, Check, RefreshCw, ChevronUp, ChevronDown, Unlink
 } from 'lucide-react';
 import {
     campaignStatusTone,
@@ -18,23 +18,23 @@ import { MissingCompanyState } from '../../components/client/MissingCompanyState
 import { useAuth } from '../../store/AuthContext';
 
 export default function GoogleAdsDetailPage() {
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const qc = useQueryClient();
     const [customerIdInput, setCustomerIdInput] = useState('');
     const [showSetup, setShowSetup] = useState(false);
     const [sortCol, setSortCol] = useState<GoogleAdsSortColumn>('spend');
     const [sortAsc, setSortAsc] = useState(false);
 
-    const { data: status } = useQuery({
+    const { data: status, isLoading: statusLoading } = useQuery({
         queryKey: googleAdsKeys.status(user?.companyId ?? ''),
         queryFn: () => googleAdsApi.getStatus(user!.companyId!),
-        enabled: !!user?.companyId,
+        enabled: !!user?.companyId && !authLoading,
     });
 
     const { data, isLoading } = useQuery({
         queryKey: googleAdsKeys.overview(user?.companyId ?? ''),
         queryFn: () => googleAdsApi.getOverview(user!.companyId!),
-        enabled: !!user?.companyId,
+        enabled: !!user?.companyId && !authLoading,
         staleTime: 5 * 60 * 1000,
     });
 
@@ -46,12 +46,28 @@ export default function GoogleAdsDetailPage() {
         },
     });
 
+    const disconnectMut = useMutation({
+        mutationFn: () => googleAdsApi.disconnect(user!.companyId!),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: googleAdsKeys.all });
+        },
+    });
+
+    if (authLoading || statusLoading) {
+        return (
+            <div className="flex items-center justify-center h-40">
+                <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
+            </div>
+        );
+    }
+
     if (!user?.companyId) {
         return (
             <MissingCompanyState description="Google Ads ekranı şirket bilgisi olan bir müşteri hesabıyla açılmalıdır." />
         );
     }
 
+    const customerId = status?.customerId || data?.customerId || '';
     const sortedCampaigns = sortCampaigns(data?.campaigns ?? [], sortCol, sortAsc);
 
     const handleSort = (col: typeof sortCol) => {
@@ -75,19 +91,19 @@ export default function GoogleAdsDetailPage() {
                         <div>
                             <h1 className="text-xl font-bold text-white">Google Ads</h1>
                             <p className="text-[12px] text-zinc-500 mt-0.5">
-                                {data?.customerId ? `Müşteri ID: ${data.customerId}` : 'Reklam performans raporu'}
+                                {customerId ? `Müşteri ID: ${customerId}` : 'Reklam performans raporu'}
                             </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => qc.invalidateQueries({ queryKey: googleAdsKeys.overview(user.companyId!) })}
+                        <button onClick={() => qc.invalidateQueries({ queryKey: googleAdsKeys.all })}
                             className="p-2 rounded-xl border border-white/[0.06] text-zinc-500 hover:text-zinc-300 transition-colors">
                             <RefreshCw className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => setShowSetup(v => !v)}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/[0.06] text-zinc-400 hover:text-white text-[12px] transition-colors">
                             <Link className="w-3.5 h-3.5" />
-                            {data?.customerId ? 'ID Güncelle' : 'ID Bağla'}
+                            {customerId ? 'ID Güncelle' : 'ID Bağla'}
                         </button>
                         {status && !status.connected && (
                             <a href={status.authUrl}
@@ -101,11 +117,26 @@ export default function GoogleAdsDetailPage() {
                                 Yetki Güncelle
                             </a>
                         )}
+                        {status?.connected && (
+                            <button
+                                onClick={() => {
+                                    if (confirm('Google Ads bağlantısını kesmek istediğinizden emin misiniz?')) {
+                                        disconnectMut.mutate();
+                                    }
+                                }}
+                                disabled={disconnectMut.isPending}
+                                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 text-[12px] font-medium transition-colors disabled:opacity-50"
+                                title="Bağlantıyı Kes"
+                            >
+                                {disconnectMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlink className="w-3.5 h-3.5" />}
+                                Bağlantıyı Kes
+                            </button>
+                        )}
                     </div>
                 </div>
 
                 {/* Setup form */}
-                {showSetup && (
+                {(showSetup || (status?.connected && !customerId)) && (
                     <div className="relative mt-4 flex items-center gap-3">
                         <input
                             value={customerIdInput}
@@ -125,13 +156,32 @@ export default function GoogleAdsDetailPage() {
                 )}
             </div>
 
-            {/* Error / not connected */}
-            {(data?.errorMessage || !data?.connected) && (
+            {!status?.connected && (
                 <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                     <div>
-                        <p className="text-sm font-semibold text-white">{data?.errorMessage ?? 'Google Ads bağlı değil'}</p>
-                        <p className="text-xs text-zinc-500 mt-1">Lütfen Google hesabını bağlayın ve müşteri ID'sini girin.</p>
+                        <p className="text-sm font-semibold text-white">Google Ads bağlı değil</p>
+                        <p className="text-xs text-zinc-500 mt-1">Lütfen Google hesabını bağlayın.</p>
+                    </div>
+                </div>
+            )}
+
+            {status?.connected && !customerId && (
+                <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-5 flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-semibold text-white">Google hesabı bağlı, müşteri ID eksik</p>
+                        <p className="text-xs text-zinc-500 mt-1">Raporu açmak için Google Ads müşteri ID'sini girin.</p>
+                    </div>
+                </div>
+            )}
+
+            {status?.connected && customerId && data?.errorMessage && (
+                <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-semibold text-white">{data.errorMessage}</p>
+                        <p className="text-xs text-zinc-500 mt-1">Bağlantı aktif görünüyor; izinleri veya müşteri ID'sini kontrol edin.</p>
                     </div>
                 </div>
             )}
@@ -142,7 +192,7 @@ export default function GoogleAdsDetailPage() {
                 </div>
             )}
 
-            {data?.connected && !data.errorMessage && !isLoading && (
+            {data?.connected && customerId && !data.errorMessage && !isLoading && (
                 <>
                     {/* KPI cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

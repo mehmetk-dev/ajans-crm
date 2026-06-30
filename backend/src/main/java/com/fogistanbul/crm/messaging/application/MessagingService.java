@@ -117,7 +117,7 @@ public class MessagingService {
                 .isRead(false)
                 .build();
 
-        message = messageRepository.save(message);
+        message = messageRepository.saveAndFlush(message);
         conversation.setUpdatedAt(Instant.now());
         conversationRepository.save(conversation);
 

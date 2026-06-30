@@ -81,6 +81,30 @@ class InstagramOAuthServiceTest {
     }
 
     @Test
+    void buildAuthorizationUrl_includesSafeReturnPathInState() {
+        UUID companyId = UUID.randomUUID();
+
+        String url = service.buildAuthorizationUrl(companyId, "/client/instagram/reels");
+
+        assertThat(url)
+                .contains("state=")
+                .contains(companyId.toString())
+                .contains("client")
+                .contains("instagram")
+                .contains("reels");
+    }
+
+    @Test
+    void buildAuthorizationUrl_ignoresUnsafeReturnPath() {
+        UUID companyId = UUID.randomUUID();
+
+        String url = service.buildAuthorizationUrl(companyId, "https://evil.example");
+
+        assertThat(url).contains("state=" + companyId);
+        assertThat(url).doesNotContain("evil.example");
+    }
+
+    @Test
     void handleCallback_savesNewTokenWithExpiryAndIgInfo() {
         UUID companyId = UUID.randomUUID();
         Company company = Company.builder()
@@ -97,7 +121,7 @@ class InstagramOAuthServiceTest {
         when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
         when(tokenRepository.findByCompanyId(companyId)).thenReturn(Optional.empty());
 
-        service.handleCallback("code", companyId.toString());
+        String returnPath = service.handleCallback("code", companyId + ":/client/instagram/posts");
 
         ArgumentCaptor<InstagramToken> captor = ArgumentCaptor.forClass(InstagramToken.class);
         verify(tokenRepository).save(captor.capture());
@@ -108,6 +132,7 @@ class InstagramOAuthServiceTest {
         assertThat(saved.getIgUsername()).isEqualTo("fogistanbul");
         assertThat(saved.getPageId()).isEqualTo("page-1");
         assertThat(saved.getTokenExpiry()).isAfter(Instant.now().plusSeconds(3000));
+        assertThat(returnPath).isEqualTo("/client/instagram/posts");
     }
 
     @Test

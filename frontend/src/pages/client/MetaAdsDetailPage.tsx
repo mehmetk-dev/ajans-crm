@@ -20,23 +20,23 @@ const currency = formatMetaAdsCurrency;
 const fmt = formatMetaAdsMetric;
 
 export default function MetaAdsDetailPage() {
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const qc = useQueryClient();
     const [adAccountInput, setAdAccountInput] = useState('');
     const [showSetup, setShowSetup] = useState(false);
     const [sortCol, setSortCol] = useState<MetaAdsSortColumn>('spend');
     const [sortAsc, setSortAsc] = useState(false);
 
-    const { data: status } = useQuery({
+    const { data: status, isLoading: statusLoading } = useQuery({
         queryKey: metaAdsKeys.status(user?.companyId ?? ''),
         queryFn: () => metaAdsApi.getStatus(user!.companyId!),
-        enabled: !!user?.companyId,
+        enabled: !!user?.companyId && !authLoading,
     });
 
     const { data, isLoading } = useQuery({
         queryKey: metaAdsKeys.overview(user?.companyId ?? ''),
         queryFn: () => metaAdsApi.getOverview(user!.companyId!),
-        enabled: !!user?.companyId,
+        enabled: !!user?.companyId && !authLoading,
         staleTime: 5 * 60 * 1000,
     });
 
@@ -48,12 +48,21 @@ export default function MetaAdsDetailPage() {
         },
     });
 
+    if (authLoading || statusLoading) {
+        return (
+            <div className="flex items-center justify-center h-40">
+                <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+            </div>
+        );
+    }
+
     if (!user?.companyId) {
         return (
             <MissingCompanyState description="Meta Ads ekranı şirket bilgisi olan bir müşteri hesabıyla açılmalıdır." />
         );
     }
 
+    const adAccountId = status?.adAccountId || data?.adAccountId || '';
     const sortedCampaigns = sortMetaAdsCampaigns(
         data?.campaigns ?? [],
         sortCol,
@@ -82,19 +91,19 @@ export default function MetaAdsDetailPage() {
                             <h1 className="text-xl font-bold text-white">Meta Ads</h1>
                             <p className="text-[12px] text-zinc-500 mt-0.5">
                                 {data?.adAccountName ? data.adAccountName : 'Facebook & Instagram Reklam Raporu'}
-                                {data?.adAccountId && <span className="ml-2 text-zinc-600">· {data.adAccountId}</span>}
+                                {adAccountId && <span className="ml-2 text-zinc-600">· {adAccountId}</span>}
                             </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => qc.invalidateQueries({ queryKey: metaAdsKeys.overview(user.companyId!) })}
+                        <button onClick={() => qc.invalidateQueries({ queryKey: metaAdsKeys.all })}
                             className="p-2 rounded-xl border border-white/[0.06] text-zinc-500 hover:text-zinc-300 transition-colors">
                             <RefreshCw className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => setShowSetup(v => !v)}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/[0.06] text-zinc-400 hover:text-white text-[12px] transition-colors">
                             <Link className="w-3.5 h-3.5" />
-                            {data?.adAccountId ? 'Hesap Güncelle' : 'Hesap Bağla'}
+                            {adAccountId ? 'Hesap Güncelle' : 'Hesap Bağla'}
                         </button>
                         {status && !status.connected && (
                             <a href={status.authUrl}
@@ -106,7 +115,7 @@ export default function MetaAdsDetailPage() {
                 </div>
 
                 {/* Setup form */}
-                {showSetup && (
+                {(showSetup || (status?.connected && !adAccountId)) && (
                     <div className="relative mt-4 flex items-center gap-3">
                         <input
                             value={adAccountInput}
@@ -126,13 +135,32 @@ export default function MetaAdsDetailPage() {
                 )}
             </div>
 
-            {/* Error state */}
-            {(data?.errorMessage || !data?.connected) && (
+            {!status?.connected && (
                 <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                     <div>
-                        <p className="text-sm font-semibold text-white">{data?.errorMessage ?? 'Meta Ads bağlı değil'}</p>
-                        <p className="text-xs text-zinc-500 mt-1">Meta hesabınızı bağlayın ve reklam hesabı ID'sini girin.</p>
+                        <p className="text-sm font-semibold text-white">Meta Ads bağlı değil</p>
+                        <p className="text-xs text-zinc-500 mt-1">Meta hesabınızı bağlayın.</p>
+                    </div>
+                </div>
+            )}
+
+            {status?.connected && !adAccountId && (
+                <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-5 flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-semibold text-white">Meta hesabı bağlı, reklam hesabı ID'si eksik</p>
+                        <p className="text-xs text-zinc-500 mt-1">Raporu açmak için reklam hesabı ID'sini girin.</p>
+                    </div>
+                </div>
+            )}
+
+            {status?.connected && adAccountId && data?.errorMessage && (
+                <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-semibold text-white">{data.errorMessage}</p>
+                        <p className="text-xs text-zinc-500 mt-1">Bağlantı aktif görünüyor; izinleri veya reklam hesabı ID'sini kontrol edin.</p>
                     </div>
                 </div>
             )}
@@ -143,7 +171,7 @@ export default function MetaAdsDetailPage() {
                 </div>
             )}
 
-            {data?.connected && !data.errorMessage && !isLoading && (
+            {data?.connected && adAccountId && !data.errorMessage && !isLoading && (
                 <>
                     {/* KPI cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

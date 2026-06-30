@@ -85,8 +85,16 @@ public class GoogleTokenHttpClient {
             }
         } catch (Exception e) {
             log.error("Access token yenileme hatası, companyId={}: {}", token.getCompany().getId(), e.getMessage());
+            if (requiresReconnect(e)) {
+                return null;
+            }
         }
         return token.getAccessToken();
+    }
+
+    private boolean requiresReconnect(Exception exception) {
+        String message = exception.getMessage() != null ? exception.getMessage() : "";
+        return message.contains("invalid_grant") || message.contains("invalid_client");
     }
 
     private HttpHeaders formHeaders() {

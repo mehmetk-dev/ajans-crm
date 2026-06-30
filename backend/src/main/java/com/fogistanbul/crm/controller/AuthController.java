@@ -61,7 +61,7 @@ public class AuthController {
 
         try {
             AuthResponse authResponse = authService.login(request);
-            addTokenCookies(httpResponse, authResponse.getAccessToken(), authResponse.getRefreshToken());
+            addTokenCookies(httpResponse, authResponse);
             if (authResponse.getUser() != null && authResponse.getUser().getId() != null) {
                 activityLogService.log(
                         UUID.fromString(authResponse.getUser().getId()),
@@ -91,7 +91,7 @@ public class AuthController {
             );
         }
         AuthResponse authResponse = authService.refreshToken(refreshToken);
-        addTokenCookies(httpResponse, authResponse.getAccessToken(), authResponse.getRefreshToken());
+        addTokenCookies(httpResponse, authResponse);
         return ResponseEntity.ok(authResponse.getUser());
     }
 
@@ -116,22 +116,26 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
-    private void addTokenCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        ResponseCookie accessCookie = ResponseCookie.from("access_token", accessToken)
+    private void addTokenCookies(HttpServletResponse response, AuthResponse authResponse) {
+        ResponseCookie.ResponseCookieBuilder accessCookieBuilder = ResponseCookie.from("access_token", authResponse.getAccessToken())
                 .httpOnly(true)
                 .secure(cookieSecure)
                 .path("/")
-                .maxAge(Duration.ofMillis(accessTokenExpirationMs))
-                .sameSite("Strict")
-                .build();
+                .sameSite("Strict");
 
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
+        ResponseCookie.ResponseCookieBuilder refreshCookieBuilder = ResponseCookie.from("refresh_token", authResponse.getRefreshToken())
                 .httpOnly(true)
                 .secure(cookieSecure)
                 .path("/api/auth")
-                .maxAge(Duration.ofMillis(refreshTokenExpirationMs))
-                .sameSite("Strict")
-                .build();
+                .sameSite("Strict");
+
+        if (authResponse.isRememberMe()) {
+            accessCookieBuilder.maxAge(Duration.ofMillis(accessTokenExpirationMs));
+            refreshCookieBuilder.maxAge(Duration.ofMillis(refreshTokenExpirationMs));
+        }
+
+        ResponseCookie accessCookie = accessCookieBuilder.build();
+        ResponseCookie refreshCookie = refreshCookieBuilder.build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());

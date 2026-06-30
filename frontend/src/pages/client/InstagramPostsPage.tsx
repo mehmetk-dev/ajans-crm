@@ -13,6 +13,7 @@ import {
 } from '../../features/instagram';
 import { getApiErrorMessage } from '../../lib/apiError';
 import { useAuth } from '../../store/AuthContext';
+import { MissingCompanyState } from '../../components/client/MissingCompanyState';
 
 const fmtNum = formatInstagramMetric;
 
@@ -107,7 +108,7 @@ function MediaCarousel({ items }: { items: IgPostRow[] }) {
 
 export default function InstagramPostsPage() {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const companyId = user?.companyId;
     const [posts, setPosts] = useState<IgPostRow[]>([]);
     const [loading, setLoading] = useState(true);
@@ -117,20 +118,22 @@ export default function InstagramPostsPage() {
     const [error, setError] = useState('');
 
     useEffect(() => {
+        if (authLoading) return;
         if (!companyId) return;
+        // The request lifecycle owns the page-level loading state.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true);
         setError('');
-        igApi.getStatus(companyId)
+        igApi.getStatus(companyId, '/client/instagram/posts')
             .then(async s => {
                 setConnected(s.connected);
                 setUsername(s.username || '');
                 setAuthUrl(s.authUrl || '');
-                if (s.connected) setPosts(await igApi.getPosts(companyId, 50));
+                if (s.connected) setPosts(await igApi.getPosts(companyId, 24));
             })
             .catch((err: unknown) => setError(getApiErrorMessage(err, 'Instagram gönderileri yüklenemedi')))
             .finally(() => setLoading(false));
-    }, [companyId]);
+    }, [authLoading, companyId]);
 
     const summary = useMemo(() => ({
         count: posts.length,
@@ -140,6 +143,18 @@ export default function InstagramPostsPage() {
     }), [posts]);
 
     const currentMonthLabel = new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+
+    if (authLoading) return (
+        <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
+            <div className="flex items-center gap-3"><Loader2 className="w-6 h-6 text-pink-400 animate-spin" /><span className="text-zinc-400">Gönderiler yükleniyor...</span></div>
+        </div>
+    );
+
+    if (!companyId) {
+        return (
+            <MissingCompanyState description="Instagram gönderileri ekranı şirket bilgisi olan bir müşteri hesabıyla açılmalıdır." />
+        );
+    }
 
     if (loading) return (
         <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
@@ -167,8 +182,8 @@ export default function InstagramPostsPage() {
                 ) : !connected ? (
                     <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-12 text-center">
                         <Instagram className="w-8 h-8 text-pink-400 mx-auto mb-4" />
-                        <h3 className="text-white font-semibold text-lg mb-2">Instagram Bağlı Değil</h3>
-                        {authUrl && <a href={authUrl} className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white text-sm font-medium px-6 py-3 rounded-xl"><Instagram className="w-4 h-4" />Instagram'ı Bağla</a>}
+                        <h3 className="text-white font-semibold text-lg mb-2">Gönderi Verileri Bağlı Değil</h3>
+                        {authUrl && <a href={authUrl} className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white text-sm font-medium px-6 py-3 rounded-xl"><Instagram className="w-4 h-4" />Gönderileri Bağla</a>}
                     </div>
                 ) : (
                     <>

@@ -20,6 +20,7 @@ import {
     type IgStatusResponse,
 } from '../../features/instagram';
 import { useAuth } from '../../store/AuthContext';
+import { MissingCompanyState } from '../../components/client/MissingCompanyState';
 
 const DATE_PRESETS = [
     { label: 'Son 1 Hafta', start: '7daysAgo', end: 'today' },
@@ -67,7 +68,7 @@ function BigMetricCard({ label, value, icon: Icon, color, bgColor, sub }: {
 
 export default function InstagramDetailPage() {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const companyId = user?.companyId;
     const [status, setStatus] = useState<IgStatusResponse | null>(null);
     const [data, setData] = useState<IgOverviewResponse | null>(null);
@@ -87,17 +88,18 @@ export default function InstagramDetailPage() {
     }, [datePreset, customStart, customEnd]);
 
     useEffect(() => {
+        if (authLoading) return;
         if (!companyId) return;
         // The request lifecycle owns the page-level loading state.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true); setError(null);
-        igApi.getStatus(companyId)
+        igApi.getStatus(companyId, '/client/instagram')
             .then(s => {
                 setStatus(s);
                 if (s.connected) {
                     return Promise.all([
-                        igApi.getReels(companyId, 100),
-                        igApi.getPosts(companyId, 100),
+                        igApi.getReels(companyId, 12),
+                        igApi.getPosts(companyId, 12),
                     ]).then(([r, p]) => {
                         setReels(r);
                         setPosts(p);
@@ -107,7 +109,7 @@ export default function InstagramDetailPage() {
             .catch((err: unknown) =>
                 setError(getApiErrorMessage(err, 'Bağlantı hatası')))
             .finally(() => setLoading(false));
-    }, [companyId]);
+    }, [authLoading, companyId]);
 
     // Re-fetch overview when date range changes
     useEffect(() => {
@@ -119,7 +121,11 @@ export default function InstagramDetailPage() {
 
     const handleDisconnect = async () => {
         if (!companyId) return;
-        await igApi.disconnect(companyId); setData(null); setReels([]); setPosts([]);
+        await igApi.disconnect(companyId);
+        setStatus(prev => prev ? { ...prev, connected: false } : prev);
+        setData(null);
+        setReels([]);
+        setPosts([]);
     };
 
     const growthRate = data
@@ -143,6 +149,21 @@ export default function InstagramDetailPage() {
     const totalReelPlays = reels.reduce((a, r) => a + r.plays, 0);
     const totalSaved = reels.reduce((a, r) => a + (r.saved || 0), 0) + posts.reduce((a, p) => a + (p.saved || 0), 0);
     const totalShares = reels.reduce((a, r) => a + (r.shares || 0), 0) + posts.reduce((a, p) => a + (p.shares || 0), 0);
+
+    if (authLoading) return (
+        <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
+            <div className="flex items-center gap-3">
+                <Loader2 className="w-6 h-6 text-pink-400 animate-spin" />
+                <span className="text-zinc-400">Instagram verileri yükleniyor...</span>
+            </div>
+        </div>
+    );
+
+    if (!companyId) {
+        return (
+            <MissingCompanyState description="Instagram ekranı şirket bilgisi olan bir müşteri hesabıyla açılmalıdır." />
+        );
+    }
 
     if (loading) return (
         <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
@@ -201,12 +222,12 @@ export default function InstagramDetailPage() {
                         <div className="flex flex-col items-center text-center gap-6">
                             <Instagram className="w-8 h-8 text-pink-400" />
                             <div>
-                                <h3 className="text-white font-semibold text-lg">Instagram Bağlı Değil</h3>
+                                <h3 className="text-white font-semibold text-lg">Instagram İstatistikleri Bağlı Değil</h3>
                                 <p className="text-zinc-500 text-sm mt-2">Facebook hesabınızla giriş yaparak Instagram Business verilerinize erişin.</p>
                             </div>
                             {status?.authUrl && (
                                 <a href={status.authUrl} className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white text-sm font-medium px-6 py-3 rounded-xl">
-                                    <Instagram className="w-4 h-4" />Instagram'ı Bağla
+                                    <Instagram className="w-4 h-4" />İstatistikleri Bağla
                                 </a>
                             )}
                         </div>

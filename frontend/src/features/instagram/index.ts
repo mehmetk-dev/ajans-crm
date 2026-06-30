@@ -16,6 +16,7 @@ export {
 } from './model/instagram.utils';
 export {
     default as InstagramPanel,
+    InstagramPanelSkeleton,
     PostsColumn,
     ReelsColumn,
     StatsColumn,

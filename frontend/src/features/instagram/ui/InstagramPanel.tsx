@@ -21,10 +21,30 @@ interface Props {
 
 const fmtNum = formatInstagramMetric;
 
+function connectionCopy(returnPath: string) {
+    if (returnPath === '/client/instagram/reels') {
+        return {
+            title: 'Reels Verileri Bağlı Değil',
+            action: "Reels'i Bağla",
+        };
+    }
+    if (returnPath === '/client/instagram/posts') {
+        return {
+            title: 'Gönderi Verileri Bağlı Değil',
+            action: 'Gönderileri Bağla',
+        };
+    }
+    return {
+        title: 'Instagram İstatistikleri Bağlı Değil',
+        action: 'İstatistikleri Bağla',
+    };
+}
+
 export function StatsColumn({ companyId }: { companyId: string }) {
     const { data: overview } = useQuery<IgOverviewResponse>({
         queryKey: instagramKeys.overview(companyId),
         queryFn: () => igApi.getOverview(companyId, '30daysAgo', 'today'),
+        staleTime: 5 * 60 * 1000,
     });
 
     const data = overview;
@@ -126,7 +146,8 @@ export function StatsColumn({ companyId }: { companyId: string }) {
 export function ReelsColumn({ companyId }: { companyId: string }) {
     const { data: reels = [], isLoading } = useQuery<IgReelRow[]>({
         queryKey: instagramKeys.reels(companyId),
-        queryFn: () => igApi.getReels(companyId, 100),
+        queryFn: () => igApi.getReels(companyId, 12),
+        staleTime: 5 * 60 * 1000,
     });
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -306,7 +327,8 @@ function ReelCard({ reel: r }: { reel: IgReelRow }) {
 export function PostsColumn({ companyId }: { companyId: string }) {
     const { data: posts = [], isLoading } = useQuery<IgPostRow[]>({
         queryKey: instagramKeys.posts(companyId),
-        queryFn: () => igApi.getPosts(companyId, 100),
+        queryFn: () => igApi.getPosts(companyId, 12),
+        staleTime: 5 * 60 * 1000,
     });
     const scrollContainer = useRef<HTMLDivElement>(null);
 
@@ -384,19 +406,34 @@ export function PostsColumn({ companyId }: { companyId: string }) {
 /* ══════════════════════════════════════════════════════
    INSTAGRAM PANEL (status)
 ══════════════════════════════════════════════════════ */
-export default function InstagramPanel({ companyId }: Props) {
+export function InstagramPanelSkeleton() {
+    return (
+        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-8 flex items-center justify-center gap-3">
+            <Loader2 className="w-5 h-5 text-pink-400 animate-spin" />
+            <span className="text-zinc-400 text-sm">Instagram yükleniyor...</span>
+        </div>
+    );
+}
+
+interface InstagramPanelProps extends Props {
+    initialStatus?: IgStatusResponse;
+    returnPath?: string;
+}
+
+export default function InstagramPanel({
+    companyId,
+    initialStatus,
+    returnPath = '/client/instagram',
+}: InstagramPanelProps) {
     const { data: status, isLoading } = useQuery<IgStatusResponse>({
-        queryKey: instagramKeys.status(companyId),
-        queryFn: () => igApi.getStatus(companyId),
+        queryKey: instagramKeys.status(companyId, returnPath),
+        queryFn: () => igApi.getStatus(companyId, returnPath),
+        initialData: initialStatus,
+        staleTime: 5 * 60 * 1000,
     });
 
     if (isLoading) {
-        return (
-            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-8 flex items-center justify-center gap-3">
-                <Loader2 className="w-5 h-5 text-pink-400 animate-spin" />
-                <span className="text-zinc-400 text-sm">Instagram yükleniyor...</span>
-            </div>
-        );
+        return <InstagramPanelSkeleton />;
     }
 
     if (!status?.configured) {
@@ -410,14 +447,15 @@ export default function InstagramPanel({ companyId }: Props) {
     }
 
     if (!status?.connected) {
+        const copy = connectionCopy(returnPath);
         return (
             <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-8 text-center">
                 <Instagram className="w-8 h-8 text-pink-400 mx-auto mb-3" />
-                <h3 className="text-white font-semibold">Instagram Bağlı Değil</h3>
+                <h3 className="text-white font-semibold">{copy.title}</h3>
                 <p className="text-zinc-500 text-sm mt-1">Facebook hesabınızla giriş yaparak Instagram Business verilerinize erişin.</p>
                 {status.authUrl && (
                     <a href={status.authUrl} className="inline-flex items-center gap-2 mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl">
-                        <Instagram className="w-4 h-4" />Instagram'ı Bağla
+                        <Instagram className="w-4 h-4" />{copy.action}
                     </a>
                 )}
             </div>

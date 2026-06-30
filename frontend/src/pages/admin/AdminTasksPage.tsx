@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-    ListTodo, CheckCircle2, Clock, Plus, Building2, User, Calendar, Trash2,
+    ListTodo, CheckCircle2, Clock, Plus, Building2, User, Calendar, Trash2, SlidersHorizontal, X,
 } from 'lucide-react';
 import {
     effectiveTaskStatus,
@@ -50,6 +50,7 @@ function getRemainingTime(task: TaskResponse): { text: string; color: string } |
 }
 
 const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : null;
+const isOverdueTask = (task: TaskResponse) => effectiveTaskStatus(task) === 'OVERDUE';
 
 type SummaryTab = 'ALL' | 'IN_PROGRESS' | 'DONE';
 
@@ -62,6 +63,8 @@ export default function AdminTasksPage() {
         initialStatus === 'DONE' ? 'DONE' : initialStatus === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'ALL'
     );
     const [companyFilter, setCompanyFilter] = useState<string>('ALL');
+    const [staffFilter, setStaffFilter] = useState<string>('ALL');
+    const [hideOverdue, setHideOverdue] = useState(false);
 
     const { data: taskPage, isLoading } = useStaffTasks('all');
     const { data: companies = [] } = useStaffCompanies();
@@ -70,14 +73,27 @@ export default function AdminTasksPage() {
     const tasks = useMemo(() => taskPage?.content ?? [], [taskPage]);
 
     const counts = useMemo(() => {
-        let total = 0, done = 0, inProgress = 0;
+        let total = 0, done = 0, inProgress = 0, overdue = 0;
         for (const t of tasks) {
             const eff = effectiveTaskStatus(t);
             total++;
             if (eff === 'DONE') done++;
             if (eff === 'IN_PROGRESS') inProgress++;
+            if (eff === 'OVERDUE') overdue++;
         }
-        return { total, done, inProgress };
+        return { total, done, inProgress, overdue };
+    }, [tasks]);
+
+    const staffOptions = useMemo(() => {
+        const staff = new Map<string, string>();
+        for (const task of tasks) {
+            if (task.assignedToId && task.assignedToName) {
+                staff.set(task.assignedToId, task.assignedToName);
+            }
+        }
+        return Array.from(staff.entries())
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
     }, [tasks]);
 
     const filteredTasks = useMemo(() => {
@@ -87,6 +103,8 @@ export default function AdminTasksPage() {
                 if (summaryTab === 'DONE' && eff !== 'DONE') return false;
                 if (summaryTab === 'IN_PROGRESS' && eff !== 'IN_PROGRESS') return false;
                 if (companyFilter !== 'ALL' && (t.companyId || '') !== companyFilter) return false;
+                if (staffFilter !== 'ALL' && t.assignedToId !== staffFilter) return false;
+                if (hideOverdue && isOverdueTask(t)) return false;
                 return true;
             })
             .sort((a, b) => {
@@ -100,7 +118,15 @@ export default function AdminTasksPage() {
                 };
                 return getEndMs(a) - getEndMs(b);
             });
-    }, [tasks, summaryTab, companyFilter]);
+    }, [tasks, summaryTab, companyFilter, staffFilter, hideOverdue]);
+
+    const hasActiveFilters = companyFilter !== 'ALL' || staffFilter !== 'ALL' || hideOverdue;
+
+    const clearFilters = () => {
+        setCompanyFilter('ALL');
+        setStaffFilter('ALL');
+        setHideOverdue(false);
+    };
 
     const handleStatusChange = async (taskId: string, status: TaskStatus) => {
         const updated = await updateTask.mutateAsync({ id: taskId, input: { status } });
@@ -168,16 +194,59 @@ export default function AdminTasksPage() {
             </div>
 
             {/* Filters */}
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-                <select
-                    value={companyFilter}
-                    onChange={e => setCompanyFilter(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#0C0C0E] border border-white/[0.06] text-zinc-400 outline-none focus:border-orange-500/50 transition-colors"
-                >
-                    <option value="ALL">Tüm Şirketler</option>
-                    <option value="">Ajans İçi</option>
-                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+            <div className="flex items-center justify-between gap-3 flex-wrap rounded-2xl border border-white/[0.06] bg-[#0C0C0E] p-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="h-8 w-8 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-zinc-500">
+                        <SlidersHorizontal className="w-4 h-4" />
+                    </span>
+                    <div className="relative">
+                        <Building2 className="w-3.5 h-3.5 text-zinc-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                            value={companyFilter}
+                            onChange={e => setCompanyFilter(e.target.value)}
+                            className="h-8 pl-8 pr-8 rounded-lg text-xs font-semibold bg-[#080809] border border-white/[0.06] text-zinc-400 outline-none focus:border-orange-500/50 transition-colors"
+                        >
+                            <option value="ALL">Tüm Şirketler</option>
+                            <option value="">Ajans İçi</option>
+                            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                    </div>
+                    <div className="relative">
+                        <User className="w-3.5 h-3.5 text-zinc-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                            value={staffFilter}
+                            onChange={e => setStaffFilter(e.target.value)}
+                            className="h-8 pl-8 pr-8 rounded-lg text-xs font-semibold bg-[#080809] border border-white/[0.06] text-zinc-400 outline-none focus:border-orange-500/50 transition-colors"
+                        >
+                            <option value="ALL">Tüm Çalışanlar</option>
+                            {staffOptions.map(staff => <option key={staff.id} value={staff.id}>{staff.name}</option>)}
+                        </select>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setHideOverdue(v => !v)}
+                        disabled={counts.overdue === 0 && !hideOverdue}
+                        className={`h-8 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center gap-2 ${
+                            hideOverdue
+                                ? 'bg-red-500/10 border-red-500/25 text-red-300'
+                                : 'bg-[#080809] border-white/[0.06] text-zinc-400 hover:border-red-500/30 hover:text-red-300 disabled:opacity-45 disabled:hover:text-zinc-400 disabled:hover:border-white/[0.06]'
+                        }`}
+                    >
+                        <Clock className="w-3.5 h-3.5" />
+                        {hideOverdue ? 'Süresi Dolanlar Gizli' : 'Süresi Dolanları Gizle'}
+                        {counts.overdue > 0 && <span className="text-[10px] text-red-300/80">({counts.overdue})</span>}
+                    </button>
+                </div>
+                {hasActiveFilters && (
+                    <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="h-8 px-3 rounded-lg text-xs font-semibold text-zinc-500 hover:text-white hover:bg-white/[0.04] transition-colors flex items-center gap-1.5"
+                    >
+                        <X className="w-3.5 h-3.5" />
+                        Filtreleri Temizle
+                    </button>
+                )}
             </div>
 
             {/* Task List */}
@@ -191,7 +260,8 @@ export default function AdminTasksPage() {
             ) : (
                 <div className="space-y-2">
                     {filteredTasks.map((task, i) => {
-                        const sBadge = statusBadge[task.status] || statusBadge.TODO;
+                        const taskStatus = effectiveTaskStatus(task);
+                        const sBadge = statusBadge[taskStatus] || statusBadge.TODO;
                         const remaining = getRemainingTime(task);
                         return (
                             <motion.div

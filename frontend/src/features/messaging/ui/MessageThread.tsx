@@ -101,9 +101,9 @@ export function DmMessageThread({
                     <span>{formatMessageTime(msg.createdAt)}</span>
                     {isMine &&
                       (msg.isRead ? (
-                        <CheckCheck className="w-3.5 h-3.5 text-blue-400" />
+                        <CheckCheck className="w-3.5 h-3.5 text-blue-200" />
                       ) : (
-                        <Check className="w-3.5 h-3.5 text-cyan-900" />
+                        <Check className="w-3.5 h-3.5 text-white/70" />
                       ))}
                   </div>
                 </div>

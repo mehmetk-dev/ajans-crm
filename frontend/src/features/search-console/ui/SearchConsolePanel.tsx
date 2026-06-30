@@ -10,7 +10,7 @@ import {
     Search, MousePointerClick, Eye, TrendingUp,
     Target, AlertCircle, Loader2, WifiOff, ExternalLink,
     CheckCircle2, Link2, Settings, ArrowUpRight, ChevronDown, Calendar,
-    RefreshCw
+    RefreshCw, Unlink
 } from 'lucide-react';
 import { searchConsoleApi } from '../api/searchConsoleApi';
 import type { ScOverviewResponse, ScSite, ScStatusResponse } from '../searchConsole.types';
@@ -41,6 +41,7 @@ export default function SearchConsolePanel({ companyId }: Props) {
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
     const [isCustom, setIsCustom] = useState(false);
+    const [disconnecting, setDisconnecting] = useState(false);
 
     const loadSites = useCallback(() => {
         setLoadingSites(true);
@@ -81,13 +82,6 @@ export default function SearchConsolePanel({ companyId }: Props) {
 
     useEffect(() => { load(); }, [load]);
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('connected') === 'true' || params.get('ga') === 'connected') {
-            load();
-        }
-    }, [load]);
-
     const handleSaveSiteUrl = async (url?: string) => {
         const siteUrl = url || selectedSite;
         if (!siteUrl?.trim()) return;
@@ -98,6 +92,19 @@ export default function SearchConsolePanel({ companyId }: Props) {
             load();
         } finally {
             setSavingSiteUrl(false);
+        }
+    };
+
+    const handleDisconnect = async () => {
+        if (!confirm('Search Console bağlantısını kesmek istediğinizden emin misiniz?')) return;
+        setDisconnecting(true);
+        try {
+            await searchConsoleApi.disconnect(companyId);
+            setData(null);
+            setStatus(null);
+            load();
+        } finally {
+            setDisconnecting(false);
         }
     };
 
@@ -326,6 +333,14 @@ export default function SearchConsolePanel({ companyId }: Props) {
                         className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.05] transition-colors"
                     >
                         <Settings className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={handleDisconnect}
+                        disabled={disconnecting}
+                        title="Bağlantıyı Kes"
+                        className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                    >
+                        {disconnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlink className="w-4 h-4" />}
                     </button>
                 </div>
             </div>

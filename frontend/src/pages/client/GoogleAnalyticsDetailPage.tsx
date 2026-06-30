@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 import {
   useGADetailPage,
+  googleAnalyticsApi,
   GADateRangePicker,
   GAOverviewSection,
   GADailyTrendChart,
@@ -17,11 +19,14 @@ import {
   GATopPagesSection,
   GASummarySection,
 } from "../../features/google-analytics";
+import { useAuth } from "../../store/AuthContext";
 
 export default function GoogleAnalyticsDetailPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const companyId = user?.companyId ?? "";
   const {
-    status, data, loading, error, refreshing,
+    status, data, loading, error, refreshing, authLoading,
     activePreset, showDateMenu, customStart, customEnd, isCustomRange,
     currentRange, sourcePieData, countryBarData,
     totalSources, totalPages, maxPageViews,
@@ -31,7 +36,29 @@ export default function GoogleAnalyticsDetailPage() {
     refresh,
   } = useGADetailPage();
 
-  if (loading) {
+  /* Property ID inline formu için state */
+  const [propertyInput, setPropertyInput] = useState("");
+  const [savingProperty, setSavingProperty] = useState(false);
+
+  /* status gelince mevcut propertyId'yi input'a yaz */
+  useEffect(() => {
+    if (status?.propertyId) {
+      setPropertyInput(status.propertyId);
+    }
+  }, [status?.propertyId]);
+
+  const handleSaveProperty = useCallback(async () => {
+    if (!propertyInput.trim() || !companyId) return;
+    setSavingProperty(true);
+    try {
+      await googleAnalyticsApi.saveProperty(companyId, propertyInput.trim());
+      refresh();
+    } finally {
+      setSavingProperty(false);
+    }
+  }, [propertyInput, companyId, refresh]);
+
+  if (loading || authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
@@ -44,7 +71,7 @@ export default function GoogleAnalyticsDetailPage() {
     );
   }
 
-  if (error || !status?.connected || !data || data.errorMessage) {
+  if (error) {
     return (
       <div className="space-y-6">
         <button
@@ -57,19 +84,138 @@ export default function GoogleAnalyticsDetailPage() {
           <AlertCircle className="w-10 h-10 text-red-400" />
           <div>
             <p className="text-lg font-semibold text-white">
-              Google Analytics Bağlantı Hatası
+              Google Analytics Hatası
             </p>
             <p className="text-sm text-zinc-500 mt-1">
-              {error ||
-                data?.errorMessage ||
-                "Google Analytics henüz bağlanmamış. Lütfen önce Analitik sayfasından bağlantıyı yapın."}
+              {error}
             </p>
           </div>
           <button
-            onClick={() => navigate("/client/analytics")}
+            onClick={() => refresh()}
             className="bg-[#C8697A] hover:bg-[#B5556A] text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
           >
-            Analitik Sayfasına Git
+            Tekrar Dene
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!status?.connected) {
+    return (
+      <div className="space-y-6">
+        <button
+          onClick={() => navigate("/client/analytics")}
+          className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors text-sm"
+        >
+          <ArrowLeft className="w-4 h-4" /> Rapora Dön
+        </button>
+        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-8 flex flex-col items-center gap-4 text-center">
+          <AlertCircle className="w-10 h-10 text-zinc-500" />
+          <div>
+            <p className="text-lg font-semibold text-white">
+              Google Analytics Bağlı Değil
+            </p>
+            <p className="text-sm text-zinc-500 mt-1">
+              Google hesabınızı bağladıktan sonra GA4 mülkünüzü seçebilirsiniz.
+            </p>
+          </div>
+          {status?.authUrl ? (
+            <a
+              href={status.authUrl}
+              className="bg-[#C8697A] hover:bg-[#B5556A] text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
+            >
+              Google ile Bağlan
+            </a>
+          ) : (
+            <button
+              onClick={() => navigate("/client/analytics")}
+              className="bg-[#C8697A] hover:bg-[#B5556A] text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
+            >
+              Analitik Sayfasına Git
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!status.propertyId) {
+    return (
+      <div className="space-y-6">
+        <button
+          onClick={() => navigate("/client/analytics")}
+          className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors text-sm"
+        >
+          <ArrowLeft className="w-4 h-4" /> Rapora Dön
+        </button>
+        <div className="bg-[#0C0C0E] border border-pink-500/20 rounded-2xl p-8 flex flex-col items-center gap-4 text-center">
+          <CheckCircle2 className="w-10 h-10 text-pink-400" />
+          <div>
+            <p className="text-lg font-semibold text-white">
+              Google Hesabı Bağlandı
+            </p>
+            <p className="text-sm text-zinc-500 mt-1">
+              GA4 mülk ID'nizi girin. GA4 Property ID'nizi{" "}
+              <a
+                href="https://analytics.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#C8697A] hover:underline"
+              >
+                Google Analytics
+              </a>{" "}
+              &gt; Yönetici &gt; Mülk Ayarları'ndan bulabilirsiniz.
+            </p>
+          </div>
+          <div className="flex gap-2 w-full max-w-sm">
+            <input
+              type="text"
+              value={propertyInput}
+              onChange={(e) => setPropertyInput(e.target.value)}
+              placeholder="Örn: 123456789"
+              className="flex-1 bg-[#1a1a1f] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#C8697A]/50"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveProperty();
+              }}
+            />
+            <button
+              onClick={handleSaveProperty}
+              disabled={savingProperty || !propertyInput.trim()}
+              className="bg-[#C8697A] hover:bg-[#B5556A] disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+            >
+              {savingProperty ? "Kaydediliyor..." : "Kaydet"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data || data.errorMessage) {
+    return (
+      <div className="space-y-6">
+        <button
+          onClick={() => navigate("/client/analytics")}
+          className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors text-sm"
+        >
+          <ArrowLeft className="w-4 h-4" /> Rapora Dön
+        </button>
+        <div className="bg-[#0C0C0E] border border-amber-500/20 rounded-2xl p-8 flex flex-col items-center gap-4 text-center">
+          <AlertCircle className="w-10 h-10 text-amber-400" />
+          <div>
+            <p className="text-lg font-semibold text-white">
+              Veri Alınamadı
+            </p>
+            <p className="text-sm text-zinc-500 mt-1">
+              {data?.errorMessage || "Google Analytics verileri şu an alınamıyor. Kısa süre sonra tekrar deneyin."}
+            </p>
+          </div>
+          <button
+            onClick={() => refresh()}
+            className="bg-[#C8697A] hover:bg-[#B5556A] text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
+          >
+            Tekrar Dene
           </button>
         </div>
       </div>

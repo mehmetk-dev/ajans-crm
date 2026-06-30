@@ -24,64 +24,66 @@ public class InstagramMediaInsightService {
         if (mediaId == null || mediaId.isBlank()) {
             return new ReelInsightStats(0, 0, 0, 0);
         }
+        Map<String, Long> values = batchInsightValues(mediaId, accessToken,
+                List.of("plays", "views", "ig_reels_aggregated_all_plays_count", "video_views",
+                        "reach", "saved", "shares"));
+        long views = values.getOrDefault("plays",
+                values.getOrDefault("views",
+                values.getOrDefault("ig_reels_aggregated_all_plays_count",
+                values.getOrDefault("video_views", 0L))));
         return new ReelInsightStats(
-                firstAvailable(mediaId, accessToken,
-                        List.of("plays", "views",
-                                "ig_reels_aggregated_all_plays_count", "video_views")),
-                insightValue(mediaId, accessToken, "reach").orElse(0),
-                insightValue(mediaId, accessToken, "saved").orElse(0),
-                insightValue(mediaId, accessToken, "shares").orElse(0));
+                views,
+                values.getOrDefault("reach", 0L),
+                values.getOrDefault("saved", 0L),
+                values.getOrDefault("shares", 0L));
     }
 
     public PostInsightStats postInsights(String mediaId, String accessToken) {
         if (mediaId == null || mediaId.isBlank()) {
             return new PostInsightStats(0, 0, 0, 0);
         }
+        Map<String, Long> values = batchInsightValues(mediaId, accessToken,
+                List.of("impressions", "views", "reach", "saved", "shares"));
+        long impressions = values.getOrDefault("impressions",
+                values.getOrDefault("views",
+                values.getOrDefault("reach", 0L)));
         return new PostInsightStats(
-                firstAvailable(mediaId, accessToken,
-                        List.of("impressions", "views", "reach")),
-                insightValue(mediaId, accessToken, "reach").orElse(0),
-                insightValue(mediaId, accessToken, "saved").orElse(0),
-                insightValue(mediaId, accessToken, "shares").orElse(0));
+                impressions,
+                values.getOrDefault("reach", 0L),
+                values.getOrDefault("saved", 0L),
+                values.getOrDefault("shares", 0L));
     }
 
-    private long firstAvailable(
-            String mediaId,
-            String accessToken,
-            List<String> metrics) {
-        for (String metric : metrics) {
-            OptionalLong value = insightValue(mediaId, accessToken, metric);
-            if (value.isPresent()) {
-                return value.getAsLong();
-            }
-        }
-        return 0;
-    }
-
-    private OptionalLong insightValue(
-            String mediaId,
-            String accessToken,
-            String metric) {
-        List<Map<String, ?>> candidates = List.of(
-                Map.of("metric", metric),
-                Map.of("metric", metric, "metric_type", "total_value", "period", "day"),
-                Map.of("metric", metric, "period", "day"));
-
-        for (Map<String, ?> query : candidates) {
-            try {
-                OptionalLong value = parser.singleInsightValue(
-                        client.get("/" + mediaId + "/insights", accessToken, query),
-                        metric);
-                if (value.isPresent()) {
-                    return value;
+    private Map<String, Long> batchInsightValues(
+            String mediaId, String accessToken, List<String> metrics) {
+        String metricParam = String.join(",", metrics);
+        try {
+            Map<String, Object> response = client.get(
+                    "/" + mediaId + "/insights", accessToken,
+                    Map.of("metric", metricParam));
+            java.util.LinkedHashMap<String, Long> result = new java.util.LinkedHashMap<>();
+            for (Map<String, Object> insight : parser.dataRows(response)) {
+                Object name = insight.get("name");
+                if (name != null) {
+                    long value = parser.toLong(insight.get("values"));
+                    if (value == 0) {
+                        Object rawValue = insight.get("values");
+                        if (rawValue instanceof List<?> list && !list.isEmpty()) {
+                            Object last = list.get(list.size() - 1);
+                            if (last instanceof Map<?, ?> lastMap) {
+                                value = parser.toLong(lastMap.get("value"));
+                            }
+                        }
+                    }
+                    result.put(name.toString(), value);
                 }
-            } catch (Exception exception) {
-                log.debug(
-                        "Instagram media insight adayı geçersiz, mediaId={}, metric={}: {}",
-                        mediaId, metric, exception.getMessage());
             }
+            return result;
+        } catch (Exception exception) {
+            log.debug("Instagram media insight batch alınamadı, mediaId={}: {}",
+                    mediaId, exception.getMessage());
+            return Map.of();
         }
-        return OptionalLong.empty();
     }
 
     public record ReelInsightStats(long views, long reach, long saved, long shares) {}

@@ -10,6 +10,7 @@ import lombok.Data;
 public class AuthResponse {
     private String accessToken;
     private String refreshToken;
+    private boolean rememberMe;
     private UserInfo user;
 
     @Data

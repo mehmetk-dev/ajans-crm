@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../store/AuthContext";
 import {
   AlertCircle,
   ArrowLeft,
@@ -40,6 +41,7 @@ import {
 
 export default function PageSpeedDetailPage() {
   const navigate = useNavigate();
+  const { isLoading: authLoading } = useAuth();
   const [report, setReport] = useState<PageSpeedReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,8 +73,9 @@ export default function PageSpeedDetailPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     loadReport();
-  }, []);
+  }, [authLoading]);
 
   const handleSaveWebsite = async () => {
     setFormError("");
@@ -94,7 +97,7 @@ export default function PageSpeedDetailPage() {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="flex items-center gap-3 text-zinc-500 text-sm">

@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -70,27 +71,42 @@ public class InstagramOverviewService {
             UUID companyId, InstagramToken token, String accessToken, InsightRange range) {
         String igUserId = token.getIgUserId();
 
-        Map<String, Object> profile = client.get(
-                "/" + igUserId, accessToken,
-                Map.of("fields", "followers_count,follows_count,media_count,username"));
+        CompletableFuture<Map<String, Object>> profileFuture = CompletableFuture.supplyAsync(() ->
+                client.get("/" + igUserId, accessToken,
+                        Map.of("fields", "followers_count,follows_count,media_count,username")));
 
-        List<Map<String, Object>> followerValues = insightFetcher.fetchInsight(
-                igUserId, accessToken, "follower_count", "day", range);
-        List<Map<String, Object>> viewValues = insightFetcher.fetchTotalInsight(
-                igUserId, accessToken, "views", range);
+        CompletableFuture<List<Map<String, Object>>> followerFuture = CompletableFuture.supplyAsync(() ->
+                insightFetcher.fetchInsight(igUserId, accessToken, "follower_count", "day", range));
+
+        CompletableFuture<List<Map<String, Object>>> viewFuture = CompletableFuture.supplyAsync(() ->
+                insightFetcher.fetchTotalInsight(igUserId, accessToken, "views", range));
+
+        CompletableFuture<List<Map<String, Object>>> reachFuture = CompletableFuture.supplyAsync(() ->
+                insightFetcher.fetchInsight(igUserId, accessToken, "reach", "day", range));
+
+        CompletableFuture<List<Map<String, Object>>> profileViewFuture = CompletableFuture.supplyAsync(() ->
+                insightFetcher.fetchTotalInsight(igUserId, accessToken, "profile_views", range));
+
+        CompletableFuture<List<Map<String, Object>>> websiteClickFuture = CompletableFuture.supplyAsync(() ->
+                insightFetcher.fetchTotalInsight(igUserId, accessToken, "website_clicks", range));
+
+        CompletableFuture<List<MediaRow>> recentMediaFuture = CompletableFuture.supplyAsync(() ->
+                mediaService.getRecentMedia(igUserId, accessToken, 12));
+
+        Map<String, Object> profile = profileFuture.join();
+        List<Map<String, Object>> followerValues = followerFuture.join();
+        List<Map<String, Object>> viewValues = viewFuture.join();
+        List<Map<String, Object>> reachValues = reachFuture.join();
+        List<Map<String, Object>> profileViewValues = profileViewFuture.join();
+        List<Map<String, Object>> websiteClickValues = websiteClickFuture.join();
+        List<MediaRow> recentMedia = recentMediaFuture.join();
+
         Map<String, Long> dailyViews = insightFetcher.fetchDailyTotalInsightByDate(
                 igUserId, accessToken, "views", followerValues);
-        List<Map<String, Object>> reachValues = insightFetcher.fetchInsight(
-                igUserId, accessToken, "reach", "day", range);
-        List<Map<String, Object>> profileViewValues = insightFetcher.fetchTotalInsight(
-                igUserId, accessToken, "profile_views", range);
-        List<Map<String, Object>> websiteClickValues = insightFetcher.fetchTotalInsight(
-                igUserId, accessToken, "website_clicks", range);
 
         FollowStats followStats = resolveFollowStats(igUserId, accessToken, range, followerValues);
 
         List<DailyRow> dailyTrend = trendBuilder.build(followerValues, reachValues, dailyViews);
-        List<MediaRow> recentMedia = mediaService.getRecentMedia(igUserId, accessToken, 12);
 
         return new InstagramOverviewResponse(
                 true,

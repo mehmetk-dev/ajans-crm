@@ -25,4 +25,9 @@ export const searchConsoleApi = {
         api.post('/client/analytics/sc/site-url', { siteUrl }, {
             params: { companyId },
         }).then(response => response.data),
+
+    disconnect: (companyId: string) =>
+        api.delete('/client/analytics/sc/disconnect', {
+            params: { companyId },
+        }).then(response => response.data),
 };

@@ -7,9 +7,9 @@ import type {
 } from '../instagram.types';
 
 export const igApi = {
-    getStatus: (companyId: string) =>
+    getStatus: (companyId: string, returnPath?: string) =>
         api.get<IgStatusResponse>('/client/analytics/ig/status', {
-            params: { companyId }
+            params: { companyId, returnPath }
         }).then(r => r.data),
 
     getOverview: (companyId: string, startDate?: string, endDate?: string) =>

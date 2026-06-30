@@ -133,7 +133,7 @@ public class GroupMessagingService {
 
         GroupMessage message = GroupMessage.builder()
                 .group(group).sender(sender).content(request.getContent()).build();
-        message = groupMessageRepository.save(message);
+        message = groupMessageRepository.saveAndFlush(message);
 
         group.setUpdatedAt(Instant.now());
         groupConversationRepository.save(group);

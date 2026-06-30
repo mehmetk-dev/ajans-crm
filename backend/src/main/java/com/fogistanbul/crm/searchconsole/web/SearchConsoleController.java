@@ -28,14 +28,18 @@ public class SearchConsoleController {
     public ScStatusResponse status(@RequestParam UUID companyId, Authentication auth) {
         accessPolicy.requireClientAccess((UUID) auth.getPrincipal(), companyId);
         boolean connected = googleOAuthService.isConnected(companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE);
+        boolean hasScScope = connected;
+        boolean needsReconnect = connected && googleOAuthService.isTokenExpired(
+                companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE);
+
         String siteUrl = googleOAuthService.getSiteUrl(companyId).orElse(null);
         String authUrl = googleOAuthService.buildAuthorizationUrl(
                 companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE);
         return new ScStatusResponse(
                 connected,
                 siteUrl != null ? siteUrl : "",
-                connected,
-                false,
+                hasScScope,
+                needsReconnect,
                 authUrl);
     }
 
@@ -64,6 +68,13 @@ public class SearchConsoleController {
             return ScSaveSiteUrlResponse.error("siteUrl bos olamaz");
         }
         googleOAuthService.saveSiteUrl(companyId, siteUrl.trim());
+        return ScSaveSiteUrlResponse.ok();
+    }
+
+    @DeleteMapping("/disconnect")
+    public ScSaveSiteUrlResponse disconnect(@RequestParam UUID companyId, Authentication auth) {
+        accessPolicy.requireClientAccess((UUID) auth.getPrincipal(), companyId);
+        googleOAuthService.disconnect(companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE);
         return ScSaveSiteUrlResponse.ok();
     }
 }

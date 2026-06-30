@@ -7,8 +7,10 @@ export const instagramKeys = {
         [...instagramKeys.overviewRoot, companyId] as const,
     overviewRange: (companyId: string, startDate: string, endDate: string) =>
         [...instagramKeys.overviewRoot, companyId, startDate, endDate] as const,
-    status: (companyId: string) =>
-        [...instagramKeys.statusRoot, companyId] as const,
+    status: (companyId: string, returnPath?: string) =>
+        returnPath
+            ? [...instagramKeys.statusRoot, companyId, returnPath] as const
+            : [...instagramKeys.statusRoot, companyId] as const,
     reels: (companyId: string) =>
         [...instagramKeys.reelsRoot, companyId] as const,
     posts: (companyId: string) =>

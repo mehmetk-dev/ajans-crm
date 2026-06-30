@@ -34,6 +34,10 @@ public class RefreshToken {
     @Builder.Default
     private boolean revoked = false;
 
+    @Column(name = "remember_me", nullable = false)
+    @Builder.Default
+    private boolean rememberMe = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

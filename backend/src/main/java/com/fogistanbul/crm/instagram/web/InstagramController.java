@@ -33,6 +33,7 @@ public class InstagramController {
     @GetMapping("/status")
     public InstagramStatusResponse status(
             @RequestParam UUID companyId,
+            @RequestParam(required = false) String returnPath,
             Authentication authentication) {
         accessPolicy.requireClientAccess(
                 (UUID) authentication.getPrincipal(), companyId);
@@ -42,7 +43,7 @@ public class InstagramController {
         return new InstagramStatusResponse(
                 configured,
                 connected,
-                configured ? oAuthService.buildAuthorizationUrl(companyId) : "",
+                configured ? oAuthService.buildAuthorizationUrl(companyId, returnPath) : "",
                 token != null && token.getIgUsername() != null
                         ? token.getIgUsername()
                         : "",

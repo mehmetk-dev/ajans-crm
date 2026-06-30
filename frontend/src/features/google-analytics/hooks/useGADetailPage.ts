@@ -19,7 +19,7 @@ interface GADetailState {
 }
 
 export function useGADetailPage() {
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const companyId = user?.companyId;
 
     const [state, setState] = useState<GADetailState>({
@@ -40,7 +40,10 @@ export function useGADetailPage() {
         : DATE_PRESETS[state.activePreset];
 
     const load = useCallback((showRefresh = false) => {
-        if (!companyId) return;
+        if (!companyId) {
+            setState(s => ({ ...s, loading: false, refreshing: false }));
+            return;
+        }
         if (showRefresh) setState(s => ({ ...s, refreshing: true, error: null }));
         else setState(s => ({ ...s, loading: true, error: null }));
 
@@ -50,7 +53,7 @@ export function useGADetailPage() {
         googleAnalyticsApi
             .getStatus(companyId)
             .then(s => {
-                setState(prev => ({ ...prev, status: s }));
+                setState(prev => ({ ...prev, status: s, data: null }));
                 if (s.connected && s.propertyId) {
                     return googleAnalyticsApi.getOverview(companyId, startDate, endDate).then(d => setState(prev => ({ ...prev, data: d })));
                 }
@@ -62,9 +65,20 @@ export function useGADetailPage() {
             .finally(() => setState(prev => ({ ...prev, loading: false, refreshing: false })));
     }, [companyId, state.activePreset, state.customEnd, state.customStart, state.isCustomRange]);
 
-    // Loading is synchronized with the selected company and date range.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    useEffect(() => { load(); }, [load]);
+    useEffect(() => {
+        if (authLoading) return;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        load();
+    }, [load, authLoading]);
+
+    /* OAuth callback sonrası ?connected=true parametresini yakala ve temizle */
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('connected') === 'true') {
+            window.history.replaceState({}, '', window.location.pathname);
+            load();
+        }
+    }, [load]);
 
     const sourcePieData = useMemo(() => buildSourcePieData(state.data?.trafficSources ?? []), [state.data?.trafficSources]);
     const countryBarData = useMemo(() => buildCountryBarData(state.data?.topCountries ?? []), [state.data?.topCountries]);
@@ -76,6 +90,7 @@ export function useGADetailPage() {
 
     return {
         ...state,
+        authLoading,
         currentRange,
         sourcePieData,
         countryBarData,

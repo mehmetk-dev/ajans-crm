@@ -104,12 +104,24 @@ public class GoogleOAuthService {
 
     @Transactional
     public Optional<String> getValidAccessToken(UUID companyId, String serviceType) {
-        return tokenRepository.findByCompanyIdAndServiceType(companyId, serviceType).map(token -> {
-            if (Instant.now().isAfter(token.getTokenExpiry().minusSeconds(60))) {
-                return refreshAndSave(token);
+        Optional<GoogleOAuthToken> tokenOptional =
+                tokenRepository.findByCompanyIdAndServiceType(companyId, serviceType);
+        if (tokenOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        GoogleOAuthToken token = tokenOptional.get();
+        if (Instant.now().isAfter(token.getTokenExpiry().minusSeconds(60))) {
+            String refreshed = refreshAndSave(token);
+            if (refreshed == null || refreshed.isBlank()) {
+                tokenRepository.deleteByCompanyIdAndServiceType(companyId, serviceType);
+                log.warn("Google OAuth token yenilenemedi, bağlantı kaldırıldı company={}, serviceType={}",
+                        companyId, serviceType);
+                return Optional.empty();
             }
-            return token.getAccessToken();
-        });
+            return Optional.of(refreshed);
+        }
+        return Optional.ofNullable(token.getAccessToken());
     }
 
     @Transactional
@@ -162,6 +174,12 @@ public class GoogleOAuthService {
 
     public boolean isConnected(UUID companyId) {
         return isConnected(companyId, SVC_ANALYTICS);
+    }
+
+    public boolean isTokenExpired(UUID companyId, String serviceType) {
+        return tokenRepository.findByCompanyIdAndServiceType(companyId, serviceType)
+                .map(token -> Instant.now().isAfter(token.getTokenExpiry()))
+                .orElse(false);
     }
 
     @Transactional

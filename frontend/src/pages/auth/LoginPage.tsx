@@ -11,6 +11,7 @@ export default function LoginPage() {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ export default function LoginPage() {
         setError('');
         setLoading(true);
         try {
-            await login(email, password);
+            await login(email, password, rememberMe);
             setTimeout(() => navigate('/dashboard'), 600);
         } catch (err: unknown) {
             const apiError = parseApiError(err, 'Beklenmeyen bir hata oluştu.');
@@ -144,7 +145,12 @@ export default function LoginPage() {
                                 <div className="flex items-center justify-between py-1 px-0.5">
                                     <label className="flex items-center gap-2 cursor-pointer group">
                                         <div className="relative flex items-center">
-                                            <input type="checkbox" className="peer appearance-none w-4 h-4 border border-white/10 rounded bg-white/[0.03] checked:bg-pink-500 checked:border-pink-500 transition-all" />
+                                            <input
+                                                type="checkbox"
+                                                checked={rememberMe}
+                                                onChange={(e) => setRememberMe(e.target.checked)}
+                                                className="peer appearance-none w-4 h-4 border border-white/10 rounded bg-white/[0.03] checked:bg-pink-500 checked:border-pink-500 transition-all"
+                                            />
                                             <User className="absolute w-2.5 h-2.5 left-[3px] text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
                                         </div>
                                         <span className="text-zinc-500 text-[11px] group-hover:text-zinc-400 transition-colors">Beni Hatırla</span>

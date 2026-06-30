@@ -25,14 +25,15 @@ public class InstagramOAuthController {
                          @RequestParam String state,
                          HttpServletResponse response) throws IOException {
         try {
-            instagramOAuthService.handleCallback(code, state);
+            String returnPath = instagramOAuthService.handleCallback(code, state);
             response.sendRedirect(instagramOAuthService.getFrontendUrl()
-                    + "/client/analytics?ig=connected");
+                    + returnPath + "?ig=connected");
         } catch (Exception e) {
             log.error("Instagram OAuth callback hatası: {}", e.getMessage(), e);
             String msg = URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+            String returnPath = instagramOAuthService.resolveReturnPath(state);
             response.sendRedirect(instagramOAuthService.getFrontendUrl()
-                    + "/client/analytics?ig=error&message=" + msg);
+                    + returnPath + "?ig=error&message=" + msg);
         }
     }
 }

@@ -79,21 +79,36 @@ public class InstagramInsightFetcher {
     public Map<String, Long> fetchDailyTotalInsightByDate(
             String igUserId, String accessToken, String metric, List<Map<String, Object>> trendRows) {
         Map<String, Long> dailyValues = new LinkedHashMap<>();
+        if (trendRows.isEmpty()) {
+            return dailyValues;
+        }
+
+        String firstDate = insightDate(trendRows.get(0));
+        String lastDate = insightDate(trendRows.get(trendRows.size() - 1));
+
+        if (!firstDate.isBlank() && !lastDate.isBlank()) {
+            try {
+                LocalDate first = LocalDate.parse(firstDate, DateTimeFormatter.ISO_LOCAL_DATE);
+                LocalDate last = LocalDate.parse(lastDate, DateTimeFormatter.ISO_LOCAL_DATE).plusDays(1);
+                InsightRange fullRange = new InsightRange(
+                        first.atStartOfDay(ZONE).toEpochSecond(),
+                        last.atStartOfDay(ZONE).toEpochSecond());
+                List<Map<String, Object>> dailyData = fetchInsight(
+                        igUserId, accessToken, metric, "day", fullRange);
+                for (Map<String, Object> row : dailyData) {
+                    String date = insightDate(row);
+                    if (!date.isBlank()) {
+                        dailyValues.put(date, parser.toLong(row.get("value")));
+                    }
+                }
+            } catch (Exception exception) {
+                log.warn("Instagram günlük insight alınamadı, metric={}: {}", metric, exception.getMessage());
+            }
+        }
+
         for (Map<String, Object> row : trendRows) {
             String date = insightDate(row);
-            if (date.isBlank() || dailyValues.containsKey(date)) {
-                continue;
-            }
-            try {
-                LocalDate day = LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE);
-                InsightRange dayRange = new InsightRange(
-                        day.atStartOfDay(ZONE).toEpochSecond(),
-                        day.plusDays(1).atStartOfDay(ZONE).toEpochSecond());
-                dailyValues.put(date,
-                        parser.sumInsightValues(fetchTotalInsight(igUserId, accessToken, metric, dayRange)));
-            } catch (Exception exception) {
-                log.debug("Instagram günlük insight alınamadı, metric={}, date={}: {}",
-                        metric, date, exception.getMessage());
+            if (!date.isBlank() && !dailyValues.containsKey(date)) {
                 dailyValues.put(date, 0L);
             }
         }

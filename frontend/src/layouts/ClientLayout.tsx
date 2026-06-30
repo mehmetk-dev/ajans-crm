@@ -13,7 +13,7 @@ import { UserAvatar } from '../components/UserAvatar';
 import {
     BarChart3, Image, ListTodo, ShoppingBag,
     Settings, MessageSquare, LogOut, Star, Menu, X, TrendingUp, Sparkles, Search, Users, Camera, FileText, LayoutTemplate,
-    Loader2, Globe, Megaphone, Instagram, ChevronDown, BriefcaseBusiness, MessagesSquare, type LucideIcon
+    Loader2, Globe, Megaphone, Instagram, ChevronDown, BriefcaseBusiness, MessagesSquare, Lock, type LucideIcon
 } from 'lucide-react';
 
 type ClientNavItem = {
@@ -111,12 +111,20 @@ export default function ClientLayout() {
         return true;
     };
 
+    const isUpsellable = (item: ClientNavItem) => {
+        if (item.ownerOnly && !isOwner) return false;
+        if (!item.requiredService) return false;
+        return !servicesLoading && !hasService(item.requiredService);
+    };
+
     const filteredNavGroups = NAV_GROUPS
         .map(group => ({
             ...group,
             items: group.items.filter(canShowItem),
         }))
         .filter(group => group.items.length > 0);
+
+    const upsellItems = NAV_GROUPS.flatMap(group => group.items).filter(isUpsellable);
 
     const toggleGroup = (group: ClientNavGroup, isGroupActive: boolean) => {
         setExpandedGroups(current => ({
@@ -270,6 +278,29 @@ export default function ClientLayout() {
                         );
                     })}
                 </nav>
+
+                {upsellItems.length > 0 && (
+                    <>
+                        <div className="fog-divider mx-6" />
+                        <div className="px-4 py-3 space-y-1.5">
+                            <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-[0.18em] px-3 mb-1">Ek Hizmetler</p>
+                            {upsellItems.map(({ to, label }) => (
+                                <button
+                                    key={to}
+                                    onClick={() => {
+                                        setSidebarOpen(false);
+                                        window.location.href = '/client/services';
+                                    }}
+                                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium w-full text-left text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.02] transition-all"
+                                >
+                                    <Lock className="w-[18px] h-[18px] text-zinc-700" />
+                                    <span className="flex-1">{label}</span>
+                                    <span className="text-[10px] text-zinc-700 bg-white/[0.02] border border-white/[0.04] rounded-md px-1.5 py-0.5">Al</span>
+                                </button>
+                            ))}
+                        </div>
+                    </>
+                )}
 
                 <div className="fog-divider mx-6" />
 
