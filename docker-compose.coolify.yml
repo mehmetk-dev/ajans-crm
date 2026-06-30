@@ -50,7 +50,6 @@ services:
       PAGESPEED_API_KEY: ${PAGESPEED_API_KEY:-}
       GOOGLE_ADS_DEVELOPER_TOKEN: ${GOOGLE_ADS_DEVELOPER_TOKEN:-}
       GOOGLE_ADS_MANAGER_CUSTOMER_ID: ${GOOGLE_ADS_MANAGER_CUSTOMER_ID:-}
-      MAIL_ENABLED: ${MAIL_ENABLED:-false}
     volumes:
       - uploads:/data/uploads
     depends_on:
