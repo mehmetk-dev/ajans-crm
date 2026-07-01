@@ -26,6 +26,7 @@ export default function ClientDashboardPage() {
 
     const {
         isLoading, ga, sc, ig, shoots, tasks,
+        gaSnapshot, scSnapshot, igSnapshot,
         gaConnected, scConnected, igConnected,
         hasService, hasProduction, hasContentMarketing,
     } = useClientDashboard();
@@ -65,12 +66,12 @@ export default function ClientDashboardPage() {
                             {greeting}
                         </h1>
                         <p className="text-sm text-zinc-400 max-w-xl">
-                            Tüm dijital kanallarınızın anlık performansı tek bakışta.
+                            Tüm dijital kanallarınızın son ölçülen performansı tek bakışta.
                         </p>
                     </div>
                     <div className="hidden md:flex items-center gap-2 text-xs text-zinc-500">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="font-medium tracking-wider uppercase">Canlı Veriler</span>
+                        <span className="font-medium tracking-wider uppercase">Snapshot Veriler</span>
                     </div>
                 </div>
             </section>
@@ -115,6 +116,7 @@ export default function ClientDashboardPage() {
                     {tab === 'overview' && (
                         <OverviewTab
                             ga={ga} sc={sc} ig={ig} navigate={navigate}
+                            gaSnapshot={gaSnapshot} scSnapshot={scSnapshot} igSnapshot={igSnapshot}
                             upcomingShoots={upcomingShoots} activeTasks={activeTasks}
                             gaConnected={gaConnected} scConnected={scConnected} igConnected={igConnected}
                         />

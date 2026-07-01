@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import {
     formatInstagramMetric,
+    InstagramDisconnectedState,
+    getInstagramDisconnectedCopy,
     igApi,
     type IgReelRow,
 } from '../../features/instagram';
@@ -183,11 +185,11 @@ export default function InstagramReelsPage() {
                 {error ? (
                     <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-300">{error}</div>
                 ) : !connected ? (
-                    <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-12 text-center">
-                        <Instagram className="w-8 h-8 text-pink-400 mx-auto mb-4" />
-                        <h3 className="text-white font-semibold text-lg mb-2">Reels Verileri Bağlı Değil</h3>
-                        {authUrl && <a href={authUrl} className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white text-sm font-medium px-6 py-3 rounded-xl"><Instagram className="w-4 h-4" />Reels'i Bağla</a>}
-                    </div>
+                    <InstagramDisconnectedState
+                        {...getInstagramDisconnectedCopy('/client/instagram/reels')}
+                        href={authUrl}
+                        className="p-12"
+                    />
                 ) : (
                     <>
                         <div>

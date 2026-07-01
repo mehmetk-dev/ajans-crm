@@ -21,3 +21,9 @@ export {
     ReelsColumn,
     StatsColumn,
 } from './ui/InstagramPanel';
+export {
+    InstagramDisconnectedState,
+} from './ui/InstagramDisconnectedState';
+export {
+    getInstagramDisconnectedCopy,
+} from './ui/instagramDisconnectedCopy';

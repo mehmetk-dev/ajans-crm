@@ -3,7 +3,7 @@ import { useAuth } from '../../store/AuthContext';
 import { parseApiError } from '../../lib/apiError';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogIn, User, Zap, Mail, Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, LogIn, User, Zap, Mail, Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 export default function LoginPage() {
     const fid = useId();
@@ -49,6 +49,14 @@ export default function LoginPage() {
     return (
         <div className="relative min-h-screen w-full bg-[#09090b] dark-gradient flex items-center justify-center p-6">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-pink-500/5 rounded-full blur-[120px]" />
+
+            <a
+                href="/"
+                className="absolute top-6 left-6 flex items-center gap-2 text-zinc-600 hover:text-zinc-300 transition-colors text-sm"
+            >
+                <ArrowLeft className="w-4 h-4" />
+                Ana Sayfa
+            </a>
 
             <AnimatePresence>
                 {isReady && (

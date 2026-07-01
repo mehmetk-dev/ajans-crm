@@ -8,6 +8,8 @@ import {
 import { igApi } from '../api/instagramApi';
 import { instagramKeys } from '../instagramKeys';
 import { formatInstagramMetric } from '../model/instagram.utils';
+import { InstagramDisconnectedState } from './InstagramDisconnectedState';
+import { getInstagramDisconnectedCopy } from './instagramDisconnectedCopy';
 import type {
     IgOverviewResponse,
     IgPostRow,
@@ -20,25 +22,6 @@ interface Props {
 }
 
 const fmtNum = formatInstagramMetric;
-
-function connectionCopy(returnPath: string) {
-    if (returnPath === '/client/instagram/reels') {
-        return {
-            title: 'Reels Verileri Bağlı Değil',
-            action: "Reels'i Bağla",
-        };
-    }
-    if (returnPath === '/client/instagram/posts') {
-        return {
-            title: 'Gönderi Verileri Bağlı Değil',
-            action: 'Gönderileri Bağla',
-        };
-    }
-    return {
-        title: 'Instagram İstatistikleri Bağlı Değil',
-        action: 'İstatistikleri Bağla',
-    };
-}
 
 export function StatsColumn({ companyId }: { companyId: string }) {
     const { data: overview } = useQuery<IgOverviewResponse>({
@@ -447,18 +430,11 @@ export default function InstagramPanel({
     }
 
     if (!status?.connected) {
-        const copy = connectionCopy(returnPath);
         return (
-            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-8 text-center">
-                <Instagram className="w-8 h-8 text-pink-400 mx-auto mb-3" />
-                <h3 className="text-white font-semibold">{copy.title}</h3>
-                <p className="text-zinc-500 text-sm mt-1">Facebook hesabınızla giriş yaparak Instagram Business verilerinize erişin.</p>
-                {status.authUrl && (
-                    <a href={status.authUrl} className="inline-flex items-center gap-2 mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl">
-                        <Instagram className="w-4 h-4" />{copy.action}
-                    </a>
-                )}
-            </div>
+            <InstagramDisconnectedState
+                {...getInstagramDisconnectedCopy(returnPath)}
+                href={status.authUrl}
+            />
         );
     }
 

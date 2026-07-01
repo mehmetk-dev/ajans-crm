@@ -11,11 +11,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 import java.util.Map;
 import java.util.Optional;
@@ -111,12 +113,18 @@ public class InstagramOAuthService {
 
     @Transactional
     public Optional<String> getValidAccessToken(UUID companyId) {
-        return tokenRepository.findByCompanyId(companyId).map(token -> {
-            if (token.getTokenExpiry() != null &&
-                Instant.now().isAfter(token.getTokenExpiry().minusSeconds(86400))) {
-                return refreshLongLivedToken(token);
+        return tokenRepository.findByCompanyId(companyId).flatMap(token -> {
+            if (isExpiringSoon(token)) {
+                Optional<String> refreshed = refreshLongLivedToken(token);
+                if (refreshed.isPresent()) {
+                    return refreshed;
+                }
+                if (isExpired(token)) {
+                    return Optional.empty();
+                }
             }
-            return token.getAccessToken();
+            return Optional.ofNullable(token.getAccessToken())
+                    .filter(accessToken -> !accessToken.isBlank());
         });
     }
 
@@ -127,7 +135,13 @@ public class InstagramOAuthService {
     }
 
     public boolean isConnected(UUID companyId) {
-        return tokenRepository.existsByCompanyId(companyId);
+        if (!tokenRepository.existsByCompanyId(companyId)) {
+            return false;
+        }
+        return tokenRepository.findByCompanyId(companyId)
+                .filter(token -> token.getAccessToken() != null && !token.getAccessToken().isBlank())
+                .filter(token -> !isExpired(token))
+                .isPresent();
     }
 
     public Optional<InstagramToken> getToken(UUID companyId) {
@@ -170,7 +184,7 @@ public class InstagramOAuthService {
                 : DEFAULT_RETURN_PATH;
     }
 
-    private String refreshLongLivedToken(InstagramToken token) {
+    private Optional<String> refreshLongLivedToken(InstagramToken token) {
         try {
             Map<String, Object> result = graphClient.refreshLongLivedToken(token.getAccessToken());
             String newToken = (String) result.get("access_token");
@@ -180,11 +194,52 @@ public class InstagramOAuthService {
                 token.setAccessToken(newToken);
                 token.setTokenExpiry(Instant.now().plusSeconds(newExpiresIn != null ? newExpiresIn : 5184000));
                 tokenRepository.save(token);
-                return newToken;
+                log.info("Instagram token yenilendi, company={}", token.getCompany().getId());
+                return Optional.of(newToken);
             }
+            log.warn("Instagram token yenileme — access_token boş döndü, company={}", token.getCompany().getId());
         } catch (Exception e) {
-            log.error("Instagram token yenileme hatası, companyId={}: {}", token.getCompany().getId(), e.getMessage());
+            log.error("Instagram token yenileme hatası, company={}: {}", token.getCompany().getId(), e.getMessage());
         }
-        return token.getAccessToken();
+        return Optional.empty();
+    }
+
+    @Scheduled(cron = "${app.instagram.token-refresh-cron:0 0 6,18 * * *}")
+    @Transactional
+    public void scheduledTokenRefresh() {
+        if (!isConfigured()) {
+            return;
+        }
+        List<InstagramToken> tokens = tokenRepository.findAll();
+        log.info("Instagram zamanlanmış token yenileme başladı, token sayısı={}", tokens.size());
+        int refreshed = 0;
+        int failed = 0;
+        for (InstagramToken token : tokens) {
+            try {
+                if (isExpiringSoon(token)) {
+                    Optional<String> result = refreshLongLivedToken(token);
+                    if (result.isPresent()) {
+                        refreshed++;
+                    } else {
+                        failed++;
+                    }
+                }
+            } catch (Exception e) {
+                failed++;
+                log.error("Zamanlanmış token yenileme hatası, company={}: {}",
+                        token.getCompany().getId(), e.getMessage());
+            }
+        }
+        log.info("Instagram zamanlanmış token yenileme tamamlandı, yenilenen={}, başarısız={}", refreshed, failed);
+    }
+
+    private boolean isExpiringSoon(InstagramToken token) {
+        return token.getTokenExpiry() != null
+                && Instant.now().isAfter(token.getTokenExpiry().minusSeconds(86400));
+    }
+
+    private boolean isExpired(InstagramToken token) {
+        return token.getTokenExpiry() != null
+                && !Instant.now().isBefore(token.getTokenExpiry());
     }
 }

@@ -14,6 +14,8 @@ import {
     igApi,
     instagramEngagementRate,
     instagramGrowthRate,
+    InstagramDisconnectedState,
+    getInstagramDisconnectedCopy,
     type IgOverviewResponse,
     type IgPostRow,
     type IgReelRow,
@@ -218,20 +220,11 @@ export default function InstagramDetailPage() {
                 )}
 
                 {!status?.connected && !error && (
-                    <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-12">
-                        <div className="flex flex-col items-center text-center gap-6">
-                            <Instagram className="w-8 h-8 text-pink-400" />
-                            <div>
-                                <h3 className="text-white font-semibold text-lg">Instagram İstatistikleri Bağlı Değil</h3>
-                                <p className="text-zinc-500 text-sm mt-2">Facebook hesabınızla giriş yaparak Instagram Business verilerinize erişin.</p>
-                            </div>
-                            {status?.authUrl && (
-                                <a href={status.authUrl} className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white text-sm font-medium px-6 py-3 rounded-xl">
-                                    <Instagram className="w-4 h-4" />İstatistikleri Bağla
-                                </a>
-                            )}
-                        </div>
-                    </div>
+                    <InstagramDisconnectedState
+                        {...getInstagramDisconnectedCopy('/client/instagram')}
+                        href={status?.authUrl}
+                        className="p-12"
+                    />
                 )}
 
                 {status?.connected && (

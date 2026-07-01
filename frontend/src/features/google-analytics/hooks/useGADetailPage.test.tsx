@@ -38,6 +38,7 @@ describe('useGADetailPage', () => {
     });
 
     afterEach(() => {
+        window.history.replaceState({}, '', '/');
         vi.restoreAllMocks();
     });
 
@@ -99,6 +100,44 @@ describe('useGADetailPage', () => {
         expect(result.current.data).toBeNull();
     });
 
+    it('clears the OAuth callback flag without duplicating the initial load', async () => {
+        window.history.pushState({}, '', '/client/google-analytics?connected=true');
+        const replaceState = vi.spyOn(window.history, 'replaceState');
+        const status: GaStatusResponse = {
+            connected: true,
+            propertyId: 'prop-1',
+            authUrl: '',
+        };
+        const overview: GaOverviewResponse = {
+            connected: true,
+            propertyId: 'prop-1',
+            errorMessage: null,
+            sessions: 100,
+            totalUsers: 80,
+            newUsers: 20,
+            pageViews: 200,
+            bounceRate: 0.4,
+            avgSessionDuration: 120,
+            dailyTrend: [],
+            trafficSources: [],
+            topPages: [],
+            topCountries: [],
+        };
+        const getStatus = vi.spyOn(googleAnalyticsApi, 'getStatus').mockResolvedValue(status);
+        const getOverview = vi.spyOn(googleAnalyticsApi, 'getOverview').mockResolvedValue(overview);
+
+        const { result } = renderHook(() => useGADetailPage(), { wrapper: makeWrapper() });
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        expect(replaceState).toHaveBeenCalledWith({}, '', '/client/google-analytics');
+        expect(getStatus).toHaveBeenCalledTimes(1);
+        expect(getOverview).toHaveBeenCalledTimes(1);
+        expect(result.current.data).toEqual(overview);
+    });
+
     it('captures the API error message on failure', async () => {
         const error = {
             response: { data: { message: 'GA bağlantısı yok' } },
@@ -145,18 +184,18 @@ describe('useGADetailPage', () => {
         expect(result.current.activePreset).toBe(2);
         expect(result.current.currentRange).toBeDefined();
 
-        act(() => result.current.setActivePreset(0));
+        await act(async () => result.current.setActivePreset(0));
         expect(result.current.activePreset).toBe(0);
         expect(result.current.showDateMenu).toBe(false);
 
-        act(() => result.current.setShowDateMenu(true));
+        await act(async () => result.current.setShowDateMenu(true));
         expect(result.current.showDateMenu).toBe(true);
 
-        act(() => result.current.setIsCustomRange(true));
+        await act(async () => result.current.setIsCustomRange(true));
         expect(result.current.isCustomRange).toBe(true);
 
-        act(() => result.current.setCustomStart('2026-01-01'));
-        act(() => result.current.setCustomEnd('2026-01-31'));
+        await act(async () => result.current.setCustomStart('2026-01-01'));
+        await act(async () => result.current.setCustomEnd('2026-01-31'));
         expect(result.current.customStart).toBe('2026-01-01');
         expect(result.current.customEnd).toBe('2026-01-31');
         expect(result.current.currentRange.desc).toBe('2026-01-01 — 2026-01-31');

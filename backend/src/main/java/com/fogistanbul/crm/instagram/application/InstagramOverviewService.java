@@ -56,7 +56,7 @@ public class InstagramOverviewService {
             return buildOverview(companyId, token, accessToken, range);
         } catch (Exception exception) {
             log.error("Instagram overview hatası, companyId={}: {}", companyId, exception.getMessage());
-            if (isInvalidToken(exception)) {
+            if (InstagramGraphErrorClassifier.isInvalidAccessToken(exception)) {
                 log.warn("Instagram token geçersiz, bağlantı siliniyor companyId={}", companyId);
                 oAuthService.disconnect(companyId);
                 return InstagramOverviewResponse.disabled();
@@ -149,13 +149,5 @@ public class InstagramOverviewService {
 
     private String stringValue(Object value, String fallback) {
         return value != null ? value.toString() : fallback;
-    }
-
-    private boolean isInvalidToken(Exception exception) {
-        String message = exception.getMessage() != null ? exception.getMessage() : "";
-        return message.contains("\"code\":200")
-                || message.contains("API access blocked")
-                || message.contains("OAuthException")
-                || message.contains("Invalid OAuth");
     }
 }

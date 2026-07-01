@@ -71,6 +71,10 @@ public class InstagramMediaService {
             log.error(
                     "Instagram reels hatası, companyId={}: {}",
                     companyId, exception.getMessage());
+            if (InstagramGraphErrorClassifier.isInvalidAccessToken(exception)) {
+                log.warn("Instagram token geçersiz, bağlantı siliniyor companyId={}", companyId);
+                oAuthService.disconnect(companyId);
+            }
             return List.of();
         }
     }
@@ -115,6 +119,10 @@ public class InstagramMediaService {
             log.error(
                     "Instagram posts hatası, companyId={}: {}",
                     companyId, exception.getMessage());
+            if (InstagramGraphErrorClassifier.isInvalidAccessToken(exception)) {
+                log.warn("Instagram token geçersiz, bağlantı siliniyor companyId={}", companyId);
+                oAuthService.disconnect(companyId);
+            }
             return List.of();
         }
     }

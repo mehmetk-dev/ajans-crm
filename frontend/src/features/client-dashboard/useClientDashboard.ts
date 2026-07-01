@@ -1,12 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../store/AuthContext';
-import { googleAnalyticsApi } from '../google-analytics/api/googleAnalyticsApi';
-import { analyticsKeys } from '../google-analytics/googleAnalyticsKeys';
-import type { GaOverviewResponse } from '../google-analytics/googleAnalytics.types';
-import { igApi, instagramKeys } from '../instagram';
-import type { IgOverviewResponse } from '../instagram/instagram.types';
-import { searchConsoleApi, searchConsoleKeys } from '../search-console';
-import type { ScOverviewResponse } from '../search-console/searchConsole.types';
+import { instagramKeys } from '../instagram';
+import { integrationSnapshotApi, integrationSnapshotKeys } from '../integration-snapshots';
+import type { ClientIntegrationSnapshotOverviewResponse } from '../integration-snapshots';
 import { taskApi, taskKeys } from '../tasks';
 import type { TaskResponse } from '../tasks/api/task.types';
 import { shootApi, shootKeys } from '../shoots';
@@ -16,6 +12,7 @@ import type { TabKey } from './dashboard.types';
 import { dashboardRefreshKeys } from './dashboardKeys';
 
 const STALE = Infinity;
+const SNAPSHOT_STALE = 60_000;
 const CACHE = 30 * 60_000;
 
 export function useClientDashboard() {
@@ -30,26 +27,15 @@ export function useClientDashboard() {
         ...activeServices
     } = useActiveServices();
 
-    const gaEnabled = enabled && !servicesLoading && hasDigitalMarketing;
-    const scEnabled = enabled && !servicesLoading && hasDigitalMarketing;
-    const igEnabled = enabled && !servicesLoading && hasSocialMedia;
     const shootsEnabled = enabled && !servicesLoading && hasProduction;
     const tasksEnabled = enabled;
 
-    const ga = useQuery<GaOverviewResponse>({
-        queryKey: analyticsKeys.overview(companyId),
-        queryFn: () => googleAnalyticsApi.getOverview(companyId),
-        enabled: gaEnabled, staleTime: STALE, gcTime: CACHE,
-    });
-    const sc = useQuery<ScOverviewResponse>({
-        queryKey: searchConsoleKeys.overview(companyId),
-        queryFn: () => searchConsoleApi.getOverview(companyId),
-        enabled: scEnabled, staleTime: STALE, gcTime: CACHE,
-    });
-    const ig = useQuery<IgOverviewResponse>({
-        queryKey: instagramKeys.overview(companyId),
-        queryFn: () => igApi.getOverview(companyId),
-        enabled: igEnabled, staleTime: STALE, gcTime: CACHE,
+    const snapshots = useQuery<ClientIntegrationSnapshotOverviewResponse>({
+        queryKey: integrationSnapshotKeys.overview(companyId),
+        queryFn: () => integrationSnapshotApi.getOverview(companyId),
+        enabled,
+        staleTime: SNAPSHOT_STALE,
+        gcTime: CACHE,
     });
     const shoots = useQuery<{ content: ShootResponse[] }>({
         queryKey: shootKeys.list('client', 0, 20),
@@ -63,25 +49,28 @@ export function useClientDashboard() {
     });
 
     const isLoading = servicesLoading
-        || ga.isLoading || sc.isLoading || ig.isLoading
+        || snapshots.isLoading
         || shoots.isLoading || tasks.isLoading;
 
     const isAllSettled = !servicesLoading
-        && !ga.isFetching && !sc.isFetching && !ig.isFetching
+        && !snapshots.isFetching
         && !shoots.isFetching && !tasks.isFetching;
 
     return {
         companyId,
         isLoading,
         isAllSettled,
-        ga: ga.data,
-        sc: sc.data,
-        ig: ig.data,
+        ga: snapshots.data?.ga,
+        sc: snapshots.data?.sc,
+        ig: snapshots.data?.ig,
+        gaSnapshot: snapshots.data?.gaSnapshot,
+        scSnapshot: snapshots.data?.scSnapshot,
+        igSnapshot: snapshots.data?.igSnapshot,
         shoots: shoots.data?.content ?? [],
         tasks: tasks.data?.content ?? [],
-        gaConnected: !!(ga.data?.connected && ga.data?.propertyId),
-        scConnected: !!(sc.data?.connected && sc.data?.siteUrl),
-        igConnected: !!(ig.data?.connected && ig.data?.username),
+        gaConnected: !!(snapshots.data?.ga?.connected && snapshots.data?.ga?.propertyId),
+        scConnected: !!(snapshots.data?.sc?.connected && snapshots.data?.sc?.siteUrl),
+        igConnected: !!(snapshots.data?.ig?.connected && snapshots.data?.ig?.username),
         hasDigitalMarketing,
         hasSocialMedia,
         hasProduction,
@@ -96,12 +85,19 @@ export function useRefreshDashboard() {
     const companyId = user?.companyId || '';
 
     const refreshTab = async (tab: TabKey) => {
+        if (companyId && tab !== 'schedule') {
+            await integrationSnapshotApi.refreshOverview(companyId);
+        }
         const keys = dashboardRefreshKeys[tab](companyId);
         await Promise.all(keys.map(k => qc.invalidateQueries({ queryKey: k })));
     };
 
     const refreshAll = async () => {
+        if (companyId) {
+            await integrationSnapshotApi.refreshOverview(companyId);
+        }
         const allKeys = [
+            integrationSnapshotKeys.overview(companyId),
             ...dashboardRefreshKeys.overview(companyId),
             ...dashboardRefreshKeys.web(companyId),
             ...dashboardRefreshKeys.social(companyId),

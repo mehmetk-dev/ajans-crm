@@ -6,6 +6,7 @@ import {
     AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import type { GaOverviewResponse, ScOverviewResponse, IgOverviewResponse } from '../dashboard.types';
+import type { IntegrationSnapshotMeta } from '../../integration-snapshots';
 import type { ShootResponse } from '../../shoots/api/shoot.types';
 import type { TaskResponse } from '../../tasks/api/task.types';
 import { MiniStat, QuickLink, EmptyState } from './DashboardCards';
@@ -18,6 +19,9 @@ interface OverviewTabProps {
     navigate: (path: string) => void;
     upcomingShoots: (ShootResponse & { shootDate: string })[];
     activeTasks: TaskResponse[];
+    gaSnapshot: IntegrationSnapshotMeta | undefined;
+    scSnapshot: IntegrationSnapshotMeta | undefined;
+    igSnapshot: IntegrationSnapshotMeta | undefined;
     gaConnected: boolean;
     scConnected: boolean;
     igConnected: boolean;
@@ -25,13 +29,14 @@ interface OverviewTabProps {
 
 export function OverviewTab({
     ga, sc, ig, navigate, upcomingShoots, activeTasks,
+    gaSnapshot, scSnapshot, igSnapshot,
     gaConnected, scConnected, igConnected,
 }: OverviewTabProps) {
     const stats = [
-        { label: 'Ziyaretçi', value: gaConnected ? fmt(ga!.totalUsers) : '—', icon: Users, color: 'from-blue-500/15 to-blue-400/5 border-blue-500/20', textColor: 'text-blue-400', connected: gaConnected },
-        { label: 'Sayfa Görüntüleme', value: gaConnected ? fmt(ga!.pageViews) : '—', icon: Eye, color: 'from-violet-500/15 to-violet-400/5 border-violet-500/20', textColor: 'text-violet-400', connected: gaConnected },
-        { label: 'Tıklama (SC)', value: scConnected ? fmt(sc!.totalClicks) : '—', icon: MousePointerClick, color: 'from-emerald-500/15 to-emerald-400/5 border-emerald-500/20', textColor: 'text-emerald-400', connected: scConnected },
-        { label: 'Takipçi', value: igConnected ? fmt(ig!.followersCount) : '—', icon: Instagram, color: 'from-pink-500/15 to-pink-400/5 border-pink-500/20', textColor: 'text-pink-400', connected: igConnected },
+        { label: 'Ziyaretçi', value: gaConnected ? fmt(ga!.totalUsers) : '—', icon: Users, color: 'from-blue-500/15 to-blue-400/5 border-blue-500/20', textColor: 'text-blue-400', connected: gaConnected, snapshot: gaSnapshot },
+        { label: 'Sayfa Görüntüleme', value: gaConnected ? fmt(ga!.pageViews) : '—', icon: Eye, color: 'from-violet-500/15 to-violet-400/5 border-violet-500/20', textColor: 'text-violet-400', connected: gaConnected, snapshot: gaSnapshot },
+        { label: 'Tıklama (SC)', value: scConnected ? fmt(sc!.totalClicks) : '—', icon: MousePointerClick, color: 'from-emerald-500/15 to-emerald-400/5 border-emerald-500/20', textColor: 'text-emerald-400', connected: scConnected, snapshot: scSnapshot },
+        { label: 'Takipçi', value: igConnected ? fmt(ig!.followersCount) : '—', icon: Instagram, color: 'from-pink-500/15 to-pink-400/5 border-pink-500/20', textColor: 'text-pink-400', connected: igConnected, snapshot: igSnapshot },
     ];
 
     return (
@@ -42,7 +47,9 @@ export function OverviewTab({
                         <s.icon className={`w-8 h-8 ${s.textColor} opacity-20 absolute -top-1 -right-1`} />
                         <p className={`text-[11px] font-semibold uppercase tracking-wider ${s.textColor} mb-2`}>{s.label}</p>
                         <p className="text-2xl font-bold text-white tracking-tight">{s.value}</p>
-                        {!s.connected && <p className="text-[10px] text-zinc-600 mt-1">Bağlantı gerekli</p>}
+                        <p className="text-[10px] text-zinc-600 mt-1">
+                            {snapshotLabel(s.connected, s.snapshot)}
+                        </p>
                     </div>
                 ))}
             </div>
@@ -182,4 +189,20 @@ export function OverviewTab({
             </div>
         </div>
     );
+}
+
+function snapshotLabel(connected: boolean, snapshot: IntegrationSnapshotMeta | undefined) {
+    if (!connected) {
+        return snapshot?.status === 'PENDING' ? 'Veriler hazırlanıyor' : 'Bağlantı gerekli';
+    }
+    if (snapshot?.status === 'FAILED') {
+        return 'Son veri korunuyor';
+    }
+    if (!snapshot?.lastSyncedAt) {
+        return 'Veriler hazırlanıyor';
+    }
+    return `Son: ${new Date(snapshot.lastSyncedAt).toLocaleTimeString('tr-TR', {
+        hour: '2-digit',
+        minute: '2-digit',
+    })}`;
 }

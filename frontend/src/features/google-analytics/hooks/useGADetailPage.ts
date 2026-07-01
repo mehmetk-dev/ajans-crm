@@ -76,9 +76,8 @@ export function useGADetailPage() {
         const params = new URLSearchParams(window.location.search);
         if (params.get('connected') === 'true') {
             window.history.replaceState({}, '', window.location.pathname);
-            load();
         }
-    }, [load]);
+    }, []);
 
     const sourcePieData = useMemo(() => buildSourcePieData(state.data?.trafficSources ?? []), [state.data?.trafficSources]);
     const countryBarData = useMemo(() => buildCountryBarData(state.data?.topCountries ?? []), [state.data?.topCountries]);

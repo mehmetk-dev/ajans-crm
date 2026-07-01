@@ -3,6 +3,7 @@ import type { ScOverviewResponse } from '../search-console/searchConsole.types';
 import type { IgOverviewResponse } from '../instagram/instagram.types';
 import type { ShootResponse } from '../shoots/api/shoot.types';
 import type { TaskResponse } from '../tasks/api/task.types';
+import type { IntegrationSnapshotMeta } from '../integration-snapshots';
 
 export type { GaOverviewResponse, ScOverviewResponse, IgOverviewResponse, ShootResponse, TaskResponse };
 
@@ -12,6 +13,9 @@ export interface DashboardViewModel {
     ga: GaOverviewResponse | undefined;
     sc: ScOverviewResponse | undefined;
     ig: IgOverviewResponse | undefined;
+    gaSnapshot: IntegrationSnapshotMeta | undefined;
+    scSnapshot: IntegrationSnapshotMeta | undefined;
+    igSnapshot: IntegrationSnapshotMeta | undefined;
     shoots: (ShootResponse & { shootDate: string })[];
     tasks: TaskResponse[];
     gaConnected: boolean;

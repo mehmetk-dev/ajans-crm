@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, MousePointerClick, Eye, Target, AlertTriangle, Loader2, ExternalLink, ChevronRight, Unlink } from 'lucide-react';
+import { TrendingUp, MousePointerClick, Eye, Target, AlertTriangle, Loader2, ExternalLink, ChevronRight, Unlink, Link2 } from 'lucide-react';
 import { googleAdsApi } from '../api/googleAdsApi';
 import { googleAdsKeys } from '../googleAdsKeys';
 import { formatCurrency, formatMetric } from '../model/googleAds.utils';
@@ -10,6 +10,11 @@ interface Props { companyId: string; }
 export default function GoogleAdsPanel({ companyId }: Props) {
     const navigate = useNavigate();
     const qc = useQueryClient();
+    const { data: status, isLoading: statusLoading } = useQuery({
+        queryKey: googleAdsKeys.status(companyId),
+        queryFn: () => googleAdsApi.getStatus(companyId),
+        staleTime: 5 * 60 * 1000,
+    });
     const { data, isLoading } = useQuery({
         queryKey: googleAdsKeys.overview(companyId),
         queryFn: () => googleAdsApi.getOverview(companyId),
@@ -23,17 +28,38 @@ export default function GoogleAdsPanel({ companyId }: Props) {
         },
     });
 
-    if (isLoading) return (
+    if (isLoading || statusLoading) return (
         <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-8 flex items-center justify-center">
             <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
         </div>
     );
 
-    if (!data?.connected) return (
-        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6 text-center">
-            <Target className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-            <p className="text-sm font-medium text-white">Google Ads Bağlı Değil</p>
-            <p className="text-xs text-zinc-500 mt-1">Reklam verilerinizi görüntülemek için hesabı bağlayın</p>
+    if (!status?.connected) return (
+        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-8">
+            <div className="flex flex-col items-center text-center gap-5">
+                <div className="h-14 w-14 rounded-2xl bg-zinc-800 flex items-center justify-center">
+                    <Target className="w-7 h-7 text-zinc-500" />
+                </div>
+                <div>
+                    <h3 className="text-white font-semibold text-lg">Google Ads Bağlı Değil</h3>
+                    <p className="text-zinc-500 text-sm mt-1">
+                        Google hesabınızla giriş yaparak reklam verilerinizi bağlayın.
+                    </p>
+                </div>
+                {status?.authUrl && (
+                    <a href={status.authUrl}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors">
+                        <Link2 className="w-4 h-4" />
+                        Google Ads'i Bağla
+                    </a>
+                )}
+            </div>
+        </div>
+    );
+
+    if (!data) return (
+        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-8 flex items-center justify-center">
+            <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
         </div>
     );
 

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, MousePointerClick, Eye, Users, AlertTriangle, Loader2, ExternalLink, ChevronRight } from 'lucide-react';
+import { TrendingUp, MousePointerClick, Eye, Users, AlertTriangle, Loader2, ExternalLink, ChevronRight, Link2 } from 'lucide-react';
 import { metaAdsApi } from '../api/metaAdsApi';
 import { metaAdsKeys } from '../metaAdsKeys';
 import {
@@ -15,25 +15,49 @@ const currency = formatMetaAdsCurrency;
 
 export default function MetaAdsPanel({ companyId }: Props) {
     const navigate = useNavigate();
+    const { data: status, isLoading: statusLoading } = useQuery({
+        queryKey: metaAdsKeys.status(companyId),
+        queryFn: () => metaAdsApi.getStatus(companyId),
+        staleTime: 5 * 60 * 1000,
+    });
     const { data, isLoading } = useQuery({
         queryKey: metaAdsKeys.overview(companyId),
         queryFn: () => metaAdsApi.getOverview(companyId),
         staleTime: 5 * 60 * 1000,
     });
 
-    if (isLoading) return (
+    if (isLoading || statusLoading) return (
         <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-8 flex items-center justify-center">
             <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
         </div>
     );
 
-    if (!data?.connected) return (
-        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6 text-center">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 mx-auto mb-3 flex items-center justify-center opacity-30">
-                <TrendingUp className="w-5 h-5 text-white" />
+    if (!status?.connected) return (
+        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-8">
+            <div className="flex flex-col items-center text-center gap-5">
+                <div className="h-14 w-14 rounded-2xl bg-zinc-800 flex items-center justify-center">
+                    <TrendingUp className="w-7 h-7 text-zinc-500" />
+                </div>
+                <div>
+                    <h3 className="text-white font-semibold text-lg">Meta Ads Bağlı Değil</h3>
+                    <p className="text-zinc-500 text-sm mt-1">
+                        Meta hesabınızla giriş yaparak Facebook ve Instagram reklam verilerinizi bağlayın.
+                    </p>
+                </div>
+                {status?.authUrl && (
+                    <a href={status.authUrl}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors">
+                        <Link2 className="w-4 h-4" />
+                        Meta Ads'i Bağla
+                    </a>
+                )}
             </div>
-            <p className="text-sm font-medium text-white">Meta Ads Bağlı Değil</p>
-            <p className="text-xs text-zinc-500 mt-1">Facebook/Instagram reklam verilerini görüntüleyin</p>
+        </div>
+    );
+
+    if (!data) return (
+        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-8 flex items-center justify-center">
+            <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
         </div>
     );
 

@@ -209,8 +209,10 @@ class InstagramOAuthServiceTest {
     @Test
     void getValidAccessToken_refreshesWhenExpiringSoon() {
         UUID companyId = UUID.randomUUID();
+        Company company = Company.builder().id(companyId).kind(CompanyKind.CLIENT).name("Test").build();
         InstagramToken token = InstagramToken.builder()
                 .id(UUID.randomUUID())
+                .company(company)
                 .accessToken("old-token")
                 .tokenExpiry(Instant.now().plusSeconds(60))
                 .build();
@@ -226,7 +228,7 @@ class InstagramOAuthServiceTest {
     }
 
     @Test
-    void getValidAccessToken_returnsOriginalOnRefreshFailure() {
+    void getValidAccessToken_returnsOriginalTokenWhenRefreshFailsBeforeExpiry() {
         UUID companyId = UUID.randomUUID();
         Company company = Company.builder().id(companyId).kind(CompanyKind.CLIENT).name("Test").build();
         InstagramToken token = InstagramToken.builder()
@@ -262,11 +264,20 @@ class InstagramOAuthServiceTest {
     }
 
     @Test
-    void isConnected_delegatesToRepository() {
+    void isConnected_doesNotRefreshExpiringToken() {
         UUID companyId = UUID.randomUUID();
+        Company company = Company.builder().id(companyId).kind(CompanyKind.CLIENT).name("Test").build();
+        InstagramToken token = InstagramToken.builder()
+                .id(UUID.randomUUID())
+                .company(company)
+                .accessToken("valid-token")
+                .tokenExpiry(Instant.now().plusSeconds(60))
+                .build();
         when(tokenRepository.existsByCompanyId(companyId)).thenReturn(true);
+        when(tokenRepository.findByCompanyId(companyId)).thenReturn(Optional.of(token));
 
         assertThat(service.isConnected(companyId)).isTrue();
+        verify(graphClient, never()).refreshLongLivedToken(any());
     }
 
     @Test

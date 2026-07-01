@@ -1,23 +1,18 @@
-import { analyticsKeys } from '../google-analytics/googleAnalyticsKeys';
-import { searchConsoleKeys } from '../search-console/searchConsoleKeys';
-import { instagramKeys } from '../instagram/instagramKeys';
+import { integrationSnapshotKeys } from '../integration-snapshots';
 import { shootKeys } from '../shoots/api/shootKeys';
 import { taskKeys } from '../tasks/api/taskKeys';
 
 export const dashboardRefreshKeys = {
     overview: (companyId: string) => [
-        analyticsKeys.overview(companyId),
-        searchConsoleKeys.overview(companyId),
-        instagramKeys.overview(companyId),
+        integrationSnapshotKeys.overview(companyId),
         shootKeys.list('client', 0, 20),
         taskKeys.clientList(),
     ],
     web: (companyId: string) => [
-        analyticsKeys.overview(companyId),
-        searchConsoleKeys.overview(companyId),
+        integrationSnapshotKeys.overview(companyId),
     ],
     social: (companyId: string) => [
-        instagramKeys.overview(companyId),
+        integrationSnapshotKeys.overview(companyId),
     ],
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     schedule: (_companyId: string) => [
