@@ -69,6 +69,26 @@ public class PermissionService {
         }).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public boolean hasFullPermission(UUID userId, UUID companyId, String permissionKey) {
+        requirePermissionKey(permissionKey);
+        var membership = membershipRepository.findByUserIdAndCompanyId(userId, companyId)
+                .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "MEMBERSHIP_REQUIRED", "Kullanıcı bu şirketin üyesi değil"));
+        if (membership.getMembershipRole() == MembershipRole.OWNER) {
+            return true;
+        }
+        return permissionRepository.findByUserIdAndCompanyIdAndPermissionKey(userId, companyId, permissionKey)
+                .map(permission -> permission.getLevel() == PermissionLevel.FULL)
+                .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public void requireFullPermission(UUID userId, UUID companyId, String permissionKey) {
+        if (!hasFullPermission(userId, companyId, permissionKey)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "PERMISSION_DENIED", "Bu işlem için yetkiniz yok");
+        }
+    }
+
     @Transactional
     public PermissionResponse updatePermission(UpdatePermissionRequest req) {
         requireMembership(req.getUserId(), req.getCompanyId());

@@ -7,8 +7,12 @@ export const taskKeys = {
         [...taskKeys.staffLists(), scope, status ?? 'ALL'] as const,
     detail: (id: string) => [...taskKeys.all, 'detail', id] as const,
     notes: (id: string) => [...taskKeys.detail(id), 'notes'] as const,
-    assignableUsers: (companyId?: string) =>
-        [...taskKeys.all, 'assignable-users', companyId ?? 'ALL'] as const,
+    assignableUsers: (companyId?: string, mode: 'staff' | 'client' = 'staff') =>
+        [...taskKeys.all, 'assignable-users', mode, companyId ?? 'ALL'] as const,
+    notificationRecipients: (companyId?: string, mode: 'staff' | 'client' = 'staff') =>
+        [...taskKeys.all, 'notification-recipients', mode, companyId ?? 'ALL'] as const,
+    clientCreatePermission: (companyId: string) =>
+        [...taskKeys.all, 'client', 'can-create', companyId] as const,
     clientList: (status?: TaskStatus) =>
         [...taskKeys.all, 'client', 'list', status ?? 'ALL'] as const,
     reviews: (taskId: string) => [...taskKeys.detail(taskId), 'reviews'] as const,

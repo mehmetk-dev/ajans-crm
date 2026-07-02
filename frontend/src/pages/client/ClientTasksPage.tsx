@@ -4,15 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     taskApi,
     taskKeys,
+    TaskCreateDialog,
     type TaskResponse,
     type TaskReviewResponse,
     type TaskStatus,
 } from '../../features/tasks';
 import {
     ListTodo, CheckCircle2, Clock, AlertCircle, Calendar,
-    Star, X, ChevronRight, User, Loader2,
+    Star, X, ChevronRight, User, Loader2, Plus,
 } from 'lucide-react';
 import { UserAvatar } from '../../components/UserAvatar';
+import { useAuth } from '../../store/AuthContext';
 
 // ─── Sabitler ────────────────────────────────────────────────────────────────
 
@@ -175,7 +177,9 @@ function Empty({ tab }: { tab: Tab }) {
 
 export default function ClientTasksPage() {
     const qc = useQueryClient();
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<Tab>('active');
+    const [showCreateForm, setShowCreateForm] = useState(false);
     const [reviewTarget, setReviewTarget] = useState<TaskResponse | null>(null);
     const [score, setScore] = useState(0);
     const [hoverScore, setHoverScore] = useState(0);
@@ -192,6 +196,17 @@ export default function ClientTasksPage() {
     const inProgressData = statusQueries[1]?.data;
     const overdueData = statusQueries[2]?.data;
     const doneData = statusQueries[ACTIVE_STATUSES.length]?.data;
+    const clientCompanyId = user?.companyId ?? '';
+    const clientCompanies = useMemo(() => clientCompanyId
+        ? [{ id: clientCompanyId, name: 'Şirketim' }]
+        : [], [clientCompanyId]);
+
+    const { data: createPermission } = useQuery({
+        queryKey: taskKeys.clientCreatePermission(clientCompanyId),
+        queryFn: () => taskApi.canCreateClientTask(clientCompanyId),
+        enabled: Boolean(clientCompanyId),
+        staleTime: 60_000,
+    });
 
     const activeTasks = useMemo(() => [
         ...(todoData?.content ?? []),
@@ -201,6 +216,7 @@ export default function ClientTasksPage() {
     const doneTasks = useMemo(() => doneData?.content ?? [], [doneData]);
     const allTasks = useMemo(() => [...activeTasks, ...doneTasks], [activeTasks, doneTasks]);
     const isLoading = statusQueries.some(query => query.isLoading);
+    const canCreateTask = createPermission?.canCreate ?? false;
 
     const displayedTasks = activeTab === 'all' ? allTasks
         : activeTab === 'active' ? activeTasks
@@ -252,16 +268,27 @@ export default function ClientTasksPage() {
                     </p>
                 </div>
                 {!isLoading && (
-                    <div className="flex items-center gap-3 text-sm text-zinc-500">
-                        <span className="flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full bg-blue-400" />
-                            {activeTasks.length} devam eden
-                        </span>
-                        <ChevronRight className="w-3.5 h-3.5 text-zinc-700" />
-                        <span className="flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                            {doneTasks.length} tamamlandı
-                        </span>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex items-center gap-3 text-sm text-zinc-500">
+                            <span className="flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-blue-400" />
+                                {activeTasks.length} devam eden
+                            </span>
+                            <ChevronRight className="w-3.5 h-3.5 text-zinc-700" />
+                            <span className="flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                                {doneTasks.length} tamamlandı
+                            </span>
+                        </div>
+                        {canCreateTask && (
+                            <button
+                                onClick={() => setShowCreateForm(true)}
+                                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#C8697A] hover:bg-[#B85B6E] text-white text-xs font-bold transition-colors"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Yeni Görev
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
@@ -389,6 +416,17 @@ export default function ClientTasksPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            <TaskCreateDialog
+                open={showCreateForm}
+                mode="client"
+                companies={clientCompanies}
+                defaultCompanyId={clientCompanyId || undefined}
+                onClose={() => setShowCreateForm(false)}
+                onCreated={() => {
+                    qc.invalidateQueries({ queryKey: taskKeys.all });
+                    setActiveTab('active');
+                }}
+            />
         </div>
     );
 }

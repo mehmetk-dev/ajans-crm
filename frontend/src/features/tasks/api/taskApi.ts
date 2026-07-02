@@ -3,6 +3,7 @@ import type {
     AssignableUser,
     CreateTaskInput,
     PageResponse,
+    TaskCreatePermissionResponse,
     TaskNoteResponse,
     TaskResponse,
     TaskReviewResponse,
@@ -24,8 +25,9 @@ export const taskApi = {
     get: (id: string) =>
         api.get<TaskResponse>(`/staff/tasks/${id}`).then(response => response.data),
 
-    create: (input: CreateTaskInput) =>
-        api.post<TaskResponse>('/staff/tasks', input).then(response => response.data),
+    create: (input: CreateTaskInput, mode: 'staff' | 'client' = 'staff') =>
+        api.post<TaskResponse>(mode === 'client' ? '/client/tasks' : '/staff/tasks', input)
+            .then(response => response.data),
 
     update: (id: string, input: UpdateTaskInput) =>
         api.put<TaskResponse>(`/staff/tasks/${id}`, input).then(response => response.data),
@@ -33,8 +35,22 @@ export const taskApi = {
     delete: (id: string) =>
         api.delete(`/staff/tasks/${id}`).then(response => response.data),
 
-    listAssignableUsers: (companyId?: string) =>
-        api.get<AssignableUser[]>('/staff/tasks/assignable-users', { params: { companyId } })
+    listAssignableUsers: (companyId?: string, mode: 'staff' | 'client' = 'staff') =>
+        api.get<AssignableUser[]>(
+            mode === 'client' ? '/client/tasks/assignable-users' : '/staff/tasks/assignable-users',
+            { params: { companyId } },
+        )
+            .then(response => response.data),
+
+    listNotificationRecipients: (companyId?: string, mode: 'staff' | 'client' = 'staff') =>
+        api.get<AssignableUser[]>(
+            mode === 'client' ? '/client/tasks/notification-recipients' : '/staff/tasks/notification-recipients',
+            { params: { companyId } },
+        )
+            .then(response => response.data),
+
+    canCreateClientTask: (companyId: string) =>
+        api.get<TaskCreatePermissionResponse>('/client/tasks/can-create', { params: { companyId } })
             .then(response => response.data),
 
     listNotes: (taskId: string) =>

@@ -29,6 +29,7 @@ export interface TaskResponse {
 export interface CreateTaskInput {
     companyId?: string;
     assignedToId: string;
+    notifyUserIds?: string[];
     title: string;
     description?: string;
     category?: TaskCategory;
@@ -67,6 +68,10 @@ export interface PageResponse<T> {
     totalPages: number;
     number: number;
     size: number;
+}
+
+export interface TaskCreatePermissionResponse {
+    canCreate: boolean;
 }
 
 export interface TaskReviewResponse {

@@ -1,20 +1,27 @@
-import { useState, useId } from 'react';
+import { useEffect, useState, useId } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { CompanyResponse } from '../../company';
-import type { CreateTaskInput, TaskCategory, TaskResponse } from '../api/task.types';
-import { useAssignableUsers, useCreateTask } from '../hooks/useTasks';
+import type { AssignableUser, CreateTaskInput, TaskCategory, TaskResponse } from '../api/task.types';
+import { useAssignableUsers, useCreateTask, useNotificationRecipients } from '../hooks/useTasks';
 import { TASK_CATEGORY_LABELS } from '../model/task.constants';
+
+type TaskCompanyOption = Pick<CompanyResponse, 'id' | 'name'>;
+type TaskCreateMode = 'staff' | 'client';
 
 interface Props {
     open: boolean;
-    companies: CompanyResponse[];
+    companies: TaskCompanyOption[];
+    mode?: TaskCreateMode;
+    defaultCompanyId?: string;
     onClose: () => void;
     onCreated?: (task: TaskResponse) => void;
 }
 
-const emptyForm = (): CreateTaskInput => ({
+const emptyForm = (companyId?: string): CreateTaskInput => ({
+    companyId,
     assignedToId: '',
+    notifyUserIds: [],
     title: '',
     description: '',
     category: 'OTHER',
@@ -22,21 +29,43 @@ const emptyForm = (): CreateTaskInput => ({
 
 const inputClass = 'w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/[0.06] rounded-xl text-sm text-white outline-none focus:border-pink-500/50 transition-colors';
 
-export function TaskCreateDialog({ open, companies, onClose, onCreated }: Props) {
+export function TaskCreateDialog({ open, companies, mode = 'staff', defaultCompanyId, onClose, onCreated }: Props) {
     const fid = useId();
-    const [form, setForm] = useState<CreateTaskInput>(emptyForm);
-    const { data: users = [] } = useAssignableUsers(form.companyId);
-    const createTask = useCreateTask();
+    const [form, setForm] = useState<CreateTaskInput>(() => emptyForm(defaultCompanyId));
+    const { data: users = [] } = useAssignableUsers(form.companyId, mode);
+    const { data: notificationRecipients = [] } = useNotificationRecipients(form.companyId, mode);
+    const createTask = useCreateTask(mode);
+    const selectedNotifyIds = new Set(form.notifyUserIds ?? []);
+    const notifyOptions = notificationRecipients.filter(user => user.id !== form.assignedToId);
+
+    useEffect(() => {
+        if (open) {
+            setForm(emptyForm(defaultCompanyId));
+        }
+    }, [defaultCompanyId, open]);
 
     function close() {
-        setForm(emptyForm());
+        setForm(emptyForm(defaultCompanyId));
         onClose();
+    }
+
+    function toggleNotifyUser(userId: string) {
+        setForm(current => {
+            const next = new Set(current.notifyUserIds ?? []);
+            if (next.has(userId)) next.delete(userId);
+            else next.add(userId);
+            return { ...current, notifyUserIds: [...next] };
+        });
     }
 
     function submit(event: React.FormEvent) {
         event.preventDefault();
         if (!form.assignedToId || !form.title.trim()) return;
-        createTask.mutate(form, {
+        const payload: CreateTaskInput = { ...form };
+        if (!payload.notifyUserIds?.length) {
+            delete payload.notifyUserIds;
+        }
+        createTask.mutate(payload, {
             onSuccess: task => {
                 onCreated?.(task);
                 close();
@@ -82,7 +111,11 @@ export function TaskCreateDialog({ open, companies, onClose, onCreated }: Props)
                                 <select
                                     id={`${fid}-assignee`}
                                     value={form.assignedToId}
-                                    onChange={event => setForm(current => ({ ...current, assignedToId: event.target.value }))}
+                                    onChange={event => setForm(current => ({
+                                        ...current,
+                                        assignedToId: event.target.value,
+                                        notifyUserIds: (current.notifyUserIds ?? []).filter(id => id !== event.target.value),
+                                    }))}
                                     className={inputClass}
                                     required
                                 >
@@ -100,6 +133,7 @@ export function TaskCreateDialog({ open, companies, onClose, onCreated }: Props)
                                         ...current,
                                         companyId: event.target.value || undefined,
                                         assignedToId: '',
+                                        notifyUserIds: [],
                                     }))}
                                     className={inputClass}
                                 >
@@ -109,6 +143,20 @@ export function TaskCreateDialog({ open, companies, onClose, onCreated }: Props)
                                     ))}
                                 </select>
                             </Field>
+                            {notifyOptions.length > 0 && (
+                                <Field label="Bilgilendirilecek Kişiler">
+                                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        {notifyOptions.map(user => (
+                                            <NotifyOption
+                                                key={user.id}
+                                                user={user}
+                                                checked={selectedNotifyIds.has(user.id)}
+                                                onToggle={() => toggleNotifyUser(user.id)}
+                                            />
+                                        ))}
+                                    </div>
+                                </Field>
+                            )}
                             <Field label="Açıklama" fieldId={`${fid}-desc`}>
                                 <textarea
                                     id={`${fid}-desc`}
@@ -155,6 +203,27 @@ export function TaskCreateDialog({ open, companies, onClose, onCreated }: Props)
                 </motion.div>
             )}
         </AnimatePresence>
+    );
+}
+
+function NotifyOption({ user, checked, onToggle }: { user: AssignableUser; checked: boolean; onToggle: () => void }) {
+    return (
+        <label className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition-colors cursor-pointer ${
+            checked
+                ? 'border-pink-500/40 bg-pink-500/10 text-white'
+                : 'border-white/[0.06] bg-white/[0.02] text-zinc-400 hover:text-zinc-200'
+        }`}>
+            <input
+                type="checkbox"
+                checked={checked}
+                onChange={onToggle}
+                className="h-3.5 w-3.5 accent-pink-500"
+            />
+            <span className="min-w-0">
+                <span className="block truncate font-medium">{user.fullName}</span>
+                <span className="block truncate text-[10px] text-zinc-500">{user.email}</span>
+            </span>
+        </label>
     );
 }
 

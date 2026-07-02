@@ -1,8 +1,9 @@
 import { useRef, useState, useId } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { settingsApi } from '../api/settings';
-import { User, Lock, Save, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
+import { notificationPreferenceApi, type NotificationPreferenceResponse } from '../api/features';
+import { User, Lock, Save, CheckCircle2, AlertCircle, Camera, Bell } from 'lucide-react';
 
 interface Props {
     accentColor?: string;
@@ -10,6 +11,7 @@ interface Props {
 
 export default function SettingsPage({ accentColor = 'blue' }: Props) {
     const id = useId();
+    const queryClient = useQueryClient();
     const { user, updateUser } = useAuth();
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const [fullName, setFullName] = useState(user?.fullName || '');
@@ -39,6 +41,29 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
         },
     };
     const accent = accentClasses[accentColor] || accentClasses.blue;
+    const notificationLabels: Record<string, string> = {
+        TASK_ASSIGNED: 'Görev atandı',
+        TASK_COMPLETED: 'Görev tamamlandı',
+        TASK_OVERDUE: 'Görev gecikti',
+        TASK_STATUS_CHANGED: 'Görev durumu değişti',
+        MESSAGE_RECEIVED: 'Mesaj alındı',
+        APPROVAL_REQUEST: 'Onay talebi',
+        APPROVAL_DECIDED: 'Onay kararı',
+        MEETING_REMINDER: 'Toplantı hatırlatma',
+        SHOOT_CREATED: 'Çekim oluşturuldu',
+        SHOOT_REMINDER: 'Çekim hatırlatma',
+        SHOOT_UPDATED: 'Çekim güncellendi',
+        CONTENT_PLAN_CREATED: 'İçerik planı oluşturuldu',
+        CONTENT_PLAN_UPDATED: 'İçerik planı güncellendi',
+        SURVEY_REQUEST: 'Anket talebi',
+        FILE_SHARED: 'Dosya paylaşıldı',
+        SYSTEM: 'Sistem bildirimi',
+    };
+
+    const preferenceQuery = useQuery({
+        queryKey: ['notification-preferences'],
+        queryFn: notificationPreferenceApi.getAll,
+    });
 
     const profileMutation = useMutation({
         mutationFn: () => settingsApi.updateProfile({ fullName }),
@@ -85,12 +110,36 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
         },
     });
 
+    const preferenceMutation = useMutation({
+        mutationFn: notificationPreferenceApi.update,
+        onSuccess: (updated) => {
+            queryClient.setQueryData<NotificationPreferenceResponse[]>(
+                ['notification-preferences'],
+                (current) => current?.map(pref =>
+                    pref.notificationType === updated.notificationType ? updated : pref
+                ) ?? [updated]
+            );
+        },
+    });
+
     const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
             avatarMutation.mutate(file);
         }
         event.target.value = '';
+    };
+
+    const updatePreference = (
+        pref: NotificationPreferenceResponse,
+        field: 'inApp' | 'email',
+        value: boolean,
+    ) => {
+        preferenceMutation.mutate({
+            notificationType: pref.notificationType,
+            inApp: field === 'inApp' ? value : pref.inApp,
+            email: field === 'email' ? value : pref.email,
+        });
     };
 
     return (
@@ -192,6 +241,66 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
                         {passwordMutation.isPending ? 'Değiştiriliyor...' : 'Şifreyi Değiştir'}
                     </button>
                 </div>
+            </div>
+
+            {/* Notifications */}
+            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-2">
+                        <Bell className={`w-4 h-4 ${accent.icon}`} />
+                        <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Bildirim Tercihleri</h3>
+                    </div>
+                    {preferenceMutation.isPending && (
+                        <span className="text-xs text-zinc-500">Kaydediliyor...</span>
+                    )}
+                </div>
+
+                {preferenceQuery.isLoading ? (
+                    <div className="text-sm text-zinc-500">Yükleniyor...</div>
+                ) : preferenceQuery.isError ? (
+                    <div className="flex items-center gap-2 text-sm text-red-400">
+                        <AlertCircle className="w-4 h-4" />
+                        Bildirim tercihleri alınamadı
+                    </div>
+                ) : (
+                    <div className="divide-y divide-white/[0.06]">
+                        {preferenceQuery.data?.map(pref => {
+                            const label = notificationLabels[pref.notificationType] ?? pref.notificationType;
+                            return (
+                                <div key={pref.notificationType} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-medium text-zinc-200">{label}</p>
+                                        <p className="text-xs text-zinc-600">{pref.notificationType}</p>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-5">
+                                        <label className="flex items-center gap-2 text-xs font-medium text-zinc-400">
+                                            <input
+                                                type="checkbox"
+                                                checked={pref.inApp}
+                                                disabled={preferenceMutation.isPending}
+                                                onChange={event => updatePreference(pref, 'inApp', event.target.checked)}
+                                                aria-label={`${label} panel`}
+                                                className={`h-4 w-4 rounded border-white/10 bg-[#18181b] ${accent.focus}`}
+                                            />
+                                            Panel
+                                        </label>
+                                        <label className="flex items-center gap-2 text-xs font-medium text-zinc-400">
+                                            <input
+                                                type="checkbox"
+                                                checked={pref.email}
+                                                disabled={preferenceMutation.isPending}
+                                                onChange={event => updatePreference(pref, 'email', event.target.checked)}
+                                                aria-label={`${label} email`}
+                                                className={`h-4 w-4 rounded border-white/10 bg-[#18181b] ${accent.focus}`}
+                                            />
+                                            Email
+                                        </label>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     );

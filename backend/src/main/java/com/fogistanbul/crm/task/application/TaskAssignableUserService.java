@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -39,6 +40,49 @@ public class TaskAssignableUserService {
         }
 
         return users.stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ContactResponse> getNotificationRecipients(UUID userId, UUID companyId) {
+        UserProfile user = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+        if (companyId == null) {
+            return getAgencyNotificationRecipients(user);
+        }
+        var userCompanyIds = membershipRepository.findCompanyIdsByUserId(userId);
+        if (user.getGlobalRole() == GlobalRole.COMPANY_USER && !userCompanyIds.contains(companyId)) {
+            return List.of();
+        }
+
+        LinkedHashMap<UUID, UserProfile> recipients = new LinkedHashMap<>();
+        membershipRepository.findByCompanyIdWithDetails(companyId).forEach(membership -> {
+            UserProfile member = membership.getUser();
+            if (!member.getId().equals(userId)) {
+                recipients.put(member.getId(), member);
+            }
+        });
+        if (user.getGlobalRole() != GlobalRole.COMPANY_USER) {
+            candidates(user).stream()
+                    .filter(candidate -> !candidate.getId().equals(userId))
+                    .filter(candidate -> candidate.getGlobalRole() == GlobalRole.ADMIN
+                            || candidate.getGlobalRole() == GlobalRole.AGENCY_STAFF)
+                    .forEach(candidate -> recipients.putIfAbsent(candidate.getId(), candidate));
+        }
+
+        return recipients.values().stream().map(this::toResponse).toList();
+    }
+
+    private List<ContactResponse> getAgencyNotificationRecipients(UserProfile user) {
+        if (user.getGlobalRole() == GlobalRole.COMPANY_USER) {
+            return List.of();
+        }
+        LinkedHashMap<UUID, UserProfile> recipients = new LinkedHashMap<>();
+        candidates(user).stream()
+                .filter(candidate -> !candidate.getId().equals(user.getId()))
+                .filter(candidate -> candidate.getGlobalRole() == GlobalRole.ADMIN
+                        || candidate.getGlobalRole() == GlobalRole.AGENCY_STAFF)
+                .forEach(candidate -> recipients.putIfAbsent(candidate.getId(), candidate));
+        return recipients.values().stream().map(this::toResponse).toList();
     }
 
     private List<UserProfile> candidates(UserProfile user) {

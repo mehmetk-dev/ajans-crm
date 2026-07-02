@@ -1,11 +1,13 @@
 package com.fogistanbul.crm.task.application;
 
+import com.fogistanbul.crm.company.application.PermissionService;
 import com.fogistanbul.crm.entity.Company;
 import com.fogistanbul.crm.entity.Task;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
 import com.fogistanbul.crm.entity.enums.TaskCategory;
 import com.fogistanbul.crm.entity.enums.TaskStatus;
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.prproject.application.PrProjectProgressService;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.TaskNoteRepository;
@@ -19,10 +21,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,9 +44,23 @@ public class TaskService {
     private final TaskMapper mapper;
     private final PrProjectProgressService prProjectProgressService;
     private final TaskNotificationPublisher notificationPublisher;
+    private final PermissionService permissionService;
 
     @Transactional
     public TaskResponse createTask(CreateTaskRequest req, UUID createdById) {
+        return createTaskInternal(req, createdById);
+    }
+
+    @Transactional
+    public TaskResponse createClientTask(CreateTaskRequest req, UUID createdById) {
+        if (req.getCompanyId() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "COMPANY_REQUIRED", "Şirket seçimi zorunludur");
+        }
+        permissionService.requireFullPermission(createdById, req.getCompanyId(), "tasks.create");
+        return createTaskInternal(req, createdById);
+    }
+
+    private TaskResponse createTaskInternal(CreateTaskRequest req, UUID createdById) {
         UserProfile creator = getUserOrThrow(createdById);
         UserProfile assignee = getUserOrThrow(req.getAssignedToId());
 
@@ -69,9 +87,35 @@ public class TaskService {
         log.info("Task created: {} assigned to {}", task.getTitle(), assignee.getEmail());
 
         notificationPublisher.notifyAssignee(task, creator);
-        notificationPublisher.notifyCompanyMembersAboutNew(task, assignee, createdById);
+        if (req.getNotifyUserIds() == null) {
+            notificationPublisher.notifyCompanyMembersAboutNew(task, assignee, createdById);
+        } else {
+            List<UUID> recipientIds = validatedNotificationRecipientIds(req.getNotifyUserIds(), task, creator, assignee);
+            notificationPublisher.notifySelectedRecipients(task, creator, assignee, recipientIds);
+        }
 
         return mapper.toResponse(task);
+    }
+
+    private List<UUID> validatedNotificationRecipientIds(
+            List<UUID> requestedIds,
+            Task task,
+            UserProfile creator,
+            UserProfile assignee) {
+        List<UUID> ids = new LinkedHashSet<>(requestedIds).stream()
+                .filter(id -> !id.equals(creator.getId()))
+                .filter(id -> !id.equals(assignee.getId()))
+                .toList();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+
+        List<UserProfile> recipients = userProfileRepository.findAllById(ids);
+        if (recipients.size() != ids.size()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "NOTIFICATION_RECIPIENT_NOT_FOUND", "Bildirim alıcısı bulunamadı");
+        }
+        recipients.forEach(recipient -> accessPolicy.requireRead(task, recipient));
+        return ids;
     }
 
     @Transactional(readOnly = true)

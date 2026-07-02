@@ -37,6 +37,35 @@ export interface UpdateUserInput {
     department?: string | null;
 }
 
+export interface MailSettingsResponse {
+    enabled: boolean;
+    host: string;
+    port: number;
+    username: string | null;
+    fromAddress: string;
+    smtpAuth: boolean;
+    startTls: boolean;
+    passwordConfigured: boolean;
+}
+
+export interface UpdateMailSettingsInput {
+    enabled: boolean;
+    host: string;
+    port: number;
+    username?: string | null;
+    password?: string;
+    fromAddress: string;
+    smtpAuth: boolean;
+    startTls: boolean;
+    clearPassword?: boolean;
+}
+
+export interface MailTestResponse {
+    success: boolean;
+    to: string;
+    message: string;
+}
+
 export const adminApi = {
     getStats: () => api.get<DashboardStats>('/admin/dashboard/stats').then(r => r.data),
 
@@ -51,6 +80,14 @@ export const adminApi = {
     updateUserRole: (userId: string, globalRole: string) =>
         api.put(`/admin/users/${userId}/role`, { globalRole }).then(r => r.data),
     deleteUser: (userId: string) => api.delete(`/admin/users/${userId}`),
+
+    // Mail Settings
+    getMailSettings: () =>
+        api.get<MailSettingsResponse>('/admin/mail-settings').then(r => r.data),
+    updateMailSettings: (input: UpdateMailSettingsInput) =>
+        api.put<MailSettingsResponse>('/admin/mail-settings', input).then(r => r.data),
+    testMailSettings: () =>
+        api.post<MailTestResponse>('/admin/mail-settings/test').then(r => r.data),
 
     // Routines
     getRoutines: (page = 0, size = 50) =>

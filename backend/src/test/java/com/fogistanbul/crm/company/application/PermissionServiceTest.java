@@ -1,7 +1,9 @@
 package com.fogistanbul.crm.company.application;
 
 import com.fogistanbul.crm.company.dto.UpdatePermissionRequest;
+import com.fogistanbul.crm.entity.CompanyPermission;
 import com.fogistanbul.crm.entity.CompanyMembership;
+import com.fogistanbul.crm.entity.enums.PermissionLevel;
 import com.fogistanbul.crm.entity.enums.MembershipRole;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.CompanyPermissionRepository;
@@ -17,6 +19,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -76,5 +79,50 @@ class PermissionServiceTest {
                 () -> permissionService.setDefaultPermissions(userId, companyId, "OWNER")
         );
         verifyNoInteractions(permissionRepository, userProfileRepository, companyRepository);
+    }
+
+    @Test
+    void fullPermissionAllowsCompanyTaskCreation() {
+        UUID userId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+        when(membershipRepository.findByUserIdAndCompanyId(userId, companyId))
+                .thenReturn(Optional.of(CompanyMembership.builder()
+                        .membershipRole(MembershipRole.EMPLOYEE)
+                        .build()));
+        when(permissionRepository.findByUserIdAndCompanyIdAndPermissionKey(userId, companyId, "tasks.create"))
+                .thenReturn(Optional.of(CompanyPermission.builder()
+                        .permissionKey("tasks.create")
+                        .level(PermissionLevel.FULL)
+                        .build()));
+
+        assertDoesNotThrow(() -> permissionService.requireFullPermission(userId, companyId, "tasks.create"));
+    }
+
+    @Test
+    void missingPermissionRejectsCompanyTaskCreation() {
+        UUID userId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+        when(membershipRepository.findByUserIdAndCompanyId(userId, companyId))
+                .thenReturn(Optional.of(CompanyMembership.builder()
+                        .membershipRole(MembershipRole.EMPLOYEE)
+                        .build()));
+        when(permissionRepository.findByUserIdAndCompanyIdAndPermissionKey(userId, companyId, "tasks.create"))
+                .thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class,
+                () -> permissionService.requireFullPermission(userId, companyId, "tasks.create"));
+    }
+
+    @Test
+    void companyOwnerCanCreateTaskWithoutStoredPermissionRow() {
+        UUID userId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+        when(membershipRepository.findByUserIdAndCompanyId(userId, companyId))
+                .thenReturn(Optional.of(CompanyMembership.builder()
+                        .membershipRole(MembershipRole.OWNER)
+                        .build()));
+
+        assertDoesNotThrow(() -> permissionService.requireFullPermission(userId, companyId, "tasks.create"));
+        verifyNoInteractions(permissionRepository);
     }
 }

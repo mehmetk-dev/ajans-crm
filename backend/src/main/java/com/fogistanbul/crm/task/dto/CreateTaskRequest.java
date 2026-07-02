@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.time.Instant;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -36,4 +37,6 @@ public class CreateTaskRequest {
     private Instant endDate;
 
     private LocalTime endTime;
+
+    private List<UUID> notifyUserIds;
 }

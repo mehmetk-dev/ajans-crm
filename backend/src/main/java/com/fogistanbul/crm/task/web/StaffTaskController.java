@@ -117,6 +117,14 @@ public class StaffTaskController {
         return assignableUserService.getAssignableUsers(userId, companyId);
     }
 
+    @GetMapping("/notification-recipients")
+    public List<ContactResponse> getNotificationRecipients(
+            @RequestParam(required = false) UUID companyId,
+            Authentication auth) {
+        UUID userId = (UUID) auth.getPrincipal();
+        return assignableUserService.getNotificationRecipients(userId, companyId);
+    }
+
     // ─── Task Notes ─────────────────────────────────────────────
 
     @GetMapping("/{taskId}/notes")

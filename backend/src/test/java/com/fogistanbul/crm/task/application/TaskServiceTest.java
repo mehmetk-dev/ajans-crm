@@ -1,8 +1,12 @@
 package com.fogistanbul.crm.task.application;
 
+import com.fogistanbul.crm.company.application.PermissionService;
+import com.fogistanbul.crm.entity.Company;
 import com.fogistanbul.crm.entity.Task;
 import com.fogistanbul.crm.entity.UserProfile;
+import com.fogistanbul.crm.entity.enums.GlobalRole;
 import com.fogistanbul.crm.entity.enums.TaskStatus;
+import com.fogistanbul.crm.task.dto.CreateTaskRequest;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.PrProjectPhaseRepository;
@@ -60,6 +64,8 @@ class TaskServiceTest {
     private PrProjectProgressService prProjectProgressService;
     @Mock
     private TaskNotificationPublisher notificationPublisher;
+    @Mock
+    private PermissionService permissionService;
 
     @InjectMocks
     private TaskService taskService;
@@ -114,5 +120,89 @@ class TaskServiceTest {
         order.verify(taskReviewRepository).deleteByTaskId(taskId);
         order.verify(taskNoteRepository).deleteByTaskId(taskId);
         order.verify(taskRepository).delete(task);
+    }
+
+    @Test
+    void createTaskPublishesAdditionalSelectedRecipients() {
+        UUID creatorId = UUID.randomUUID();
+        UUID assigneeId = UUID.randomUUID();
+        UUID extraRecipientId = UUID.randomUUID();
+        UserProfile creator = UserProfile.builder().id(creatorId).globalRole(GlobalRole.AGENCY_STAFF).email("creator@example.com").build();
+        UserProfile assignee = UserProfile.builder().id(assigneeId).globalRole(GlobalRole.AGENCY_STAFF).email("assignee@example.com").build();
+        UserProfile extraRecipient = UserProfile.builder().id(extraRecipientId).globalRole(GlobalRole.AGENCY_STAFF).email("extra@example.com").build();
+        Task saved = Task.builder()
+                .id(UUID.randomUUID())
+                .createdBy(creator)
+                .assignedTo(assignee)
+                .title("Yeni görev")
+                .build();
+        CreateTaskRequest request = new CreateTaskRequest();
+        request.setAssignedToId(assigneeId);
+        request.setTitle("Yeni görev");
+        request.setNotifyUserIds(List.of(extraRecipientId, assigneeId, creatorId, extraRecipientId));
+
+        when(userProfileRepository.findById(creatorId)).thenReturn(Optional.of(creator));
+        when(userProfileRepository.findById(assigneeId)).thenReturn(Optional.of(assignee));
+        when(userProfileRepository.findAllById(List.of(extraRecipientId))).thenReturn(List.of(extraRecipient));
+        when(taskRepository.save(org.mockito.ArgumentMatchers.any(Task.class))).thenReturn(saved);
+
+        taskService.createTask(request, creatorId);
+
+        verify(accessPolicy).requireRead(saved, extraRecipient);
+        verify(notificationPublisher).notifySelectedRecipients(saved, creator, assignee, List.of(extraRecipientId));
+    }
+
+    @Test
+    void createTaskKeepsLegacyCompanyBroadcastWhenNotifyListIsOmitted() {
+        UUID creatorId = UUID.randomUUID();
+        UUID assigneeId = UUID.randomUUID();
+        UserProfile creator = UserProfile.builder().id(creatorId).globalRole(GlobalRole.AGENCY_STAFF).email("creator@example.com").build();
+        UserProfile assignee = UserProfile.builder().id(assigneeId).globalRole(GlobalRole.AGENCY_STAFF).email("assignee@example.com").build();
+        Task saved = Task.builder()
+                .id(UUID.randomUUID())
+                .createdBy(creator)
+                .assignedTo(assignee)
+                .title("Yeni görev")
+                .build();
+        CreateTaskRequest request = new CreateTaskRequest();
+        request.setAssignedToId(assigneeId);
+        request.setTitle("Yeni görev");
+
+        when(userProfileRepository.findById(creatorId)).thenReturn(Optional.of(creator));
+        when(userProfileRepository.findById(assigneeId)).thenReturn(Optional.of(assignee));
+        when(taskRepository.save(org.mockito.ArgumentMatchers.any(Task.class))).thenReturn(saved);
+
+        taskService.createTask(request, creatorId);
+
+        verify(notificationPublisher).notifyCompanyMembersAboutNew(saved, assignee, creatorId);
+    }
+
+    @Test
+    void clientTaskCreationRequiresCreatePermissionForCompany() {
+        UUID creatorId = UUID.randomUUID();
+        UUID assigneeId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+        UserProfile creator = UserProfile.builder().id(creatorId).globalRole(GlobalRole.COMPANY_USER).email("creator@example.com").build();
+        UserProfile assignee = UserProfile.builder().id(assigneeId).globalRole(GlobalRole.AGENCY_STAFF).email("assignee@example.com").build();
+        Task saved = Task.builder()
+                .id(UUID.randomUUID())
+                .createdBy(creator)
+                .assignedTo(assignee)
+                .title("Yeni görev")
+                .build();
+        CreateTaskRequest request = new CreateTaskRequest();
+        request.setCompanyId(companyId);
+        request.setAssignedToId(assigneeId);
+        request.setTitle("Yeni görev");
+        request.setNotifyUserIds(List.of());
+
+        when(companyRepository.findById(companyId)).thenReturn(Optional.of(Company.builder().id(companyId).build()));
+        when(userProfileRepository.findById(creatorId)).thenReturn(Optional.of(creator));
+        when(userProfileRepository.findById(assigneeId)).thenReturn(Optional.of(assignee));
+        when(taskRepository.save(org.mockito.ArgumentMatchers.any(Task.class))).thenReturn(saved);
+
+        taskService.createClientTask(request, creatorId);
+
+        verify(permissionService).requireFullPermission(creatorId, companyId, "tasks.create");
     }
 }

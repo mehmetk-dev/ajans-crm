@@ -19,18 +19,26 @@ export function useClientTasks(status?: TaskStatus, size = 100) {
     });
 }
 
-export function useAssignableUsers(companyId?: string) {
+export function useAssignableUsers(companyId?: string, mode: 'staff' | 'client' = 'staff') {
     return useQuery({
-        queryKey: taskKeys.assignableUsers(companyId),
-        queryFn: () => taskApi.listAssignableUsers(companyId),
+        queryKey: taskKeys.assignableUsers(companyId, mode),
+        queryFn: () => taskApi.listAssignableUsers(companyId, mode),
     });
 }
 
-export function useCreateTask() {
+export function useNotificationRecipients(companyId?: string, mode: 'staff' | 'client' = 'staff') {
+    return useQuery({
+        queryKey: taskKeys.notificationRecipients(companyId, mode),
+        queryFn: () => taskApi.listNotificationRecipients(companyId, mode),
+        enabled: mode === 'staff' || Boolean(companyId),
+    });
+}
+
+export function useCreateTask(mode: 'staff' | 'client' = 'staff') {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (input: CreateTaskInput) => taskApi.create(input),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.staffLists() }),
+        mutationFn: (input: CreateTaskInput) => taskApi.create(input, mode),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.all }),
     });
 }
 

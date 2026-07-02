@@ -10,6 +10,8 @@ import com.fogistanbul.crm.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -46,6 +48,21 @@ public class TaskNotificationPublisher {
                 assigneeName + " görevlendirildi",
                 "TASK",
                 task.getId());
+    }
+
+    public void notifySelectedRecipients(Task task, UserProfile creator, UserProfile assignee, List<UUID> recipientIds) {
+        for (UUID recipientId : new LinkedHashSet<>(recipientIds)) {
+            if (recipientId.equals(creator.getId()) || recipientId.equals(assignee.getId())) {
+                continue;
+            }
+            notificationService.send(
+                    recipientId,
+                    NotificationType.TASK_ASSIGNED,
+                    "Yeni görev oluşturuldu: " + task.getTitle(),
+                    "Bilgilendirildiğiniz yeni bir görev oluşturuldu",
+                    "TASK",
+                    task.getId());
+        }
     }
 
     public void notifyStatusChange(Task task, UUID actorUserId) {
