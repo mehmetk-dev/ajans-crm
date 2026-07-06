@@ -94,6 +94,8 @@ public class PageSpeedService {
     }
 
     private PageSpeedScoreResponse getOrFetch(Company company, String strategy, String websiteUrl, String url, boolean refresh) {
+        snapshotRepository.lockCompanyStrategy(company.getId(), strategy);
+
         Optional<PageSpeedSnapshot> existing = snapshotRepository
                 .findByCompanyIdAndStrategy(company.getId(), strategy);
 

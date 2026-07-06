@@ -14,6 +14,7 @@ export {
     instagramEngagementRate,
     instagramGrowthRate,
 } from './model/instagram.utils';
+export { getInstagramOAuthCallbackError } from './model/instagramOAuthCallback';
 export {
     default as InstagramPanel,
     InstagramPanelSkeleton,

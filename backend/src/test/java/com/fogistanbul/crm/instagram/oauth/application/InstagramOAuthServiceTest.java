@@ -18,6 +18,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,7 +78,20 @@ class InstagramOAuthServiceTest {
                 .contains("client_id=app-id")
                 .contains("redirect_uri=https://redirect.uri")
                 .contains("scope=pages_show_list")
+                .contains("instagram_basic")
+                .contains("instagram_manage_insights")
+                .contains("auth_type=rerequest")
                 .contains("state=" + companyId);
+    }
+
+    @Test
+    void buildAuthorizationUrl_includesBusinessLoginConfigWhenConfigured() {
+        UUID companyId = UUID.randomUUID();
+        ReflectionTestUtils.setField(service, "businessConfigId", "business-config-1");
+
+        String url = service.buildAuthorizationUrl(companyId);
+
+        assertThat(url).contains("config_id=business-config-1");
     }
 
     @Test
@@ -116,6 +130,8 @@ class InstagramOAuthServiceTest {
                 .thenReturn("short-token");
         when(graphClient.exchangeForLongLivedToken("short-token"))
                 .thenReturn(Map.of("access_token", "long-token", "expires_in", 3600));
+        when(graphClient.getGrantedPermissions("long-token"))
+                .thenReturn(InstagramOAuthService.REQUIRED_PERMISSIONS);
         when(graphClient.findInstagramAccount("long-token"))
                 .thenReturn(Map.of("igUserId", "ig-1", "pageId", "page-1", "username", "fogistanbul"));
         when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
@@ -148,6 +164,8 @@ class InstagramOAuthServiceTest {
         when(graphClient.exchangeCodeForToken("code", "https://redirect.uri")).thenReturn("short");
         when(graphClient.exchangeForLongLivedToken("short"))
                 .thenReturn(Map.of("access_token", "new-token", "expires_in", 7200));
+        when(graphClient.getGrantedPermissions("new-token"))
+                .thenReturn(InstagramOAuthService.REQUIRED_PERMISSIONS);
         when(graphClient.findInstagramAccount("new-token"))
                 .thenReturn(Map.of("igUserId", "new-ig", "pageId", "new-page", "username", "newuser"));
         when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
@@ -168,6 +186,8 @@ class InstagramOAuthServiceTest {
         when(graphClient.exchangeCodeForToken("code", "https://redirect.uri")).thenReturn("short");
         when(graphClient.exchangeForLongLivedToken("short"))
                 .thenReturn(Map.of("access_token", "long", "expires_in", 3600));
+        when(graphClient.getGrantedPermissions("long"))
+                .thenReturn(InstagramOAuthService.REQUIRED_PERMISSIONS);
         when(graphClient.findInstagramAccount("long"))
                 .thenReturn(Map.of("igUserId", "ig", "pageId", "page", "username", "u"));
         when(companyRepository.findById(companyId)).thenReturn(Optional.empty());
@@ -175,6 +195,24 @@ class InstagramOAuthServiceTest {
         assertThatThrownBy(() -> service.handleCallback("code", companyId.toString()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Şirket bulunamadı");
+        verify(tokenRepository, never()).save(any());
+    }
+
+    @Test
+    void handleCallback_rejectsTokenWhenInstagramInsightsPermissionMissing() {
+        UUID companyId = UUID.randomUUID();
+        when(graphClient.exchangeCodeForToken("code", "https://redirect.uri")).thenReturn("short");
+        when(graphClient.exchangeForLongLivedToken("short"))
+                .thenReturn(Map.of("access_token", "long", "expires_in", 3600));
+        when(graphClient.getGrantedPermissions("long"))
+                .thenReturn(Set.of(
+                        "pages_show_list",
+                        "pages_read_engagement",
+                        "instagram_basic"));
+
+        assertThatThrownBy(() -> service.handleCallback("code", companyId.toString()))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("instagram_manage_insights");
         verify(tokenRepository, never()).save(any());
     }
 

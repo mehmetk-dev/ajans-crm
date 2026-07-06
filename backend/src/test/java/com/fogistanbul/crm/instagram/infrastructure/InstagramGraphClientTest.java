@@ -13,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -97,6 +98,30 @@ class InstagramGraphClientTest {
         assertThatThrownBy(() -> client.exchangeForLongLivedToken("short-token"))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Long-lived token");
+    }
+
+    @Test
+    void getGrantedPermissions_returnsOnlyGrantedPermissionNames() {
+        Map<String, Object> body = Map.of("data", List.of(
+                Map.of("permission", "instagram_basic", "status", "granted"),
+                Map.of("permission", "instagram_manage_insights", "status", "declined"),
+                Map.of("permission", "pages_show_list", "status", "granted")));
+        when(restTemplate.getForEntity(any(String.class), eq(Map.class)))
+                .thenReturn(ResponseEntity.ok(body));
+
+        Set<String> result = client.getGrantedPermissions("token");
+
+        assertThat(result).containsExactly("instagram_basic", "pages_show_list");
+    }
+
+    @Test
+    void getGrantedPermissions_throwsWhenBodyIsNull() {
+        when(restTemplate.getForEntity(any(String.class), eq(Map.class)))
+                .thenReturn(ResponseEntity.ok(null));
+
+        assertThatThrownBy(() -> client.getGrantedPermissions("token"))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Instagram izinleri");
     }
 
     @Test

@@ -107,6 +107,63 @@ class FileAccessPolicyTest {
         assertDoesNotThrow(() -> policy.requireDeleteAccess(admin, UUID.randomUUID()));
     }
 
+    @Test
+    void staff_can_access_internal_task_entity_when_assignee() {
+        UUID userId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+
+        UserProfile assignee = new UserProfile();
+        assignee.setId(userId);
+        assignee.setGlobalRole(GlobalRole.AGENCY_STAFF);
+        UserProfile creator = user(GlobalRole.AGENCY_STAFF);
+        Task task = new Task();
+        task.setCompany(null);
+        task.setAssignedTo(assignee);
+        task.setCreatedBy(creator);
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+
+        assertDoesNotThrow(() -> policy.requireEntityAccess("TASK", taskId, assignee));
+    }
+
+    @Test
+    void staff_can_access_internal_task_entity_when_creator() {
+        UUID userId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+
+        UserProfile creator = new UserProfile();
+        creator.setId(userId);
+        creator.setGlobalRole(GlobalRole.AGENCY_STAFF);
+        UserProfile assignee = user(GlobalRole.AGENCY_STAFF);
+        Task task = new Task();
+        task.setCompany(null);
+        task.setAssignedTo(assignee);
+        task.setCreatedBy(creator);
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+
+        assertDoesNotThrow(() -> policy.requireEntityAccess("TASK", taskId, creator));
+    }
+
+    @Test
+    void staff_denied_internal_task_entity_when_neither_assignee_nor_creator() {
+        UUID taskId = UUID.randomUUID();
+
+        UserProfile assignee = user(GlobalRole.AGENCY_STAFF);
+        UserProfile creator = user(GlobalRole.AGENCY_STAFF);
+        Task task = new Task();
+        task.setCompany(null);
+        task.setAssignedTo(assignee);
+        task.setCreatedBy(creator);
+
+        UserProfile other = user(GlobalRole.AGENCY_STAFF);
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+
+        assertThrows(AccessDeniedException.class,
+                () -> policy.requireEntityAccess("TASK", taskId, other));
+    }
+
     private UserProfile user(GlobalRole role) {
         UserProfile u = new UserProfile();
         u.setId(UUID.randomUUID());

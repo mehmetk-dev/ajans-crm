@@ -61,6 +61,8 @@ class PageSpeedServiceTest {
         PageSpeedReportResponse result = service.getReport(companyId, false);
 
         assertThat(result.isConfigured()).isFalse();
+        verify(snapshotRepository).lockCompanyStrategy(companyId, "mobile");
+        verify(snapshotRepository).lockCompanyStrategy(companyId, "desktop");
     }
 
     @Test

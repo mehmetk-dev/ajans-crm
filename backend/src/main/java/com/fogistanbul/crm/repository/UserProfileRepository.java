@@ -15,6 +15,9 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
 
     boolean existsByEmail(String email);
 
+    @Query("SELECT COUNT(u) > 0 FROM UserProfile u WHERE LOWER(u.email) = LOWER(:email)")
+    boolean existsByEmailIgnoreCase(@Param("email") String email);
+
     @Query("SELECT u FROM UserProfile u WHERE u.id <> :userId AND u.globalRole <> :excludedRole")
     List<UserProfile> findContactsExcludingRole(@Param("userId") UUID userId, @Param("excludedRole") GlobalRole excludedRole);
 

@@ -1,12 +1,21 @@
-import { useRef, useState, useId } from 'react';
+import { useRef, useState, useId, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { settingsApi } from '../api/settings';
-import { User, Lock, Save, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
+import { User, Lock, Mail, Save, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
+import type { AxiosError } from 'axios';
 
 interface Props {
     accentColor?: string;
 }
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const EMAIL_ERROR_MESSAGES: Record<string, string> = {
+    EMAIL_SAME_AS_CURRENT: 'Yeni e-posta mevcut adresinizle aynı olamaz',
+    EMAIL_ALREADY_EXISTS: 'Bu e-posta adresi başka bir kullanıcı tarafından kullanılıyor',
+    CURRENT_PASSWORD_INVALID: 'Mevcut şifre hatalı',
+};
 
 export default function SettingsPage({ accentColor = 'blue' }: Props) {
     const id = useId();
@@ -15,11 +24,15 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
     const [fullName, setFullName] = useState(user?.fullName || '');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    const [newEmail, setNewEmail] = useState('');
+    const [emailPassword, setEmailPassword] = useState('');
     const [profileMsg, setProfileMsg] = useState('');
     const [avatarMsg, setAvatarMsg] = useState('');
     const [avatarError, setAvatarError] = useState('');
     const [passwordMsg, setPasswordMsg] = useState('');
     const [passwordError, setPasswordError] = useState('');
+    const [emailMsg, setEmailMsg] = useState('');
+    const [emailError, setEmailError] = useState('');
 
     const accentClasses: Record<string, { btn: string; icon: string; focus: string }> = {
         blue: {
@@ -84,6 +97,28 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
         },
     });
 
+    const emailMutation = useMutation({
+        mutationFn: () => settingsApi.changeEmail({ currentPassword: emailPassword, newEmail }),
+        onSuccess: (data) => {
+            updateUser({ email: data.email });
+            setEmailError('');
+            setEmailMsg('E-posta adresiniz güncellendi!');
+            setNewEmail('');
+            setEmailPassword('');
+            setTimeout(() => setEmailMsg(''), 3000);
+        },
+        onError: (error: AxiosError<{ code?: string; message?: string }>) => {
+            const code = error.response?.data?.code;
+            setEmailMsg('');
+            setEmailError(
+                (code && EMAIL_ERROR_MESSAGES[code]) ||
+                error.response?.data?.message ||
+                'E-posta değiştirilemedi',
+            );
+            setTimeout(() => setEmailError(''), 5000);
+        },
+    });
+
     const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
@@ -91,6 +126,23 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
         }
         event.target.value = '';
     };
+
+    const emailValidation = useMemo(() => {
+        const trimmed = newEmail.trim();
+        const currentNormalized = (user?.email || '').trim().toLowerCase();
+        if (!trimmed) {
+            return { valid: false, hint: '' };
+        }
+        if (!EMAIL_REGEX.test(trimmed)) {
+            return { valid: false, hint: 'Geçerli bir e-posta adresi girin' };
+        }
+        if (trimmed.toLowerCase() === currentNormalized) {
+            return { valid: false, hint: 'Yeni e-posta mevcut adresinizle aynı olamaz' };
+        }
+        return { valid: true, hint: '' };
+    }, [newEmail, user?.email]);
+
+    const canSubmitEmail = emailValidation.valid && emailPassword.length > 0 && !emailMutation.isPending;
 
     return (
         <div className="space-y-6">
@@ -148,7 +200,7 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
                         </div>
                         <div>
                             <label htmlFor={`${id}-email`} className="text-xs text-zinc-500 block mb-1">Email</label>
-                            <input id={`${id}-email`} defaultValue={user?.email || ''} disabled
+                            <input id={`${id}-email`} value={user?.email || ''} disabled readOnly
                                 className="w-full bg-[#18181b]/40 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-500 cursor-not-allowed" />
                         </div>
                     </div>
@@ -159,6 +211,39 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold disabled:opacity-50 transition-colors ${accent.btn}`}>
                         <Save className="w-4 h-4" />
                         {profileMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Email */}
+            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                    <Mail className={`w-4 h-4 ${accent.icon}`} />
+                    <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">E-posta Değiştir</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor={`${id}-newemail`} className="text-xs text-zinc-500 block mb-1">Yeni E-posta</label>
+                        <input id={`${id}-newemail`} type="email" placeholder="yeni@email.com" value={newEmail} onChange={e => setNewEmail(e.target.value)}
+                            className={`w-full bg-[#18181b]/60 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-white focus:outline-none ${accent.focus}`} />
+                        {emailValidation.hint && !emailValidation.valid && newEmail.length > 0 && (
+                            <p className="mt-1 text-xs text-amber-400">{emailValidation.hint}</p>
+                        )}
+                    </div>
+                    <div>
+                        <label htmlFor={`${id}-emailpwd`} className="text-xs text-zinc-500 block mb-1">Mevcut Şifre</label>
+                        <input id={`${id}-emailpwd`} type="password" placeholder="••••••••" value={emailPassword} onChange={e => setEmailPassword(e.target.value)}
+                            className={`w-full bg-[#18181b]/60 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-white focus:outline-none ${accent.focus}`} />
+                    </div>
+                </div>
+                <div className="flex items-center justify-end gap-3 mt-4">
+                    {emailMsg && <span className="flex items-center gap-1 text-pink-400 text-xs"><CheckCircle2 className="w-3 h-3" />{emailMsg}</span>}
+                    {emailError && <span className="flex items-center gap-1 text-red-400 text-xs"><AlertCircle className="w-3 h-3" />{emailError}</span>}
+                    <button onClick={() => emailMutation.mutate()} disabled={!canSubmitEmail}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold disabled:opacity-50 transition-colors ${accent.btn}`}>
+                        <Mail className="w-4 h-4" />
+                        {emailMutation.isPending ? 'Değiştiriliyor...' : 'E-postayı Değiştir'}
                     </button>
                 </div>
             </div>

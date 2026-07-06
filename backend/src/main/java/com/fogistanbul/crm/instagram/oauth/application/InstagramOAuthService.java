@@ -18,9 +18,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Set;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -30,7 +30,18 @@ public class InstagramOAuthService {
     private static final Logger log = LoggerFactory.getLogger(InstagramOAuthService.class);
 
     private static final String AUTH_URL  = "https://www.facebook.com/v21.0/dialog/oauth";
-    private static final String SCOPE = "pages_show_list,pages_read_engagement,ads_read,ads_management";
+    public static final Set<String> REQUIRED_PERMISSIONS = Set.of(
+            "pages_show_list",
+            "pages_read_engagement",
+            "instagram_basic",
+            "instagram_manage_insights");
+    private static final String SCOPE = String.join(",",
+            "pages_show_list",
+            "pages_read_engagement",
+            "instagram_basic",
+            "instagram_manage_insights",
+            "ads_read",
+            "ads_management");
     private static final String DEFAULT_RETURN_PATH = "/client/analytics";
     private static final Set<String> ALLOWED_RETURN_PATHS = Set.of(
             DEFAULT_RETURN_PATH,
@@ -46,6 +57,9 @@ public class InstagramOAuthService {
 
     @Value("${app.instagram.redirect-uri:http://localhost:8080/api/oauth/instagram/callback}")
     private String redirectUri;
+
+    @Value("${app.instagram.business-config-id:}")
+    private String businessConfigId;
 
     @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
@@ -64,12 +78,17 @@ public class InstagramOAuthService {
 
     public String buildAuthorizationUrl(UUID companyId, String returnPath) {
         String state = buildState(companyId, returnPath);
-        return UriComponentsBuilder.fromHttpUrl(AUTH_URL)
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(AUTH_URL)
                 .queryParam("client_id", appId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("scope", SCOPE)
+                .queryParam("auth_type", "rerequest")
                 .queryParam("response_type", "code")
-                .queryParam("state", state)
+                .queryParam("state", state);
+        if (businessConfigId != null && !businessConfigId.isBlank()) {
+            builder.queryParam("config_id", businessConfigId);
+        }
+        return builder
                 .build()
                 .toUriString();
     }
@@ -90,6 +109,8 @@ public class InstagramOAuthService {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Instagram long-lived token alınamadı");
         }
 
+        requireInstagramPermissions(accessToken);
+
         Instant expiry = Instant.now().plusSeconds(expiresIn != null ? expiresIn : 5184000);
 
         Map<String, String> igInfo = graphClient.findInstagramAccount(accessToken);
@@ -109,6 +130,21 @@ public class InstagramOAuthService {
         tokenRepository.save(token);
         log.info("Instagram token kaydedildi, company={}, igUser={}", companyId, igInfo.get("username"));
         return returnPath;
+    }
+
+    private void requireInstagramPermissions(String accessToken) {
+        Set<String> grantedPermissions = graphClient.getGrantedPermissions(accessToken);
+        Set<String> missingPermissions = REQUIRED_PERMISSIONS.stream()
+                .filter(permission -> !grantedPermissions.contains(permission))
+                .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+        if (!missingPermissions.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INSTAGRAM_PERMISSION_MISSING",
+                    "Instagram bağlantısı için Meta işletme/Instagram izinleri eksik: "
+                            + String.join(", ", missingPermissions)
+                            + ". Yeniden bağlanırken Facebook hesabını ve işletme varlıklarını seçin.");
+        }
     }
 
     @Transactional

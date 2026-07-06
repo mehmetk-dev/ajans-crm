@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../../lib/apiError';
 import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -14,6 +14,7 @@ import {
     igApi,
     instagramEngagementRate,
     instagramGrowthRate,
+    getInstagramOAuthCallbackError,
     InstagramDisconnectedState,
     getInstagramDisconnectedCopy,
     type IgOverviewResponse,
@@ -70,6 +71,7 @@ function BigMetricCard({ label, value, icon: Icon, color, bgColor, sub }: {
 
 export default function InstagramDetailPage() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, isLoading: authLoading } = useAuth();
     const companyId = user?.companyId;
     const [status, setStatus] = useState<IgStatusResponse | null>(null);
@@ -82,6 +84,10 @@ export default function InstagramDetailPage() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
+    const callbackError = useMemo(
+        () => getInstagramOAuthCallbackError(location.search),
+        [location.search],
+    );
 
     const dateRange = useMemo(() => {
         if (datePreset === 3) return { start: customStart || '30daysAgo', end: customEnd || 'today' };
@@ -94,7 +100,7 @@ export default function InstagramDetailPage() {
         if (!companyId) return;
         // The request lifecycle owns the page-level loading state.
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLoading(true); setError(null);
+        setLoading(true); setError(callbackError || null);
         igApi.getStatus(companyId, '/client/instagram')
             .then(s => {
                 setStatus(s);
@@ -111,7 +117,7 @@ export default function InstagramDetailPage() {
             .catch((err: unknown) =>
                 setError(getApiErrorMessage(err, 'Bağlantı hatası')))
             .finally(() => setLoading(false));
-    }, [authLoading, companyId]);
+    }, [authLoading, callbackError, companyId]);
 
     // Re-fetch overview when date range changes
     useEffect(() => {
@@ -219,7 +225,7 @@ export default function InstagramDetailPage() {
                     </div>
                 )}
 
-                {!status?.connected && !error && (
+                {!status?.connected && (
                     <InstagramDisconnectedState
                         {...getInstagramDisconnectedCopy('/client/instagram')}
                         href={status?.authUrl}

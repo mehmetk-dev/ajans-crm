@@ -1,5 +1,6 @@
 package com.fogistanbul.crm.instagram.oauth.web;
 
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.instagram.oauth.application.InstagramOAuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -28,12 +29,19 @@ public class InstagramOAuthController {
             String returnPath = instagramOAuthService.handleCallback(code, state);
             response.sendRedirect(instagramOAuthService.getFrontendUrl()
                     + returnPath + "?ig=connected");
+        } catch (ApiException e) {
+            log.warn("Instagram OAuth callback reddedildi: {}", e.getMessage());
+            redirectWithError(response, state, e.getMessage());
         } catch (Exception e) {
             log.error("Instagram OAuth callback hatası: {}", e.getMessage(), e);
-            String msg = URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
-            String returnPath = instagramOAuthService.resolveReturnPath(state);
-            response.sendRedirect(instagramOAuthService.getFrontendUrl()
-                    + returnPath + "?ig=error&message=" + msg);
+            redirectWithError(response, state, e.getMessage());
         }
+    }
+
+    private void redirectWithError(HttpServletResponse response, String state, String message) throws IOException {
+        String msg = URLEncoder.encode(message != null ? message : "Instagram bağlantısı tamamlanamadı", StandardCharsets.UTF_8);
+        String returnPath = instagramOAuthService.resolveReturnPath(state);
+        response.sendRedirect(instagramOAuthService.getFrontendUrl()
+                + returnPath + "?ig=error&message=" + msg);
     }
 }

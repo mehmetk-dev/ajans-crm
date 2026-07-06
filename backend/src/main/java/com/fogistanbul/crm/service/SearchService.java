@@ -73,7 +73,9 @@ public class SearchService {
                 .forEach(t -> tasks.add(SearchResponse.SearchResult.builder()
                         .id(t.getId().toString())
                         .title(t.getTitle())
-                        .subtitle(t.getCompany().getName() + " - " + t.getStatus().name())
+                        .subtitle(t.getCompany() != null
+                                ? t.getCompany().getName() + " - " + t.getStatus().name()
+                                : "Ajans İçi - " + t.getStatus().name())
                         .type("TASK")
                         .route("/staff/tasks")
                         .build()));

@@ -7,6 +7,7 @@ const listClientMock = vi.fn();
 const listReviewsBatchMock = vi.fn();
 const listReviewsMock = vi.fn();
 const reviewMock = vi.fn();
+const canCreateClientTaskMock = vi.fn();
 
 vi.mock('framer-motion', () => ({
     AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -15,18 +16,35 @@ vi.mock('framer-motion', () => ({
     },
 }));
 
+vi.mock('../../store/AuthContext', () => ({
+    useAuth: () => ({
+        user: {
+            id: 'user-1',
+            companyId: 'company-1',
+            email: 'user@test.com',
+            fullName: 'Test User',
+            globalRole: 'COMPANY_USER',
+            membershipRole: null,
+            avatarUrl: null,
+        },
+    }),
+}));
+
 vi.mock('../../features/tasks', () => ({
     taskApi: {
         listClient: (...args: unknown[]) => listClientMock(...args),
         listReviewsBatch: (...args: unknown[]) => listReviewsBatchMock(...args),
         listReviews: (...args: unknown[]) => listReviewsMock(...args),
         review: (...args: unknown[]) => reviewMock(...args),
+        canCreateClientTask: (...args: unknown[]) => canCreateClientTaskMock(...args),
     },
     taskKeys: {
         all: ['tasks'],
         clientList: (status?: string) => ['tasks', 'client', 'list', status ?? 'ALL'],
         reviewsBatch: (taskIds: string[]) => ['tasks', 'client', 'reviews-batch', taskIds.join(',')],
+        clientCreatePermission: (companyId: string) => ['tasks', 'client', 'can-create', companyId],
     },
+    TaskCreateDialog: () => null,
 }));
 
 function page(content: unknown[] = []) {
@@ -59,8 +77,10 @@ describe('ClientTasksPage', () => {
         listReviewsBatchMock.mockReset();
         listReviewsMock.mockReset();
         reviewMock.mockReset();
+        canCreateClientTaskMock.mockReset();
         listClientMock.mockResolvedValue(page());
         listReviewsBatchMock.mockResolvedValue({});
+        canCreateClientTaskMock.mockResolvedValue({ canCreate: false });
     });
 
     it('loads tasks with server-side status filters and batches completed task reviews', async () => {

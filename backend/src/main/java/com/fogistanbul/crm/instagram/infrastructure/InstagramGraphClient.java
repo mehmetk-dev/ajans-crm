@@ -11,8 +11,10 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -80,6 +82,30 @@ public class InstagramGraphClient {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Long-lived token exchange hatası");
         }
         return response.getBody();
+    }
+
+    @SuppressWarnings("unchecked")
+    public Set<String> getGrantedPermissions(String accessToken) {
+        String url = GRAPH_URL + "/me/permissions?access_token=" + accessToken;
+        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Instagram izinleri alınamadı");
+        }
+
+        List<Map<String, Object>> permissions = (List<Map<String, Object>>) response.getBody().get("data");
+        if (permissions == null) {
+            return Set.of();
+        }
+
+        Set<String> granted = new LinkedHashSet<>();
+        for (Map<String, Object> permission : permissions) {
+            Object name = permission.get("permission");
+            Object status = permission.get("status");
+            if (name instanceof String permissionName && "granted".equals(status)) {
+                granted.add(permissionName);
+            }
+        }
+        return granted;
     }
 
     @SuppressWarnings("unchecked")

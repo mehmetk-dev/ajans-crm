@@ -49,6 +49,44 @@ public class UserSettingsService {
     }
 
     @Transactional
+    public String changeEmail(UUID userId, String currentPassword, String newEmail) {
+        UserProfile user = requireUser(userId);
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "CURRENT_PASSWORD_INVALID",
+                    "Mevcut şifre hatalı"
+            );
+        }
+
+        String normalizedEmail = normalizeEmail(newEmail);
+        String currentEmail = normalizeEmail(user.getEmail());
+        if (normalizedEmail.equals(currentEmail)) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "EMAIL_SAME_AS_CURRENT",
+                    "Yeni e-posta adresi mevcut adresiniz ile aynı olamaz"
+            );
+        }
+
+        if (userProfileRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "EMAIL_ALREADY_EXISTS",
+                    "Bu e-posta adresi başka bir kullanıcı tarafından kullanılıyor"
+            );
+        }
+
+        user.setEmail(normalizedEmail);
+        userProfileRepository.save(user);
+        return normalizedEmail;
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
+    }
+
+    @Transactional
     public String uploadAvatar(UUID userId, MultipartFile file) throws IOException {
         UserProfile user = requireUser(userId);
         String avatarUrl = avatarStorage.store(userId, file);

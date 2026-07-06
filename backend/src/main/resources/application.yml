@@ -72,6 +72,7 @@ app:
     app-id: ${INSTAGRAM_APP_ID:}
     app-secret: ${INSTAGRAM_APP_SECRET:}
     redirect-uri: ${INSTAGRAM_REDIRECT_URI:http://localhost:8080/api/oauth/instagram/callback}
+    business-config-id: ${INSTAGRAM_BUSINESS_CONFIG_ID:}
 
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
 

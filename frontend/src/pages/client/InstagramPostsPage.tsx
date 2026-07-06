@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Instagram, Eye, Heart, MessageCircle, Loader2,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import {
     formatInstagramMetric,
+    getInstagramOAuthCallbackError,
     InstagramDisconnectedState,
     getInstagramDisconnectedCopy,
     igApi,
@@ -110,6 +111,7 @@ function MediaCarousel({ items }: { items: IgPostRow[] }) {
 
 export default function InstagramPostsPage() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, isLoading: authLoading } = useAuth();
     const companyId = user?.companyId;
     const [posts, setPosts] = useState<IgPostRow[]>([]);
@@ -118,6 +120,10 @@ export default function InstagramPostsPage() {
     const [username, setUsername] = useState('');
     const [authUrl, setAuthUrl] = useState('');
     const [error, setError] = useState('');
+    const callbackError = useMemo(
+        () => getInstagramOAuthCallbackError(location.search),
+        [location.search],
+    );
 
     useEffect(() => {
         if (authLoading) return;
@@ -125,7 +131,7 @@ export default function InstagramPostsPage() {
         // The request lifecycle owns the page-level loading state.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true);
-        setError('');
+        setError(callbackError);
         igApi.getStatus(companyId, '/client/instagram/posts')
             .then(async s => {
                 setConnected(s.connected);
@@ -135,7 +141,7 @@ export default function InstagramPostsPage() {
             })
             .catch((err: unknown) => setError(getApiErrorMessage(err, 'Instagram gönderileri yüklenemedi')))
             .finally(() => setLoading(false));
-    }, [authLoading, companyId]);
+    }, [authLoading, callbackError, companyId]);
 
     const summary = useMemo(() => ({
         count: posts.length,
@@ -179,9 +185,11 @@ export default function InstagramPostsPage() {
                     {connected && <div className="ml-auto flex items-center gap-1.5 bg-pink-500/10 border border-pink-500/20 rounded-xl px-3 py-2.5"><CheckCircle2 className="w-4 h-4 text-pink-400" /><span className="text-xs text-pink-400 font-medium">Canlı</span></div>}
                 </div>
 
-                {error ? (
+                {error && (
                     <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-300">{error}</div>
-                ) : !connected ? (
+                )}
+
+                {!connected ? (
                     <InstagramDisconnectedState
                         {...getInstagramDisconnectedCopy('/client/instagram/posts')}
                         href={authUrl}

@@ -80,10 +80,85 @@ class UserSettingsServiceTest {
         verify(userProfileRepository).save(user);
     }
 
+    @Test
+    void changeEmailRejectsWrongCurrentPasswordWithoutSaving() {
+        UUID userId = UUID.randomUUID();
+        UserProfile user = userWithEmail(userId, "old@test.com");
+        when(userProfileRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("yanlış", "old-hash")).thenReturn(false);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.changeEmail(userId, "yanlış", "new@test.com")
+        );
+
+        assertEquals("CURRENT_PASSWORD_INVALID", exception.getCode());
+        verify(userProfileRepository, never()).save(user);
+        verify(userProfileRepository, never()).existsByEmailIgnoreCase(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void changeEmailRejectsSameEmailCaseInsensitively() {
+        UUID userId = UUID.randomUUID();
+        UserProfile user = userWithEmail(userId, "User@Test.com");
+        when(userProfileRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("old-password", "old-hash")).thenReturn(true);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.changeEmail(userId, "old-password", "user@test.com")
+        );
+
+        assertEquals("EMAIL_SAME_AS_CURRENT", exception.getCode());
+        verify(userProfileRepository, never()).save(user);
+        verify(userProfileRepository, never()).existsByEmailIgnoreCase(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void changeEmailRejectsAlreadyUsedEmail() {
+        UUID userId = UUID.randomUUID();
+        UserProfile user = userWithEmail(userId, "old@test.com");
+        when(userProfileRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("old-password", "old-hash")).thenReturn(true);
+        when(userProfileRepository.existsByEmailIgnoreCase("taken@test.com")).thenReturn(true);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.changeEmail(userId, "old-password", "Taken@Test.com")
+        );
+
+        assertEquals("EMAIL_ALREADY_EXISTS", exception.getCode());
+        verify(userProfileRepository, never()).save(user);
+    }
+
+    @Test
+    void changeEmailUpdatesEmailWithNormalizedValue() {
+        UUID userId = UUID.randomUUID();
+        UserProfile user = userWithEmail(userId, "old@test.com");
+        when(userProfileRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("old-password", "old-hash")).thenReturn(true);
+        when(userProfileRepository.existsByEmailIgnoreCase("new@test.com")).thenReturn(false);
+
+        String result = service.changeEmail(userId, "old-password", " New@Test.com ");
+
+        assertEquals("new@test.com", result);
+        assertEquals("new@test.com", user.getEmail());
+        verify(userProfileRepository).save(user);
+    }
+
     private UserProfile user(UUID userId) {
         return UserProfile.builder()
                 .id(userId)
                 .person(Person.builder().fullName("Eski İsim").build())
+                .passwordHash("old-hash")
+                .build();
+    }
+
+    private UserProfile userWithEmail(UUID userId, String email) {
+        return UserProfile.builder()
+                .id(userId)
+                .person(Person.builder().fullName("Eski İsim").build())
+                .email(email)
                 .passwordHash("old-hash")
                 .build();
     }

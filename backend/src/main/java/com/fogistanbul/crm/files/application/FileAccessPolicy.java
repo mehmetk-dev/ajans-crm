@@ -37,7 +37,14 @@ public class FileAccessPolicy {
             case "TASK" -> {
                 Task task = taskRepository.findById(entityId)
                         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "TASK_NOT_FOUND", "Görev bulunamadı"));
-                requireMembership(user.getId(), task.getCompany().getId());
+                if (task.getCompany() == null) {
+                    if (!task.getAssignedTo().getId().equals(user.getId())
+                            && !task.getCreatedBy().getId().equals(user.getId())) {
+                        throw new AccessDeniedException("Bu göreve erişim yetkiniz yok");
+                    }
+                } else {
+                    requireMembership(user.getId(), task.getCompany().getId());
+                }
             }
             case "NOTE" -> {
                 Note note = noteRepository.findById(entityId)
