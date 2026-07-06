@@ -33,13 +33,11 @@ public class InstagramOAuthService {
     public static final Set<String> REQUIRED_PERMISSIONS = Set.of(
             "pages_show_list",
             "pages_read_engagement",
-            "instagram_basic",
-            "instagram_manage_insights");
+            "instagram_basic");
     private static final String SCOPE = String.join(",",
             "pages_show_list",
             "pages_read_engagement",
             "instagram_basic",
-            "instagram_manage_insights",
             "ads_read",
             "ads_management");
     private static final String DEFAULT_RETURN_PATH = "/client/analytics";

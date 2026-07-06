@@ -3,10 +3,10 @@ import { getInstagramOAuthCallbackError } from './instagramOAuthCallback';
 
 describe('getInstagramOAuthCallbackError', () => {
     it('returns decoded callback error messages', () => {
-        const search = '?ig=error&message=Instagram+izinleri+eksik%3A+instagram_manage_insights';
+        const search = '?ig=error&message=Instagram+izinleri+eksik%3A+pages_read_engagement';
 
         expect(getInstagramOAuthCallbackError(search))
-            .toBe('Instagram izinleri eksik: instagram_manage_insights');
+            .toBe('Instagram izinleri eksik: pages_read_engagement');
     });
 
     it('ignores successful callbacks', () => {

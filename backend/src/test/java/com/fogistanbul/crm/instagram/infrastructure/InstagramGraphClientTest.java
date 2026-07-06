@@ -104,7 +104,7 @@ class InstagramGraphClientTest {
     void getGrantedPermissions_returnsOnlyGrantedPermissionNames() {
         Map<String, Object> body = Map.of("data", List.of(
                 Map.of("permission", "instagram_basic", "status", "granted"),
-                Map.of("permission", "instagram_manage_insights", "status", "declined"),
+                Map.of("permission", "pages_read_engagement", "status", "declined"),
                 Map.of("permission", "pages_show_list", "status", "granted")));
         when(restTemplate.getForEntity(any(String.class), eq(Map.class)))
                 .thenReturn(ResponseEntity.ok(body));

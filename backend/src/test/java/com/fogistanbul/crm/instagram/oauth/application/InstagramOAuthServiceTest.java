@@ -79,7 +79,6 @@ class InstagramOAuthServiceTest {
                 .contains("redirect_uri=https://redirect.uri")
                 .contains("scope=pages_show_list")
                 .contains("instagram_basic")
-                .contains("instagram_manage_insights")
                 .contains("auth_type=rerequest")
                 .contains("state=" + companyId);
     }
@@ -199,7 +198,7 @@ class InstagramOAuthServiceTest {
     }
 
     @Test
-    void handleCallback_rejectsTokenWhenInstagramInsightsPermissionMissing() {
+    void handleCallback_rejectsTokenWhenRequiredPermissionMissing() {
         UUID companyId = UUID.randomUUID();
         when(graphClient.exchangeCodeForToken("code", "https://redirect.uri")).thenReturn("short");
         when(graphClient.exchangeForLongLivedToken("short"))
@@ -207,12 +206,11 @@ class InstagramOAuthServiceTest {
         when(graphClient.getGrantedPermissions("long"))
                 .thenReturn(Set.of(
                         "pages_show_list",
-                        "pages_read_engagement",
                         "instagram_basic"));
 
         assertThatThrownBy(() -> service.handleCallback("code", companyId.toString()))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("instagram_manage_insights");
+                .hasMessageContaining("pages_read_engagement");
         verify(tokenRepository, never()).save(any());
     }
 
