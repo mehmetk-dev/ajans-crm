@@ -7,8 +7,6 @@ const mocks = vi.hoisted(() => ({
     uploadAvatar: vi.fn(),
     updateProfile: vi.fn(),
     changePassword: vi.fn(),
-    getPreferences: vi.fn(),
-    updatePreference: vi.fn(),
 }));
 
 vi.mock('../store/AuthContext', () => ({
@@ -37,13 +35,6 @@ vi.mock('../api/settings', () => ({
     },
 }));
 
-vi.mock('../api/features', () => ({
-    notificationPreferenceApi: {
-        getAll: mocks.getPreferences,
-        update: mocks.updatePreference,
-    },
-}));
-
 import SettingsPage from './SettingsPage';
 
 function renderSettingsPage() {
@@ -64,10 +55,6 @@ describe('SettingsPage', () => {
         mocks.updateProfile.mockResolvedValue({ fullName: 'Test User' });
         mocks.changePassword.mockResolvedValue({ message: 'ok' });
         mocks.uploadAvatar.mockResolvedValue({ avatarUrl: '/api/settings/avatar/user-1/avatar.png' });
-        mocks.getPreferences.mockResolvedValue([
-            { notificationType: 'TASK_ASSIGNED', inApp: true, email: false },
-        ]);
-        mocks.updatePreference.mockImplementation(async (payload) => payload);
     });
 
     it('lets the current user upload a profile photo from settings', async () => {
@@ -87,19 +74,10 @@ describe('SettingsPage', () => {
         expect(screen.getByText('Profil fotoğrafı güncellendi!')).toBeInTheDocument();
     });
 
-    it('lets the current user enable email notifications', async () => {
+    it('does not expose per-user notification preferences', async () => {
         renderSettingsPage();
 
-        const emailToggle = await screen.findByLabelText('Görev atandı email');
-        fireEvent.click(emailToggle);
-
-        await waitFor(() => {
-            expect(mocks.updatePreference).toHaveBeenCalled();
-        });
-        expect(mocks.updatePreference.mock.calls[0][0]).toEqual({
-            notificationType: 'TASK_ASSIGNED',
-            inApp: true,
-            email: true,
-        });
+        expect(screen.queryByText('Bildirim Tercihleri')).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Görev atandı email')).not.toBeInTheDocument();
     });
 });

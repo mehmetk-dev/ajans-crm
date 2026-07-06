@@ -40,7 +40,8 @@ export function TaskCreateDialog({ open, companies, mode = 'staff', defaultCompa
 
     useEffect(() => {
         if (open) {
-            setForm(emptyForm(defaultCompanyId));
+            const timeoutId = window.setTimeout(() => setForm(emptyForm(defaultCompanyId)), 0);
+            return () => window.clearTimeout(timeoutId);
         }
     }, [defaultCompanyId, open]);
 

@@ -170,7 +170,7 @@ public class EmailService {
                             <p style="margin:0;color:#fff;font-size:16px;line-height:1.45;font-weight:800;">%s</p>
                           </div>
                           <a href="%s" style="display:inline-block;background:%s;color:#fff;text-decoration:none;border-radius:10px;padding:12px 16px;font-size:13px;font-weight:900;">%s</a>
-                          <p style="margin:20px 0 0;color:#71717a;font-size:12px;line-height:1.55;">Bu mail, CRM içindeki bildirim tercihlerinize göre gönderildi.</p>
+                          <p style="margin:20px 0 0;color:#71717a;font-size:12px;line-height:1.55;">Bu mail, CRM içindeki operasyonel bildirimler kapsamında gönderildi.</p>
                         </td>
                       </tr>
                       <tr>

@@ -28,7 +28,7 @@ export default function AdminSettingsPage() {
 
     useEffect(() => {
         if (mailSettings.data) {
-            setForm({
+            const timeoutId = window.setTimeout(() => setForm({
                 enabled: mailSettings.data.enabled,
                 host: mailSettings.data.host,
                 port: mailSettings.data.port,
@@ -38,7 +38,9 @@ export default function AdminSettingsPage() {
                 smtpAuth: mailSettings.data.smtpAuth,
                 startTls: mailSettings.data.startTls,
                 clearPassword: false,
-            });
+            }), 0);
+
+            return () => window.clearTimeout(timeoutId);
         }
     }, [mailSettings.data]);
 

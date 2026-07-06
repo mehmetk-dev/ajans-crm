@@ -117,6 +117,14 @@ class GoogleAdsServiceTest {
         assertThat(result.errorMessage()).isEqualTo("mapped error");
     }
 
+    @Test
+    void expectedAuthorizationFailuresAreRecognizedForCompactLogging() {
+        assertThat(GoogleAdsService.isExpectedAuthorizationFailure("401 Unauthorized")).isTrue();
+        assertThat(GoogleAdsService.isExpectedAuthorizationFailure("403 PERMISSION_DENIED")).isTrue();
+        assertThat(GoogleAdsService.isExpectedAuthorizationFailure("UNAUTHENTICATED")).isTrue();
+        assertThat(GoogleAdsService.isExpectedAuthorizationFailure("network error")).isFalse();
+    }
+
     private UUID configuredCompany() {
         UUID companyId = UUID.randomUUID();
         when(oAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))

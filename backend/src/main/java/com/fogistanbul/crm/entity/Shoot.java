@@ -58,4 +58,7 @@ public class Shoot {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
+
+    @Column(name = "shoot_reminder_sent_at")
+    private Instant reminderSentAt;
 }

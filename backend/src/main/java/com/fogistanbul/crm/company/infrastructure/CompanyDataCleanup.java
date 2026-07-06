@@ -37,7 +37,8 @@ public class CompanyDataCleanup {
             "UPDATE shoots SET created_by = NULL WHERE created_by = :uid",
             "DELETE FROM pr_project_members WHERE user_id = :uid",
             "UPDATE pr_projects SET created_by = NULL WHERE created_by = :uid",
-            "DELETE FROM approval_requests WHERE requester_id = :uid OR approver_id = :uid",
+            "DELETE FROM approval_requests WHERE requested_by = :uid",
+            "UPDATE approval_requests SET reviewed_by = NULL WHERE reviewed_by = :uid",
             "DELETE FROM satisfaction_surveys WHERE submitted_by = :uid",
             "DELETE FROM company_memberships WHERE user_id = :uid"
     );

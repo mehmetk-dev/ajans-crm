@@ -70,7 +70,7 @@ class MessagingServiceTest {
 
         when(conversationRepository.findById(convId)).thenReturn(Optional.of(conv));
         when(userProfileRepository.findById(senderId)).thenReturn(Optional.of(u1));
-        when(messageRepository.save(any())).thenReturn(savedMsg);
+        when(messageRepository.saveAndFlush(any())).thenReturn(savedMsg);
         when(conversationRepository.save(any())).thenReturn(conv);
         when(mapper.toMessageResponse(savedMsg)).thenReturn(expected);
 

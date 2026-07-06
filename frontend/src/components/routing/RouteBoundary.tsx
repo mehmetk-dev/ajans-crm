@@ -5,6 +5,7 @@ import {
 } from 'react';
 import { Loader2, RefreshCw, TriangleAlert } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { consumeRouteAutoReloadAttempt } from './routeAutoReload';
 
 interface ErrorBoundaryProps {
     children: ReactNode;
@@ -12,25 +13,42 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
     hasError: boolean;
+    isRecovering: boolean;
 }
 
 class RouteErrorBoundary extends Component<
     ErrorBoundaryProps,
     ErrorBoundaryState
 > {
-    state: ErrorBoundaryState = { hasError: false };
+    state: ErrorBoundaryState = { hasError: false, isRecovering: false };
 
     static getDerivedStateFromError(): ErrorBoundaryState {
-        return { hasError: true };
+        return { hasError: true, isRecovering: false };
     }
 
     componentDidCatch(error: Error, info: ErrorInfo) {
         console.error('Route yüklenemedi', error, info);
+
+        if (consumeRouteAutoReloadAttempt(error, window.location.href)) {
+            this.setState({ isRecovering: true });
+            window.setTimeout(() => window.location.reload(), 50);
+        }
     }
 
     render() {
         if (!this.state.hasError) {
             return this.props.children;
+        }
+
+        if (this.state.isRecovering) {
+            return (
+                <div className="min-h-dvh bg-[#09090b] flex items-center justify-center">
+                    <div className="flex items-center gap-3 text-zinc-500">
+                        <Loader2 className="w-5 h-5 animate-spin text-[#C8697A]" />
+                        <span className="text-sm">Sayfa yenileniyor...</span>
+                    </div>
+                </div>
+            );
         }
 
         return (

@@ -2,10 +2,8 @@ package com.fogistanbul.crm.service;
 
 import com.fogistanbul.crm.dto.NotificationResponse;
 import com.fogistanbul.crm.entity.Notification;
-import com.fogistanbul.crm.entity.NotificationPreference;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.NotificationType;
-import com.fogistanbul.crm.repository.NotificationPreferenceRepository;
 import com.fogistanbul.crm.repository.NotificationRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +22,6 @@ import java.util.UUID;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
-    private final NotificationPreferenceRepository preferenceRepository;
     private final UserProfileRepository userProfileRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final EmailService emailService;
@@ -35,17 +32,7 @@ public class NotificationService {
         UserProfile user = userProfileRepository.findById(userId).orElse(null);
         if (user == null) return;
 
-        NotificationPreference preference = preferenceRepository
-                .findByUserIdAndNotificationType(userId, type.name())
-                .orElse(null);
-
-        if (preference != null && Boolean.TRUE.equals(preference.getEmail())) {
-            emailService.sendNotificationEmail(user.getEmail(), type, title, message, referenceType);
-        }
-
-        if (preference != null && !Boolean.TRUE.equals(preference.getInApp())) {
-            return;
-        }
+        emailService.sendNotificationEmail(user.getEmail(), type, title, message, referenceType);
 
         Notification notification = Notification.builder()
                 .user(user)

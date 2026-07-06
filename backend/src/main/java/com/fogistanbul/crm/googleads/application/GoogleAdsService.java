@@ -59,10 +59,24 @@ public class GoogleAdsService {
                     client.fetchDailyTrend(accessToken, customerId, rangeStart, rangeEnd));
         } catch (Exception exception) {
             String message = exception.getMessage() != null ? exception.getMessage() : "";
-            log.error("Google Ads overview hatası, company={}: {}", companyId, message, exception);
+            if (isExpectedAuthorizationFailure(message)) {
+                log.warn("Google Ads overview yetki hatası, company={}: {}", companyId, message);
+            } else {
+                log.error("Google Ads overview hatası, company={}: {}", companyId, message, exception);
+            }
             return GoogleAdsOverviewResponse.error(
                     customerId, mapper.toUserErrorMessage(message));
         }
+    }
+
+    static boolean isExpectedAuthorizationFailure(String message) {
+        if (message == null) {
+            return false;
+        }
+        return message.contains("401")
+                || message.contains("403")
+                || message.contains("UNAUTHENTICATED")
+                || message.contains("PERMISSION_DENIED");
     }
 
     private String valueOrDefault(String value, String defaultValue) {
