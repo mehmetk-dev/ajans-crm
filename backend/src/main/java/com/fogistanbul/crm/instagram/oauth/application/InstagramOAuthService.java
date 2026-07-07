@@ -30,15 +30,15 @@ public class InstagramOAuthService {
     private static final Logger log = LoggerFactory.getLogger(InstagramOAuthService.class);
 
     private static final String AUTH_URL  = "https://www.facebook.com/v21.0/dialog/oauth";
+    private static final String INSIGHTS_PERMISSION = "instagram_manage_insights";
     public static final Set<String> REQUIRED_PERMISSIONS = Set.of(
             "pages_show_list",
             "pages_read_engagement",
-            "instagram_manage_insights",
             "instagram_basic");
     private static final String SCOPE = String.join(",",
             "pages_show_list",
             "pages_read_engagement",
-            "instagram_manage_insights",
+            INSIGHTS_PERMISSION,
             "instagram_basic",
             "ads_read",
             "ads_management");
@@ -144,6 +144,11 @@ public class InstagramOAuthService {
                     "Instagram bağlantısı için Meta işletme/Instagram izinleri eksik: "
                             + String.join(", ", missingPermissions)
                             + ". Yeniden bağlanırken Facebook hesabını ve işletme varlıklarını seçin.");
+        }
+        if (!grantedPermissions.contains(INSIGHTS_PERMISSION)) {
+            log.warn(
+                    "Instagram analiz izni verilmedi: {}. Bağlantı kaydedilecek ancak insight verileri kısıtlı olabilir.",
+                    INSIGHTS_PERMISSION);
         }
     }
 

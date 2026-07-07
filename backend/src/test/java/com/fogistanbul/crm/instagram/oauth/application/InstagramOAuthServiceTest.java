@@ -199,8 +199,9 @@ class InstagramOAuthServiceTest {
     }
 
     @Test
-    void handleCallback_rejectsTokenWhenRequiredPermissionMissing() {
+    void handleCallback_savesTokenWhenOnlyInsightsPermissionMissing() {
         UUID companyId = UUID.randomUUID();
+        Company company = Company.builder().id(companyId).kind(CompanyKind.CLIENT).name("Test").build();
         when(graphClient.exchangeCodeForToken("code", "https://redirect.uri")).thenReturn("short");
         when(graphClient.exchangeForLongLivedToken("short"))
                 .thenReturn(Map.of("access_token", "long", "expires_in", 3600));
@@ -209,11 +210,14 @@ class InstagramOAuthServiceTest {
                         "pages_show_list",
                         "pages_read_engagement",
                         "instagram_basic"));
+        when(graphClient.findInstagramAccount("long"))
+                .thenReturn(Map.of("igUserId", "ig", "pageId", "page", "username", "u"));
+        when(companyRepository.findById(companyId)).thenReturn(Optional.of(company));
+        when(tokenRepository.findByCompanyId(companyId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.handleCallback("code", companyId.toString()))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("instagram_manage_insights");
-        verify(tokenRepository, never()).save(any());
+        service.handleCallback("code", companyId.toString());
+
+        verify(tokenRepository).save(any(InstagramToken.class));
     }
 
     @Test
