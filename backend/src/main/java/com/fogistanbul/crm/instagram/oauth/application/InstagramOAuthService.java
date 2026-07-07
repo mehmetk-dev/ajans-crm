@@ -33,10 +33,12 @@ public class InstagramOAuthService {
     public static final Set<String> REQUIRED_PERMISSIONS = Set.of(
             "pages_show_list",
             "pages_read_engagement",
+            "instagram_manage_insights",
             "instagram_basic");
     private static final String SCOPE = String.join(",",
             "pages_show_list",
             "pages_read_engagement",
+            "instagram_manage_insights",
             "instagram_basic",
             "ads_read",
             "ads_management");
