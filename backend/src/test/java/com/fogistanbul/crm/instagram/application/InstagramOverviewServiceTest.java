@@ -106,7 +106,8 @@ class InstagramOverviewServiceTest {
         when(mediaService.getRecentMedia(igUserId, "token", 12))
                 .thenReturn(List.of(
                         new InstagramOverviewResponse.MediaRow(
-                                "media-1", "caption", "IMAGE", "https://example.com/img.jpg",
+                                "media-1", "caption", "IMAGE", "FEED",
+                                "https://example.com/img.jpg", "",
                                 "https://instagram.com/p/1", "2026-07-08T00:00:00+0000", 10, 2)));
 
         var result = service.getOverview(companyId, null, null);

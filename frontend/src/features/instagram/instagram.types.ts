@@ -9,7 +9,9 @@ export interface IgMediaRow {
     id: string;
     caption: string;
     mediaType: string;
+    mediaProductType: string;
     mediaUrl: string;
+    thumbnailUrl: string;
     permalink: string;
     timestamp: string;
     likeCount: number;

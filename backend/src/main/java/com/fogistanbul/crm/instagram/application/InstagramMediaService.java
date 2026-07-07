@@ -39,7 +39,7 @@ public class InstagramMediaService {
         }
         try {
             List<ReelRow> rows = new ArrayList<>();
-            for (Map<String, Object> media : fetchMedia(context.get(), 100)) {
+            for (Map<String, Object> media : fetchMedia(context.get(), mediaFetchLimit(limit))) {
                 if (!"REELS".equalsIgnoreCase(stringValue(media.get("media_product_type")))
                         || !dateRangeResolver.isCurrentMonth(
                                 stringValue(media.get("timestamp")))) {
@@ -86,7 +86,7 @@ public class InstagramMediaService {
         }
         try {
             List<PostRow> rows = new ArrayList<>();
-            for (Map<String, Object> media : fetchMedia(context.get(), 100)) {
+            for (Map<String, Object> media : fetchMedia(context.get(), mediaFetchLimit(limit))) {
                 if ("REELS".equalsIgnoreCase(stringValue(media.get("media_product_type")))
                         || !dateRangeResolver.isCurrentMonth(
                                 stringValue(media.get("timestamp")))) {
@@ -136,16 +136,16 @@ public class InstagramMediaService {
                     "/" + igUserId + "/media",
                     accessToken,
                     Map.of(
-                            "fields",
-                            "id,caption,media_type,media_url,permalink,timestamp,"
-                                    + "like_count,comments_count",
+                            "fields", MEDIA_FIELDS,
                             "limit", limit));
             return parser.dataRows(response).stream()
                     .map(media -> new MediaRow(
                             stringValue(media.get("id")),
                             truncate(stringValue(media.get("caption")), 120),
                             stringValue(media.get("media_type")),
+                            stringValue(media.get("media_product_type")),
                             stringValue(media.get("media_url")),
+                            stringValue(media.get("thumbnail_url")),
                             stringValue(media.get("permalink")),
                             stringValue(media.get("timestamp")),
                             parser.toLong(media.get("like_count")),
@@ -176,6 +176,10 @@ public class InstagramMediaService {
                 "/" + context.igUserId() + "/media",
                 context.accessToken(),
                 Map.of("fields", MEDIA_FIELDS, "limit", limit)));
+    }
+
+    private int mediaFetchLimit(int requestedLimit) {
+        return Math.min(100, Math.max(12, requestedLimit * 4));
     }
 
     private String stringValue(Object value) {

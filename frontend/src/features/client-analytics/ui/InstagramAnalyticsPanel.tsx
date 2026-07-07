@@ -1,8 +1,7 @@
-import type { ElementType } from 'react';
-import { BarChart3, ChevronRight, Image as ImageIcon, Instagram, Play } from 'lucide-react';
+import { BarChart3, ChevronRight, Eye, Heart, Image as ImageIcon, Instagram, MessageCircle, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { igApi, instagramKeys } from '../../instagram';
+import { igApi, instagramKeys, type IgPostRow, type IgReelRow } from '../../instagram';
 import { InstagramDisconnectedState } from '../../instagram/ui/InstagramDisconnectedState';
 import { getInstagramDisconnectedCopy } from '../../instagram/ui/instagramDisconnectedCopy';
 import {
@@ -26,37 +25,106 @@ function PanelLink({ to, children }: { to: string; children: string }) {
     );
 }
 
-function MediaDetailPrompt({
-    icon: Icon,
+type PreviewItem = {
+    id: string;
+    caption: string;
+    imageUrl: string;
+    likeCount: number;
+    commentsCount: number;
+    views: number;
+    isReel: boolean;
+};
+
+function reelPreviewItem(reel: IgReelRow): PreviewItem {
+    return {
+        id: reel.id,
+        caption: reel.caption,
+        imageUrl: reel.thumbnailUrl,
+        likeCount: reel.likeCount,
+        commentsCount: reel.commentsCount,
+        views: reel.plays,
+        isReel: true,
+    };
+}
+
+function postPreviewItem(post: IgPostRow): PreviewItem {
+    return {
+        id: post.id,
+        caption: post.caption,
+        imageUrl: post.mediaUrl,
+        likeCount: post.likeCount,
+        commentsCount: post.commentsCount,
+        views: post.impressions,
+        isReel: false,
+    };
+}
+
+function MediaPreviewSection({
     title,
-    description,
+    emptyText,
     to,
+    items,
 }: {
-    icon: ElementType;
     title: string;
-    description: string;
+    emptyText: string;
     to: string;
+    items: PreviewItem[];
 }) {
-    return (
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-500/10">
-                        <Icon className="h-5 w-5 text-pink-400" />
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-semibold text-white">{title}</h4>
-                        <p className="mt-1 text-xs text-zinc-500">{description}</p>
-                    </div>
-                </div>
-                <Link
-                    to={to}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:border-pink-500/30 hover:text-white"
-                >
-                    Detaylı Gör
-                    <ChevronRight className="h-3.5 w-3.5" />
-                </Link>
+    if (items.length === 0) {
+        return (
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center">
+                <ImageIcon className="mx-auto mb-2 h-6 w-6 text-zinc-700" />
+                <p className="text-xs text-zinc-500">{emptyText}</p>
             </div>
+        );
+    }
+
+    return (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {items.map(item => (
+                <Link
+                    key={item.id}
+                    to={to}
+                    className="group overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02] transition-colors hover:border-pink-500/30"
+                >
+                    <div className="relative aspect-[4/5] overflow-hidden bg-[#111115]">
+                        {item.imageUrl ? (
+                            <img
+                                src={item.imageUrl}
+                                alt=""
+                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                referrerPolicy="no-referrer"
+                            />
+                        ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                                <ImageIcon className="h-8 w-8 text-white/15" />
+                            </div>
+                        )}
+                        <div className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white">
+                            {item.isReel ? <Play className="h-3.5 w-3.5 fill-white" /> : <ImageIcon className="h-3.5 w-3.5" />}
+                        </div>
+                    </div>
+                    <div className="space-y-2 p-3">
+                        <p className="line-clamp-2 min-h-8 text-xs font-medium leading-4 text-zinc-300">
+                            {item.caption || title}
+                        </p>
+                        <div className="flex items-center gap-3 text-[11px] font-semibold text-zinc-500">
+                            <span className="flex items-center gap-1">
+                                <Eye className="h-3 w-3 text-cyan-300" />
+                                {item.views}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <Heart className="h-3 w-3 text-pink-400" />
+                                {item.likeCount}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <MessageCircle className="h-3 w-3 text-zinc-400" />
+                                {item.commentsCount}
+                            </span>
+                        </div>
+                    </div>
+                </Link>
+            ))}
         </div>
     );
 }
@@ -67,6 +135,18 @@ export default function InstagramAnalyticsPanel({
     const { data: status, isLoading } = useQuery({
         queryKey: instagramKeys.status(companyId, '/client/instagram'),
         queryFn: () => igApi.getStatus(companyId, '/client/instagram'),
+        staleTime: 5 * 60 * 1000,
+    });
+    const { data: reels = [] } = useQuery<IgReelRow[]>({
+        queryKey: [...instagramKeys.reels(companyId), 'preview', 3],
+        queryFn: () => igApi.getReels(companyId, 3),
+        enabled: status?.connected === true,
+        staleTime: 5 * 60 * 1000,
+    });
+    const { data: posts = [] } = useQuery<IgPostRow[]>({
+        queryKey: [...instagramKeys.posts(companyId), 'preview', 3],
+        queryFn: () => igApi.getPosts(companyId, 3),
+        enabled: status?.connected === true,
         staleTime: 5 * 60 * 1000,
     });
 
@@ -87,6 +167,8 @@ export default function InstagramAnalyticsPanel({
     }
 
     const connected = status?.connected ?? false;
+    const reelPreview = reels.slice(0, 3).map(reelPreviewItem);
+    const postPreview = posts.slice(0, 3).map(postPreviewItem);
 
     return (
         <div className="space-y-6">
@@ -121,11 +203,11 @@ export default function InstagramAnalyticsPanel({
                     <PanelLink to="/client/instagram/reels">Tümünü Gör</PanelLink>
                 </div>
                 {connected ? (
-                    <MediaDetailPrompt
-                        icon={Play}
-                        title="Reels performansı"
-                        description="İzlenme, beğeni, yorum ve paylaşım detaylarını açın."
+                    <MediaPreviewSection
+                        title="Reels"
+                        emptyText="Bu ay henüz reels paylaşılmadı"
                         to="/client/instagram/reels"
+                        items={reelPreview}
                     />
                 ) : (
                     <InstagramDisconnectedState
@@ -146,11 +228,11 @@ export default function InstagramAnalyticsPanel({
                     <PanelLink to="/client/instagram/posts">Tümünü Gör</PanelLink>
                 </div>
                 {connected ? (
-                    <MediaDetailPrompt
-                        icon={ImageIcon}
-                        title="Gönderi performansı"
-                        description="Gönderi erişimi, etkileşim ve içerik detaylarını açın."
+                    <MediaPreviewSection
+                        title="Gönderi"
+                        emptyText="Bu ay henüz gönderi paylaşılmadı"
                         to="/client/instagram/posts"
+                        items={postPreview}
                     />
                 ) : (
                     <InstagramDisconnectedState

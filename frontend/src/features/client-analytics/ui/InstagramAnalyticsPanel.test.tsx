@@ -51,7 +51,7 @@ describe('InstagramAnalyticsPanel', () => {
         expect(allConnectLinks).toHaveLength(3);
     });
 
-    it('does not fetch reels and posts automatically when the account is connected', async () => {
+    it('renders lightweight media previews with views using limited reels and posts requests', async () => {
         const getStatus = vi.spyOn(igApi, 'getStatus').mockResolvedValue({
             configured: true,
             connected: true,
@@ -75,17 +75,75 @@ describe('InstagramAnalyticsPanel', () => {
             followersGained: 40,
             followersLost: 12,
             dailyTrend: [],
-            recentMedia: [],
+            recentMedia: [
+                {
+                    id: 'reel-1',
+                    caption: 'Showroom reels',
+                    mediaType: 'VIDEO',
+                    mediaProductType: 'REELS',
+                    mediaUrl: '',
+                    thumbnailUrl: 'https://example.com/reel.jpg',
+                    permalink: 'https://instagram.com/reel/1',
+                    timestamp: '2026-07-08T00:00:00+0000',
+                    likeCount: 120,
+                    commentsCount: 8,
+                },
+                {
+                    id: 'post-1',
+                    caption: 'Yeni koleksiyon',
+                    mediaType: 'IMAGE',
+                    mediaProductType: 'FEED',
+                    mediaUrl: 'https://example.com/post.jpg',
+                    thumbnailUrl: '',
+                    permalink: 'https://instagram.com/p/1',
+                    timestamp: '2026-07-08T00:00:00+0000',
+                    likeCount: 80,
+                    commentsCount: 4,
+                },
+            ],
         });
-        const getReels = vi.spyOn(igApi, 'getReels').mockResolvedValue([]);
-        const getPosts = vi.spyOn(igApi, 'getPosts').mockResolvedValue([]);
+        const getReels = vi.spyOn(igApi, 'getReels').mockResolvedValue([
+            {
+                id: 'reel-1',
+                caption: 'Showroom reels',
+                thumbnailUrl: 'https://example.com/reel.jpg',
+                permalink: 'https://instagram.com/reel/1',
+                timestamp: '2026-07-08T00:00:00+0000',
+                likeCount: 120,
+                commentsCount: 8,
+                plays: 1500,
+                reach: 900,
+                saved: 10,
+                shares: 4,
+            },
+        ]);
+        const getPosts = vi.spyOn(igApi, 'getPosts').mockResolvedValue([
+            {
+                id: 'post-1',
+                caption: 'Yeni koleksiyon',
+                mediaType: 'IMAGE',
+                mediaUrl: 'https://example.com/post.jpg',
+                permalink: 'https://instagram.com/p/1',
+                timestamp: '2026-07-08T00:00:00+0000',
+                likeCount: 80,
+                commentsCount: 4,
+                impressions: 730,
+                reach: 600,
+                saved: 6,
+                shares: 2,
+            },
+        ]);
 
         renderPanel();
 
         await waitFor(() => expect(getOverview).toHaveBeenCalledTimes(1));
 
         expect(getStatus).toHaveBeenCalledWith('company-1', '/client/instagram');
-        expect(getReels).not.toHaveBeenCalled();
-        expect(getPosts).not.toHaveBeenCalled();
+        expect(await screen.findByText('Showroom reels')).toBeInTheDocument();
+        expect(screen.getByText('Yeni koleksiyon')).toBeInTheDocument();
+        expect(screen.getByText('1500')).toBeInTheDocument();
+        expect(screen.getByText('730')).toBeInTheDocument();
+        expect(getReels).toHaveBeenCalledWith('company-1', 3);
+        expect(getPosts).toHaveBeenCalledWith('company-1', 3);
     });
 });
