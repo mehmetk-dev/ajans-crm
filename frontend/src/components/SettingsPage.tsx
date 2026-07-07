@@ -2,20 +2,19 @@ import { useRef, useState, useId, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../store/AuthContext';
 import { settingsApi } from '../api/settings';
-import { User, Lock, Mail, Save, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
-import type { AxiosError } from 'axios';
+import { User, Lock, Mail, Save, CheckCircle2, AlertCircle, Camera, BellRing, MonitorSmartphone, Volume2 } from 'lucide-react';
+import {
+    getBrowserNotificationPreferences,
+    playNotificationSound,
+    setDesktopNotificationsEnabled,
+    setNotificationSoundEnabled,
+} from '../lib/browserNotifications';
 
 interface Props {
     accentColor?: string;
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const EMAIL_ERROR_MESSAGES: Record<string, string> = {
-    EMAIL_SAME_AS_CURRENT: 'Yeni e-posta mevcut adresinizle aynı olamaz',
-    EMAIL_ALREADY_EXISTS: 'Bu e-posta adresi başka bir kullanıcı tarafından kullanılıyor',
-    CURRENT_PASSWORD_INVALID: 'Mevcut şifre hatalı',
-};
 
 export default function SettingsPage({ accentColor = 'blue' }: Props) {
     const id = useId();
@@ -24,8 +23,7 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
     const [fullName, setFullName] = useState(user?.fullName || '');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
-    const [newEmail, setNewEmail] = useState('');
-    const [emailPassword, setEmailPassword] = useState('');
+    const [mailEmail, setMailEmail] = useState(user?.mailEmail || user?.email || '');
     const [profileMsg, setProfileMsg] = useState('');
     const [avatarMsg, setAvatarMsg] = useState('');
     const [avatarError, setAvatarError] = useState('');
@@ -33,6 +31,9 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
     const [passwordError, setPasswordError] = useState('');
     const [emailMsg, setEmailMsg] = useState('');
     const [emailError, setEmailError] = useState('');
+    const [notificationPrefs, setNotificationPrefs] = useState(() => getBrowserNotificationPreferences());
+    const [notificationMsg, setNotificationMsg] = useState('');
+    const [notificationError, setNotificationError] = useState('');
 
     const accentClasses: Record<string, { btn: string; icon: string; focus: string }> = {
         blue: {
@@ -97,24 +98,18 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
         },
     });
 
-    const emailMutation = useMutation({
-        mutationFn: () => settingsApi.changeEmail({ currentPassword: emailPassword, newEmail }),
+    const mailEmailMutation = useMutation({
+        mutationFn: () => settingsApi.updateMailEmail({ mailEmail }),
         onSuccess: (data) => {
-            updateUser({ email: data.email });
+            updateUser({ mailEmail: data.mailEmail });
             setEmailError('');
-            setEmailMsg('E-posta adresiniz güncellendi!');
-            setNewEmail('');
-            setEmailPassword('');
+            setMailEmail(data.mailEmail);
+            setEmailMsg('Mail e-postası güncellendi!');
             setTimeout(() => setEmailMsg(''), 3000);
         },
-        onError: (error: AxiosError<{ code?: string; message?: string }>) => {
-            const code = error.response?.data?.code;
+        onError: () => {
             setEmailMsg('');
-            setEmailError(
-                (code && EMAIL_ERROR_MESSAGES[code]) ||
-                error.response?.data?.message ||
-                'E-posta değiştirilemedi',
-            );
+            setEmailError('Mail e-postası güncellenemedi');
             setTimeout(() => setEmailError(''), 5000);
         },
     });
@@ -128,21 +123,59 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
     };
 
     const emailValidation = useMemo(() => {
-        const trimmed = newEmail.trim();
-        const currentNormalized = (user?.email || '').trim().toLowerCase();
+        const trimmed = mailEmail.trim();
         if (!trimmed) {
             return { valid: false, hint: '' };
         }
         if (!EMAIL_REGEX.test(trimmed)) {
             return { valid: false, hint: 'Geçerli bir e-posta adresi girin' };
         }
-        if (trimmed.toLowerCase() === currentNormalized) {
-            return { valid: false, hint: 'Yeni e-posta mevcut adresinizle aynı olamaz' };
-        }
         return { valid: true, hint: '' };
-    }, [newEmail, user?.email]);
+    }, [mailEmail]);
 
-    const canSubmitEmail = emailValidation.valid && emailPassword.length > 0 && !emailMutation.isPending;
+    const canSubmitEmail = emailValidation.valid && !mailEmailMutation.isPending;
+
+    const flashNotificationMessage = (message: string, isError = false) => {
+        if (isError) {
+            setNotificationMsg('');
+            setNotificationError(message);
+            setTimeout(() => setNotificationError(''), 4000);
+            return;
+        }
+
+        setNotificationError('');
+        setNotificationMsg(message);
+        setTimeout(() => setNotificationMsg(''), 3000);
+    };
+
+    const toggleNotificationSound = () => {
+        const next = !notificationPrefs.soundEnabled;
+        setNotificationPrefs(setNotificationSoundEnabled(next));
+        if (next) {
+            playNotificationSound();
+        }
+    };
+
+    const toggleDesktopNotifications = async () => {
+        const next = !notificationPrefs.desktopEnabled;
+        const prefs = await setDesktopNotificationsEnabled(next);
+        setNotificationPrefs(prefs);
+
+        if (!next) {
+            flashNotificationMessage('Tarayıcı bildirimi kapatıldı.');
+        } else if (prefs.desktopEnabled) {
+            flashNotificationMessage('Tarayıcı bildirimi açıldı.');
+        } else if (prefs.desktopPermission === 'denied') {
+            flashNotificationMessage('Tarayıcı bildirimi engellenmiş. İzinleri tarayıcı ayarlarından açın.', true);
+        } else {
+            flashNotificationMessage('Bu tarayıcı bildirimleri desteklemiyor.', true);
+        }
+    };
+
+    const testNotificationSound = () => {
+        const played = playNotificationSound();
+        flashNotificationMessage(played ? 'Ses çalışıyor.' : 'Ses çalınamadı. Önce sesli bildirimi açın.', !played);
+    };
 
     return (
         <div className="space-y-6">
@@ -199,7 +232,7 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
                                 className={`w-full bg-[#18181b]/60 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-white focus:outline-none ${accent.focus}`} />
                         </div>
                         <div>
-                            <label htmlFor={`${id}-email`} className="text-xs text-zinc-500 block mb-1">Email</label>
+                            <label htmlFor={`${id}-email`} className="text-xs text-zinc-500 block mb-1">Giriş E-postası</label>
                             <input id={`${id}-email`} value={user?.email || ''} disabled readOnly
                                 className="w-full bg-[#18181b]/40 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-500 cursor-not-allowed" />
                         </div>
@@ -215,35 +248,94 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
                 </div>
             </div>
 
+            {/* Notifications */}
+            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                    <BellRing className={`w-4 h-4 ${accent.icon}`} />
+                    <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Bildirimler</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-[#18181b]/35 px-4 py-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <Volume2 className={`h-4 w-4 shrink-0 ${accent.icon}`} />
+                            <div className="min-w-0">
+                                <p className="text-sm font-semibold text-white">Sesli bildirim</p>
+                                <p className="text-xs text-zinc-500">Yeni mesaj ve görevlerde çalar</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-label="Sesli bildirim"
+                            aria-checked={notificationPrefs.soundEnabled}
+                            onClick={toggleNotificationSound}
+                            className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${notificationPrefs.soundEnabled ? 'border-transparent bg-emerald-500' : 'border-white/[0.12] bg-zinc-800'}`}
+                        >
+                            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${notificationPrefs.soundEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-[#18181b]/35 px-4 py-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <MonitorSmartphone className={`h-4 w-4 shrink-0 ${accent.icon}`} />
+                            <div className="min-w-0">
+                                <p className="text-sm font-semibold text-white">Tarayıcı bildirimi</p>
+                                <p className="text-xs text-zinc-500">Sekme arka plandayken gösterilir</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-label="Tarayıcı bildirimi"
+                            aria-checked={notificationPrefs.desktopEnabled}
+                            onClick={toggleDesktopNotifications}
+                            disabled={notificationPrefs.desktopPermission === 'unsupported'}
+                            className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${notificationPrefs.desktopEnabled ? 'border-transparent bg-emerald-500' : 'border-white/[0.12] bg-zinc-800'}`}
+                        >
+                            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${notificationPrefs.desktopEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 mt-4">
+                    {notificationMsg && <span className="flex items-center gap-1 text-pink-400 text-xs"><CheckCircle2 className="w-3 h-3" />{notificationMsg}</span>}
+                    {notificationError && <span className="flex items-center gap-1 text-red-400 text-xs"><AlertCircle className="w-3 h-3" />{notificationError}</span>}
+                    <button
+                        type="button"
+                        onClick={testNotificationSound}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold transition-colors ${accent.btn}`}
+                    >
+                        <Volume2 className="w-4 h-4" />
+                        Sesi test et
+                    </button>
+                </div>
+            </div>
+
             {/* Email */}
             <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-4">
                     <Mail className={`w-4 h-4 ${accent.icon}`} />
-                    <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">E-posta Değiştir</h3>
+                    <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Mail E-postası</h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
                     <div>
-                        <label htmlFor={`${id}-newemail`} className="text-xs text-zinc-500 block mb-1">Yeni E-posta</label>
-                        <input id={`${id}-newemail`} type="email" placeholder="yeni@email.com" value={newEmail} onChange={e => setNewEmail(e.target.value)}
+                        <label htmlFor={`${id}-mail-email`} className="text-xs text-zinc-500 block mb-1">Mail E-postası</label>
+                        <input id={`${id}-mail-email`} type="email" placeholder="bildirim@email.com" value={mailEmail} onChange={e => setMailEmail(e.target.value)}
                             className={`w-full bg-[#18181b]/60 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-white focus:outline-none ${accent.focus}`} />
-                        {emailValidation.hint && !emailValidation.valid && newEmail.length > 0 && (
+                        {emailValidation.hint && !emailValidation.valid && mailEmail.length > 0 && (
                             <p className="mt-1 text-xs text-amber-400">{emailValidation.hint}</p>
                         )}
-                    </div>
-                    <div>
-                        <label htmlFor={`${id}-emailpwd`} className="text-xs text-zinc-500 block mb-1">Mevcut Şifre</label>
-                        <input id={`${id}-emailpwd`} type="password" placeholder="••••••••" value={emailPassword} onChange={e => setEmailPassword(e.target.value)}
-                            className={`w-full bg-[#18181b]/60 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-white focus:outline-none ${accent.focus}`} />
                     </div>
                 </div>
                 <div className="flex items-center justify-end gap-3 mt-4">
                     {emailMsg && <span className="flex items-center gap-1 text-pink-400 text-xs"><CheckCircle2 className="w-3 h-3" />{emailMsg}</span>}
                     {emailError && <span className="flex items-center gap-1 text-red-400 text-xs"><AlertCircle className="w-3 h-3" />{emailError}</span>}
-                    <button onClick={() => emailMutation.mutate()} disabled={!canSubmitEmail}
+                    <button onClick={() => mailEmailMutation.mutate()} disabled={!canSubmitEmail}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold disabled:opacity-50 transition-colors ${accent.btn}`}>
                         <Mail className="w-4 h-4" />
-                        {emailMutation.isPending ? 'Değiştiriliyor...' : 'E-postayı Değiştir'}
+                        {mailEmailMutation.isPending ? 'Kaydediliyor...' : 'Mail E-postasını Kaydet'}
                     </button>
                 </div>
             </div>

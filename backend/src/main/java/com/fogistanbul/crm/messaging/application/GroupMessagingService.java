@@ -2,7 +2,9 @@ package com.fogistanbul.crm.messaging.application;
 
 import com.fogistanbul.crm.messaging.dto.*;
 import com.fogistanbul.crm.entity.*;
+import com.fogistanbul.crm.entity.enums.NotificationType;
 import com.fogistanbul.crm.repository.*;
+import com.fogistanbul.crm.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,6 +32,7 @@ public class GroupMessagingService {
     private final SimpMessagingTemplate messagingTemplate;
     private final MessageAccessPolicy accessPolicy;
     private final MessageMapper mapper;
+    private final NotificationService notificationService;
 
     @Transactional
     public GroupConversation createCompanyGroup(Company company, UserProfile firstMember) {
@@ -145,6 +148,14 @@ public class GroupMessagingService {
         for (GroupMember member : members) {
             if (!member.getUser().getId().equals(senderId)) {
                 messagingTemplate.convertAndSend("/topic/user/" + member.getUser().getId(), response);
+                notificationService.send(
+                        member.getUser().getId(),
+                        NotificationType.MESSAGE_RECEIVED,
+                        "Yeni grup mesajı",
+                        request.getContent(),
+                        "MESSAGE",
+                        message.getId()
+                );
             }
         }
         return response;

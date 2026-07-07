@@ -33,6 +33,9 @@ public class UserProfile {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(name = "mail_email")
+    private String mailEmail;
+
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 

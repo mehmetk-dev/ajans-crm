@@ -3,6 +3,7 @@ import { Client, type IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client/dist/sockjs';
 import { notificationApi, type NotificationResponse } from '../api/features';
 import { getApiErrorMessage } from '../lib/apiError';
+import { notifyIncomingBrowserNotification } from '../lib/browserNotifications';
 import { useAuth } from '../store/AuthContext';
 
 export function useNotifications() {
@@ -43,6 +44,7 @@ export function useNotifications() {
                             const notification: NotificationResponse = JSON.parse(message.body);
                             setNotifications(prev => [notification, ...prev].slice(0, 10));
                             setUnreadCount(prev => prev + 1);
+                            notifyIncomingBrowserNotification(notification);
                         } catch (err) {
                             console.error('[Notifications WS] Parse error:', err);
                         }

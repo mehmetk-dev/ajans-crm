@@ -61,7 +61,7 @@ class NotificationServiceTest {
     @Test
     void sendEmailsForEveryNotificationType() {
         UUID userId = UUID.randomUUID();
-        when(userProfileRepository.findById(userId)).thenReturn(Optional.of(user(userId)));
+        when(userProfileRepository.findById(userId)).thenReturn(Optional.of(userWithMailEmail(userId)));
         when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
             Notification notification = invocation.getArgument(0);
             notification.setId(UUID.randomUUID());
@@ -72,7 +72,7 @@ class NotificationServiceTest {
                 "Çekim tamamlandı", null, "SHOOT", UUID.randomUUID());
 
         verify(emailService).sendNotificationEmail(
-                "user@example.com",
+                "notify@example.com",
                 NotificationType.SHOOT_UPDATED,
                 "Çekim tamamlandı",
                 null,
@@ -150,6 +150,14 @@ class NotificationServiceTest {
         return UserProfile.builder()
                 .id(userId)
                 .email("user@example.com")
+                .build();
+    }
+
+    private UserProfile userWithMailEmail(UUID userId) {
+        return UserProfile.builder()
+                .id(userId)
+                .email("user@example.com")
+                .mailEmail("notify@example.com")
                 .build();
     }
 

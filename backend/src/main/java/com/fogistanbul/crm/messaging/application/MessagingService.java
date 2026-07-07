@@ -3,9 +3,11 @@ package com.fogistanbul.crm.messaging.application;
 import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.messaging.dto.*;
 import com.fogistanbul.crm.entity.*;
+import com.fogistanbul.crm.entity.enums.NotificationType;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
 import com.fogistanbul.crm.entity.enums.MembershipRole;
 import com.fogistanbul.crm.repository.*;
+import com.fogistanbul.crm.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -31,6 +33,7 @@ public class MessagingService {
     private final SimpMessagingTemplate messagingTemplate;
     private final MessageAccessPolicy accessPolicy;
     private final MessageMapper mapper;
+    private final NotificationService notificationService;
 
     @Transactional
     public ConversationResponse getOrStartConversation(UUID currentUserId, UUID targetUserId) {
@@ -130,6 +133,14 @@ public class MessagingService {
                 ? conversation.getUser2().getId()
                 : conversation.getUser1().getId();
         messagingTemplate.convertAndSend("/topic/user/" + otherUserId, response);
+        notificationService.send(
+                otherUserId,
+                NotificationType.MESSAGE_RECEIVED,
+                "Yeni mesaj",
+                request.getContent(),
+                "MESSAGE",
+                message.getId()
+        );
 
         return response;
     }

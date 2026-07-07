@@ -1,7 +1,7 @@
 package com.fogistanbul.crm.controller;
 
-import com.fogistanbul.crm.dto.ChangeEmailRequest;
 import com.fogistanbul.crm.dto.ChangePasswordRequest;
+import com.fogistanbul.crm.dto.UpdateMailEmailRequest;
 import com.fogistanbul.crm.dto.UpdateProfileRequest;
 import com.fogistanbul.crm.security.CurrentUser;
 import com.fogistanbul.crm.user.application.UserSettingsService;
@@ -43,15 +43,11 @@ public class UserSettingsController {
         return ResponseEntity.ok(Map.of("message", "Şifre başarıyla değiştirildi"));
     }
 
-    @PutMapping("/email")
-    public ResponseEntity<Map<String, String>> changeEmail(
-            @Valid @RequestBody ChangeEmailRequest request, Authentication auth) {
-        String newEmail = settingsService.changeEmail(
-                currentUser.id(auth),
-                request.getCurrentPassword(),
-                request.getNewEmail()
-        );
-        return ResponseEntity.ok(Map.of("email", newEmail));
+    @PutMapping("/mail-email")
+    public ResponseEntity<Map<String, String>> updateMailEmail(
+            @Valid @RequestBody UpdateMailEmailRequest request, Authentication auth) {
+        String mailEmail = settingsService.updateMailEmail(currentUser.id(auth), request.getMailEmail());
+        return ResponseEntity.ok(Map.of("mailEmail", mailEmail));
     }
 
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

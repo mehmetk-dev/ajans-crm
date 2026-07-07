@@ -19,6 +19,7 @@ public class AuthResponse {
     public static class UserInfo {
         private String id;
         private String email;
+        private String mailEmail;
         private String fullName;
         private String globalRole;
         private String membershipRole;

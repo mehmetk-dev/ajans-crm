@@ -9,6 +9,7 @@ export interface LoginRequest {
 export interface UserInfo {
     id: string;
     email: string;
+    mailEmail: string | null;
     fullName: string;
     globalRole: 'ADMIN' | 'AGENCY_STAFF' | 'COMPANY_USER';
     membershipRole: 'OWNER' | 'EMPLOYEE' | 'AGENCY_STAFF' | null;

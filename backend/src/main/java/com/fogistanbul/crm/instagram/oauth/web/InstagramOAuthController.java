@@ -22,9 +22,28 @@ public class InstagramOAuthController {
     private final InstagramOAuthService instagramOAuthService;
 
     @GetMapping("/callback")
-    public void callback(@RequestParam String code,
-                         @RequestParam String state,
+    public void callback(@RequestParam(required = false) String code,
+                         @RequestParam(required = false) String state,
+                         @RequestParam(required = false) String error,
+                         @RequestParam(required = false) String error_description,
                          HttpServletResponse response) throws IOException {
+        if (error != null && !error.isBlank()) {
+            log.warn("Instagram OAuth kullanıcı tarafından reddedildi: {} ({})", error, error_description);
+            redirectWithError(response, state,
+                    error_description != null ? error_description.replace('+', ' ') : "Instagram bağlantısı iptal edildi");
+            return;
+        }
+
+        if (code == null || code.isBlank()) {
+            log.warn("Instagram OAuth callback — code parametresi eksik");
+            redirectWithError(response, state, "Instagram bağlantısı tamamlanamadı");
+            return;
+        }
+
+        if (state == null || state.isBlank()) {
+            state = "";
+        }
+
         try {
             String returnPath = instagramOAuthService.handleCallback(code, state);
             response.sendRedirect(instagramOAuthService.getFrontendUrl()

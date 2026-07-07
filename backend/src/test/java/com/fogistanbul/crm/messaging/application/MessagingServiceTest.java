@@ -4,11 +4,13 @@ import com.fogistanbul.crm.entity.Conversation;
 import com.fogistanbul.crm.entity.Message;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
+import com.fogistanbul.crm.entity.enums.NotificationType;
 import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.messaging.dto.ConversationResponse;
 import com.fogistanbul.crm.messaging.dto.MessageResponse;
 import com.fogistanbul.crm.messaging.dto.SendMessageRequest;
 import com.fogistanbul.crm.repository.*;
+import com.fogistanbul.crm.service.NotificationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -35,6 +37,7 @@ class MessagingServiceTest {
     @Mock SimpMessagingTemplate messagingTemplate;
     @Mock MessageAccessPolicy accessPolicy;
     @Mock MessageMapper mapper;
+    @Mock NotificationService notificationService;
 
     @InjectMocks MessagingService service;
 
@@ -80,6 +83,14 @@ class MessagingServiceTest {
         MessageResponse result = service.sendMessage(convId, req, senderId);
 
         verify(accessPolicy).requireConversationAccess(conv, senderId);
+        verify(notificationService).send(
+                eq(u2.getId()),
+                eq(NotificationType.MESSAGE_RECEIVED),
+                eq("Yeni mesaj"),
+                eq("hello"),
+                eq("MESSAGE"),
+                eq(savedMsg.getId())
+        );
         assertNotNull(result);
         assertEquals("hello", result.getContent());
     }

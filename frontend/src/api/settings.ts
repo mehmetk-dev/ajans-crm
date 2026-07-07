@@ -7,8 +7,8 @@ export const settingsApi = {
     changePassword: (data: { currentPassword: string; newPassword: string }) =>
         api.put<{ message?: string; error?: string }>('/settings/password', data).then(r => r.data),
 
-    changeEmail: (data: { currentPassword: string; newEmail: string }) =>
-        api.put<{ email: string }>('/settings/email', data).then(r => r.data),
+    updateMailEmail: (data: { mailEmail: string }) =>
+        api.put<{ mailEmail: string }>('/settings/mail-email', data).then(r => r.data),
 
     uploadAvatar: (file: File) => {
         const formData = new FormData();

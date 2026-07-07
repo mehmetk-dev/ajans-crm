@@ -32,7 +32,7 @@ public class NotificationService {
         UserProfile user = userProfileRepository.findById(userId).orElse(null);
         if (user == null) return;
 
-        emailService.sendNotificationEmail(user.getEmail(), type, title, message, referenceType);
+        emailService.sendNotificationEmail(notificationEmail(user), type, title, message, referenceType);
 
         Notification notification = Notification.builder()
                 .user(user)
@@ -86,5 +86,11 @@ public class NotificationService {
                 .isRead(Boolean.TRUE.equals(n.getIsRead()))
                 .createdAt(n.getCreatedAt())
                 .build();
+    }
+
+    private String notificationEmail(UserProfile user) {
+        return user.getMailEmail() != null && !user.getMailEmail().isBlank()
+                ? user.getMailEmail()
+                : user.getEmail();
     }
 }
