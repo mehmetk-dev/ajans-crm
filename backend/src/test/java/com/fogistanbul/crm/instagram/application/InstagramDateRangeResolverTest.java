@@ -50,6 +50,15 @@ class InstagramDateRangeResolverTest {
     }
 
     @Test
+    void resolve_limitsExplicitRangesToMetaThirtyDayMaximum() {
+        var range = resolver.resolve("2026-05-01", "2026-06-11", NOW);
+
+        assertThat(range.until() - range.since()).isEqualTo(30L * 86400);
+        assertThat(range.until()).isEqualTo(
+                LocalDate.of(2026, 6, 12).atStartOfDay(ISTANBUL).toEpochSecond());
+    }
+
+    @Test
     void currentMonth_andTimestampFilterUseIstanbulMonthBoundary() {
         var month = resolver.currentMonth(NOW);
 

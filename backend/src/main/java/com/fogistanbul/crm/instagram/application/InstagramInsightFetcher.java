@@ -82,6 +82,9 @@ public class InstagramInsightFetcher {
         if (trendRows.isEmpty()) {
             return dailyValues;
         }
+        if ("views".equals(metric)) {
+            return dailyValues;
+        }
 
         String firstDate = insightDate(trendRows.get(0));
         String lastDate = insightDate(trendRows.get(trendRows.size() - 1));
@@ -90,9 +93,9 @@ public class InstagramInsightFetcher {
             try {
                 LocalDate first = LocalDate.parse(firstDate, DateTimeFormatter.ISO_LOCAL_DATE);
                 LocalDate last = LocalDate.parse(lastDate, DateTimeFormatter.ISO_LOCAL_DATE).plusDays(1);
-                InsightRange fullRange = new InsightRange(
+                InsightRange fullRange = dateRangeResolver.limitToMetaMaxRange(new InsightRange(
                         first.atStartOfDay(ZONE).toEpochSecond(),
-                        last.atStartOfDay(ZONE).toEpochSecond());
+                        last.atStartOfDay(ZONE).toEpochSecond()));
                 List<Map<String, Object>> dailyData = fetchInsight(
                         igUserId, accessToken, metric, "day", fullRange);
                 for (Map<String, Object> row : dailyData) {

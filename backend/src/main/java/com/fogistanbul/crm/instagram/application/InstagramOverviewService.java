@@ -24,6 +24,11 @@ import java.util.concurrent.CompletableFuture;
 public class InstagramOverviewService {
 
     private static final Logger log = LoggerFactory.getLogger(InstagramOverviewService.class);
+    private static final String INSIGHTS_PERMISSION = "instagram_manage_insights";
+    private static final String INSIGHTS_PERMISSION_MESSAGE =
+            "Instagram analiz izni bekleniyor. Temel profil ve içerik verileri gösteriliyor; "
+                    + "görüntülenme, erişim ve takipçi hareketleri için Meta App Review'da "
+                    + "instagram_manage_insights izni tamamlanmalı.";
 
     private final InstagramOAuthService oAuthService;
     private final InstagramGraphClient client;
@@ -53,6 +58,9 @@ public class InstagramOverviewService {
 
         InsightRange range = insightFetcher.resolver().resolve(rangeStart, rangeEnd);
         try {
+            if (!hasInsightsPermission(accessToken)) {
+                return buildOverviewWithoutInsights(token, accessToken);
+            }
             return buildOverview(companyId, token, accessToken, range);
         } catch (Exception exception) {
             log.error("Instagram overview hatası, companyId={}: {}", companyId, exception.getMessage());
@@ -125,6 +133,42 @@ public class InstagramOverviewService {
                 followStats.lost(),
                 dailyTrend,
                 recentMedia);
+    }
+
+    private InstagramOverviewResponse buildOverviewWithoutInsights(
+            InstagramToken token, String accessToken) {
+        String igUserId = token.getIgUserId();
+        Map<String, Object> profile = client.get("/" + igUserId, accessToken,
+                Map.of("fields", "followers_count,follows_count,media_count,username"));
+        List<MediaRow> recentMedia = mediaService.getRecentMedia(igUserId, accessToken, 12);
+
+        return new InstagramOverviewResponse(
+                true,
+                stringValue(profile.get("username"), token.getIgUsername()),
+                INSIGHTS_PERMISSION_MESSAGE,
+                parser.toLong(profile.get("followers_count")),
+                parser.toLong(profile.get("follows_count")),
+                parser.toLong(profile.get("media_count")),
+                0,
+                0,
+                0,
+                0,
+                recentMedia.stream().mapToLong(MediaRow::likeCount).sum(),
+                recentMedia.stream().mapToLong(MediaRow::commentsCount).sum(),
+                0,
+                0,
+                List.of(),
+                recentMedia);
+    }
+
+    private boolean hasInsightsPermission(String accessToken) {
+        try {
+            return client.getGrantedPermissions(accessToken).contains(INSIGHTS_PERMISSION);
+        } catch (Exception exception) {
+            log.warn("Instagram izinleri kontrol edilemedi, insight çağrıları denenmeye devam edecek: {}",
+                    exception.getMessage());
+            return true;
+        }
     }
 
     private FollowStats resolveFollowStats(

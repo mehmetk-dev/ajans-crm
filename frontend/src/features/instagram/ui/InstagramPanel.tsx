@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import {
     Instagram, Users, Eye, Heart, MessageCircle,
     Loader2, CheckCircle2, ChevronRight, ChevronLeft,
-    Image as ImageIcon, Play, Activity, UserPlus, Calendar, Share2
+    Image as ImageIcon, Play, Activity, UserPlus, Calendar, Share2,
+    AlertTriangle
 } from 'lucide-react';
 import { igApi } from '../api/instagramApi';
 import { instagramKeys } from '../instagramKeys';
@@ -47,79 +48,88 @@ export function StatsColumn({ companyId }: { companyId: string }) {
     }
 
     return (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <>
+            {data.errorMessage && (
+                <div className="mb-4 rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 flex items-start gap-3">
+                    <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                    <p className="text-xs leading-relaxed text-amber-100">{data.errorMessage}</p>
+                </div>
+            )}
 
-            {/* Toplam Takipçi */}
-            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5
-                hover:border-[#C8697A]/30 transition-colors flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#C8697A]/10 flex items-center justify-center">
-                        <Users className="w-4 h-4 text-[#C8697A]" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+                {/* Toplam Takipçi */}
+                <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5
+                    hover:border-[#C8697A]/30 transition-colors flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-[#C8697A]/10 flex items-center justify-center">
+                            <Users className="w-4 h-4 text-[#C8697A]" />
+                        </div>
+                        <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Toplam Takipçi</span>
                     </div>
-                    <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Toplam Takipçi</span>
-                </div>
-                <div className="text-2xl font-bold text-white">{fmtNum(data.followersCount)}</div>
-                <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-zinc-500">Son 30 Gün</span>
-                </div>
-            </div>
-
-            {/* 1 Aylık Etkileşim */}
-            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5
-                hover:border-[#C8697A]/30 transition-colors flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                        <Activity className="w-4 h-4 text-emerald-400" />
+                    <div className="text-2xl font-bold text-white">{fmtNum(data.followersCount)}</div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-zinc-500">Son 30 Gün</span>
                     </div>
-                    <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">1 Aylık Etkileşim</span>
                 </div>
-                <div className="text-2xl font-bold text-white">{fmtNum(data.totalLikes + data.totalComments)}</div>
-                <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1 text-[10px] text-rose-400">
-                        <Heart className="w-3 h-3" />{fmtNum(data.totalLikes)}
-                    </span>
-                    <span className="text-zinc-700">·</span>
-                    <span className="flex items-center gap-1 text-[10px] text-violet-400">
-                        <MessageCircle className="w-3 h-3" />{fmtNum(data.totalComments)}
-                    </span>
-                </div>
-            </div>
 
-            {/* Gelen / Giden Takipçi */}
-            <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5
-                hover:border-[#C8697A]/30 transition-colors flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center">
-                        <UserPlus className="w-4 h-4 text-sky-400" />
+                {/* 1 Aylık Etkileşim */}
+                <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5
+                    hover:border-[#C8697A]/30 transition-colors flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                            <Activity className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">1 Aylık Etkileşim</span>
                     </div>
-                    <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Gelen / Giden</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold text-emerald-400">+{fmtNum(data.followersGained)}</span>
-                    <span className="text-zinc-600">/</span>
-                    <span className="text-2xl font-bold text-rose-400">-{fmtNum(data.followersLost)}</span>
-                </div>
-                <span className="text-[10px] text-zinc-500">Bu ayın takipçi hareketi</span>
-            </div>
-
-            {/* Büyüme Oranı */}
-            <div className="relative overflow-hidden rounded-2xl p-5 flex flex-col gap-3
-                bg-gradient-to-br from-violet-600/80 to-pink-600/80
-                shadow-[0_4px_24px_rgba(139,92,246,0.3)]">
-                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-pink-500/20" />
-                <div className="relative flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
-                        <Eye className="w-4 h-4 text-white" />
+                    <div className="text-2xl font-bold text-white">{fmtNum(data.totalLikes + data.totalComments)}</div>
+                    <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1 text-[10px] text-rose-400">
+                            <Heart className="w-3 h-3" />{fmtNum(data.totalLikes)}
+                        </span>
+                        <span className="text-zinc-700">·</span>
+                        <span className="flex items-center gap-1 text-[10px] text-violet-400">
+                            <MessageCircle className="w-3 h-3" />{fmtNum(data.totalComments)}
+                        </span>
                     </div>
-                    <span className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">Büyüme Oranı</span>
                 </div>
-                <div className="relative text-3xl font-bold text-white">%{growthRate}</div>
-                <div className="relative flex items-center gap-1.5">
-                    <span className="text-[10px] text-white/60">Etkileşim: %{engagementRate}</span>
-                </div>
-            </div>
 
-        </div>
+                {/* Gelen / Giden Takipçi */}
+                <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5
+                    hover:border-[#C8697A]/30 transition-colors flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center">
+                            <UserPlus className="w-4 h-4 text-sky-400" />
+                        </div>
+                        <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Gelen / Giden</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold text-emerald-400">+{fmtNum(data.followersGained)}</span>
+                        <span className="text-zinc-600">/</span>
+                        <span className="text-2xl font-bold text-rose-400">-{fmtNum(data.followersLost)}</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-500">Bu ayın takipçi hareketi</span>
+                </div>
+
+                {/* Büyüme Oranı */}
+                <div className="relative overflow-hidden rounded-2xl p-5 flex flex-col gap-3
+                    bg-gradient-to-br from-violet-600/80 to-pink-600/80
+                    shadow-[0_4px_24px_rgba(139,92,246,0.3)]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-pink-500/20" />
+                    <div className="relative flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
+                            <Eye className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">Büyüme Oranı</span>
+                    </div>
+                    <div className="relative text-3xl font-bold text-white">%{growthRate}</div>
+                    <div className="relative flex items-center gap-1.5">
+                        <span className="text-[10px] text-white/60">Etkileşim: %{engagementRate}</span>
+                    </div>
+                </div>
+
+            </div>
+        </>
     );
 }
 

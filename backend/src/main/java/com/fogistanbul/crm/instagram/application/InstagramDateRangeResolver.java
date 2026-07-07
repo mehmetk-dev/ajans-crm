@@ -12,6 +12,7 @@ import java.util.Optional;
 public class InstagramDateRangeResolver {
 
     private static final ZoneId ZONE = ZoneId.of("Europe/Istanbul");
+    private static final long MAX_INSIGHT_RANGE_SECONDS = 30L * 86400;
 
     public InsightRange resolve(String rangeStart, String rangeEnd) {
         return resolve(rangeStart, rangeEnd, Instant.now());
@@ -32,17 +33,17 @@ public class InstagramDateRangeResolver {
                 .getEpochSecond();
         if (since >= until) {
             return new InsightRange(
-                    now.minusSeconds(30L * 86400).getEpochSecond(),
+                    now.minusSeconds(MAX_INSIGHT_RANGE_SECONDS).getEpochSecond(),
                     now.getEpochSecond());
         }
-        return new InsightRange(since, until);
+        return limitToMetaMaxRange(new InsightRange(since, until));
     }
 
     InsightRange currentMonth(Instant now) {
         LocalDate firstDay = now.atZone(ZONE).toLocalDate().withDayOfMonth(1);
-        return new InsightRange(
+        return limitToMetaMaxRange(new InsightRange(
                 firstDay.atStartOfDay(ZONE).toEpochSecond(),
-                now.getEpochSecond());
+                now.getEpochSecond()));
     }
 
     boolean isCurrentMonth(String timestamp, Instant now) {
@@ -97,4 +98,11 @@ public class InstagramDateRangeResolver {
     }
 
     public record InsightRange(long since, long until) {}
+
+    public InsightRange limitToMetaMaxRange(InsightRange range) {
+        if (range.until() - range.since() <= MAX_INSIGHT_RANGE_SECONDS) {
+            return range;
+        }
+        return new InsightRange(range.until() - MAX_INSIGHT_RANGE_SECONDS, range.until());
+    }
 }
