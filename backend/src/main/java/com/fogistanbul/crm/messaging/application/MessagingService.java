@@ -139,7 +139,7 @@ public class MessagingService {
                 "Yeni mesaj",
                 request.getContent(),
                 "MESSAGE",
-                message.getId()
+                conversationId
         );
 
         return response;

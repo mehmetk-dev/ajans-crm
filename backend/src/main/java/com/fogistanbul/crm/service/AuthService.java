@@ -7,6 +7,7 @@ import com.fogistanbul.crm.entity.RefreshToken;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.ActivityAction;
 import com.fogistanbul.crm.exception.ApiException;
+import com.fogistanbul.crm.instagram.application.InstagramLoginWarmupService;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.RefreshTokenRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
@@ -38,6 +39,7 @@ public class AuthService {
         private final JwtTokenProvider jwtTokenProvider;
         private final PasswordEncoder passwordEncoder;
         private final ActivityLogService activityLogService;
+        private final InstagramLoginWarmupService instagramLoginWarmupService;
 
         @Value("${app.jwt.refresh-token-expiration-ms}")
         private long refreshTokenExpirationMs;
@@ -57,7 +59,9 @@ public class AuthService {
 
                 storeRefreshToken(refreshTokenStr, user, request.isRememberMe());
 
-                return buildAuthResponse(user, accessToken, refreshTokenStr, request.isRememberMe());
+                AuthResponse authResponse = buildAuthResponse(user, accessToken, refreshTokenStr, request.isRememberMe());
+                warmUpInstagramAfterLogin(authResponse.getUser());
+                return authResponse;
         }
 
         @Transactional
@@ -161,6 +165,20 @@ refreshTokenRepository.findByTokenHashAndRevokedFalse(tokenHash)
                                 .avatarUrl(avatarUrl)
                                 .companyId(companyId)
                                 .build();
+        }
+
+        private void warmUpInstagramAfterLogin(AuthResponse.UserInfo user) {
+                if (user == null
+                                || !"COMPANY_USER".equals(user.getGlobalRole())
+                                || user.getCompanyId() == null
+                                || user.getCompanyId().isBlank()) {
+                        return;
+                }
+                try {
+                        instagramLoginWarmupService.warmUpCompany(UUID.fromString(user.getCompanyId()));
+                } catch (IllegalArgumentException exception) {
+                        log.debug("Instagram warm-up skipped because company id is invalid: {}", user.getCompanyId());
+                }
         }
 
         private String hashToken(String token) {

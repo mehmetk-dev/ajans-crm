@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { clientApi } from "../../api/clientPanel";
 import { useAuth } from "../../store/AuthContext";
 import {
@@ -16,11 +17,17 @@ import type {
   GroupConversationResponse,
   GroupMessageResponse,
 } from "../../features/messaging";
+import {
+  appendIncomingGroupThreadMessage,
+  applyIncomingDirectMessage,
+  applyIncomingGroupMessage,
+} from "../../features/messaging";
 import { MessageSquare } from "lucide-react";
 import { getApiErrorMessage } from "../../lib/apiError";
 
 export default function ClientMessagingPage() {
   const { user } = useAuth();
+  const location = useLocation();
   const [conversations, setConversations] = useState<ConversationResponse[]>(
     [],
   );
@@ -36,6 +43,7 @@ export default function ClientMessagingPage() {
   const [contacts, setContacts] = useState<ContactResponse[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const routeSelectionRef = useRef<string | null>(null);
 
   const [tab, setTab] = useState<"dm" | "group">("dm");
   const [groups, setGroups] = useState<GroupConversationResponse[]>([]);
@@ -61,25 +69,17 @@ export default function ClientMessagingPage() {
 
   const handleGlobalMessage = useCallback(
     (msg: MessageResponse) => {
-      if (msg.conversationId === activeConv?.id) return;
-      setConversations((prev) => {
-        const existing = prev.find((c) => c.id === msg.conversationId);
-        if (existing) {
-          return prev.map((c) =>
-            c.id === msg.conversationId
-              ? {
-                  ...c,
-                  lastMessage: msg,
-                  updatedAt: msg.createdAt,
-                  unreadCount: c.unreadCount + 1,
-                }
-              : c,
-          );
-        }
-        return prev;
-      });
+      setConversations((prev) => applyIncomingDirectMessage(prev, activeConv?.id || null, msg));
     },
     [activeConv?.id],
+  );
+
+  const handleGlobalGroupMessage = useCallback(
+    (msg: GroupMessageResponse) => {
+      setGroups((prev) => applyIncomingGroupMessage(prev, activeGroup?.id || null, msg));
+      setGroupMessages((prev) => appendIncomingGroupThreadMessage(prev, activeGroup?.id || null, msg));
+    },
+    [activeGroup?.id],
   );
 
   const handleReadReceipt = useCallback(
@@ -100,6 +100,7 @@ export default function ClientMessagingPage() {
     userId: user?.id || null,
     onMessage: handleWsMessage,
     onGlobalMessage: handleGlobalMessage,
+    onGlobalGroupMessage: handleGlobalGroupMessage,
     onReadReceipt: handleReadReceipt,
   });
 
@@ -109,7 +110,7 @@ export default function ClientMessagingPage() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, groupMessages]);
 
   const loadConversations = async () => {
     try {
@@ -188,6 +189,33 @@ export default function ClientMessagingPage() {
       setMsgLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (loading) return;
+    const params = new URLSearchParams(location.search);
+    const conversationId = params.get("conversationId");
+    const groupId = params.get("groupId");
+    const routeKey = conversationId ? `dm:${conversationId}` : groupId ? `group:${groupId}` : null;
+    if (!routeKey || routeSelectionRef.current === routeKey) return;
+
+    if (conversationId) {
+      const conversation = conversations.find((item) => item.id === conversationId);
+      if (conversation) {
+        routeSelectionRef.current = routeKey;
+        void selectConversation(conversation);
+      }
+      return;
+    }
+
+    if (groupId) {
+      const group = groups.find((item) => item.id === groupId);
+      if (group) {
+        routeSelectionRef.current = routeKey;
+        setTab("group");
+        void selectGroup(group);
+      }
+    }
+  }, [conversations, groups, loading, location.search]);
 
   const handleGroupSend = async (e: React.FormEvent) => {
     e.preventDefault();

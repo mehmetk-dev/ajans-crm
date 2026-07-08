@@ -8,6 +8,7 @@ import com.fogistanbul.crm.entity.enums.ServiceCategory;
 import com.fogistanbul.crm.googleanalytics.application.GoogleAnalyticsService;
 import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse;
 import com.fogistanbul.crm.instagram.application.InstagramOverviewService;
+import com.fogistanbul.crm.instagram.application.InstagramMediaSnapshotService;
 import com.fogistanbul.crm.instagram.dto.InstagramOverviewResponse;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshot;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshotStatus;
@@ -48,6 +49,7 @@ public class IntegrationSnapshotSyncService {
     private final GoogleAnalyticsService googleAnalyticsService;
     private final SearchConsoleService searchConsoleService;
     private final InstagramOverviewService instagramOverviewService;
+    private final InstagramMediaSnapshotService instagramMediaSnapshotService;
     private final ObjectMapper objectMapper;
 
     @Scheduled(
@@ -90,6 +92,7 @@ public class IntegrationSnapshotSyncService {
                     force,
                     () -> instagramOverviewService.getOverview(company.getId(), null, null),
                     InstagramOverviewResponse::errorMessage);
+            instagramMediaSnapshotService.syncMediaSnapshotsNow(company.getId(), force);
         }
     }
 

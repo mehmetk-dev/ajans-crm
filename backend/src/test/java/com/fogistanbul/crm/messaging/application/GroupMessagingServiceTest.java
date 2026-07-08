@@ -97,16 +97,16 @@ class GroupMessagingServiceTest {
                 eq(NotificationType.MESSAGE_RECEIVED),
                 eq("Yeni grup mesajı"),
                 eq("Herkese merhaba"),
-                eq("MESSAGE"),
-                eq(savedMessage.getId())
+                eq("GROUP_MESSAGE"),
+                eq(groupId)
         );
         verify(notificationService).send(
                 eq(secondRecipientId),
                 eq(NotificationType.MESSAGE_RECEIVED),
                 eq("Yeni grup mesajı"),
                 eq("Herkese merhaba"),
-                eq("MESSAGE"),
-                eq(savedMessage.getId())
+                eq("GROUP_MESSAGE"),
+                eq(groupId)
         );
     }
 

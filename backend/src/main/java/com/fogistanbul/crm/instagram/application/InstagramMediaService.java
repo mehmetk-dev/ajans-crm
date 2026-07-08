@@ -33,6 +33,14 @@ public class InstagramMediaService {
     private final InstagramMediaInsightService mediaInsightService;
 
     public List<ReelRow> getReels(UUID companyId, int limit) {
+        return getReels(companyId, limit, true);
+    }
+
+    public List<ReelRow> getReelsPreview(UUID companyId, int limit) {
+        return getReels(companyId, limit, false);
+    }
+
+    private List<ReelRow> getReels(UUID companyId, int limit, boolean includeInsights) {
         Optional<InstagramContext> context = context(companyId);
         if (context.isEmpty()) {
             return List.of();
@@ -46,8 +54,9 @@ public class InstagramMediaService {
                     continue;
                 }
                 String mediaId = stringValue(media.get("id"));
-                var insights = mediaInsightService.reelInsights(
-                        mediaId, context.get().accessToken());
+                var insights = includeInsights
+                        ? mediaInsightService.reelInsights(mediaId, context.get().accessToken())
+                        : new InstagramMediaInsightService.ReelInsightStats(0, 0, 0, 0);
                 rows.add(new ReelRow(
                         mediaId,
                         truncate(stringValue(media.get("caption")), 80),
@@ -80,6 +89,14 @@ public class InstagramMediaService {
     }
 
     public List<PostRow> getPosts(UUID companyId, int limit) {
+        return getPosts(companyId, limit, true);
+    }
+
+    public List<PostRow> getPostsPreview(UUID companyId, int limit) {
+        return getPosts(companyId, limit, false);
+    }
+
+    private List<PostRow> getPosts(UUID companyId, int limit, boolean includeInsights) {
         Optional<InstagramContext> context = context(companyId);
         if (context.isEmpty()) {
             return List.of();
@@ -93,8 +110,9 @@ public class InstagramMediaService {
                     continue;
                 }
                 String mediaId = stringValue(media.get("id"));
-                var insights = mediaInsightService.postInsights(
-                        mediaId, context.get().accessToken());
+                var insights = includeInsights
+                        ? mediaInsightService.postInsights(mediaId, context.get().accessToken())
+                        : new InstagramMediaInsightService.PostInsightStats(0, 0, 0, 0);
                 rows.add(new PostRow(
                         mediaId,
                         truncate(stringValue(media.get("caption")), 80),

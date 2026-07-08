@@ -152,7 +152,7 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
         const next = !notificationPrefs.soundEnabled;
         setNotificationPrefs(setNotificationSoundEnabled(next));
         if (next) {
-            playNotificationSound();
+            void playNotificationSound();
         }
     };
 
@@ -172,8 +172,8 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
         }
     };
 
-    const testNotificationSound = () => {
-        const played = playNotificationSound();
+    const testNotificationSound = async () => {
+        const played = await playNotificationSound();
         flashNotificationMessage(played ? 'Ses çalışıyor.' : 'Ses çalınamadı. Önce sesli bildirimi açın.', !played);
     };
 

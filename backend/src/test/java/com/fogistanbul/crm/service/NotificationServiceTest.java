@@ -39,7 +39,7 @@ class NotificationServiceTest {
     void sendUsesInAppNotificationByDefault() {
         UUID userId = UUID.randomUUID();
         when(userProfileRepository.findById(userId)).thenReturn(Optional.of(user(userId)));
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
+        when(notificationRepository.saveAndFlush(any(Notification.class))).thenAnswer(invocation -> {
             Notification notification = invocation.getArgument(0);
             notification.setId(UUID.randomUUID());
             return notification;
@@ -48,7 +48,7 @@ class NotificationServiceTest {
         notificationService.send(userId, NotificationType.TASK_ASSIGNED,
                 "Yeni görev", "Detay", "TASK", UUID.randomUUID());
 
-        verify(notificationRepository).save(any(Notification.class));
+        verify(notificationRepository).saveAndFlush(any(Notification.class));
         verify(messagingTemplate).convertAndSendToUser(eq(userId.toString()), eq("/queue/notifications"), any());
         verify(emailService).sendNotificationEmail(
                 "user@example.com",
@@ -62,7 +62,7 @@ class NotificationServiceTest {
     void sendEmailsForEveryNotificationType() {
         UUID userId = UUID.randomUUID();
         when(userProfileRepository.findById(userId)).thenReturn(Optional.of(userWithMailEmail(userId)));
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
+        when(notificationRepository.saveAndFlush(any(Notification.class))).thenAnswer(invocation -> {
             Notification notification = invocation.getArgument(0);
             notification.setId(UUID.randomUUID());
             return notification;
@@ -77,7 +77,7 @@ class NotificationServiceTest {
                 "Çekim tamamlandı",
                 null,
                 "SHOOT");
-        verify(notificationRepository).save(any(Notification.class));
+        verify(notificationRepository).saveAndFlush(any(Notification.class));
         verify(messagingTemplate).convertAndSendToUser(eq(userId.toString()), eq("/queue/notifications"), any());
     }
 
@@ -85,7 +85,7 @@ class NotificationServiceTest {
     void sendEmailsForShootCreatedNotifications() {
         UUID userId = UUID.randomUUID();
         when(userProfileRepository.findById(userId)).thenReturn(Optional.of(user(userId)));
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
+        when(notificationRepository.saveAndFlush(any(Notification.class))).thenAnswer(invocation -> {
             Notification notification = invocation.getArgument(0);
             notification.setId(UUID.randomUUID());
             return notification;
@@ -106,7 +106,7 @@ class NotificationServiceTest {
     void sendEmailsForShootReminderNotifications() {
         UUID userId = UUID.randomUUID();
         when(userProfileRepository.findById(userId)).thenReturn(Optional.of(user(userId)));
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
+        when(notificationRepository.saveAndFlush(any(Notification.class))).thenAnswer(invocation -> {
             Notification notification = invocation.getArgument(0);
             notification.setId(UUID.randomUUID());
             return notification;
@@ -127,7 +127,7 @@ class NotificationServiceTest {
     void sendCreatesInAppNotificationAndEmailForTaskCompletion() {
         UUID userId = UUID.randomUUID();
         when(userProfileRepository.findById(userId)).thenReturn(Optional.of(user(userId)));
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
+        when(notificationRepository.saveAndFlush(any(Notification.class))).thenAnswer(invocation -> {
             Notification notification = invocation.getArgument(0);
             notification.setId(UUID.randomUUID());
             return notification;
@@ -136,7 +136,7 @@ class NotificationServiceTest {
         notificationService.send(userId, NotificationType.TASK_COMPLETED,
                 "Görev tamamlandı", null, "TASK", UUID.randomUUID());
 
-        verify(notificationRepository).save(any(Notification.class));
+        verify(notificationRepository).saveAndFlush(any(Notification.class));
         verify(messagingTemplate).convertAndSendToUser(eq(userId.toString()), eq("/queue/notifications"), any());
         verify(emailService).sendNotificationEmail(
                 "user@example.com",

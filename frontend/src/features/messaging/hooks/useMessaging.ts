@@ -1,8 +1,15 @@
 import { useCallback } from "react";
 import type {
   ConversationResponse,
+  GroupConversationResponse,
+  GroupMessageResponse,
   MessageResponse,
 } from "../api/messaging.types";
+import {
+  appendIncomingGroupThreadMessage,
+  applyIncomingDirectMessage,
+  applyIncomingGroupMessage,
+} from "../model/messaging.state";
 
 // WebSocket entegrasyonu ile yerel state yönetimi için
 export interface MessagingState {
@@ -14,10 +21,13 @@ export interface MessagingState {
 
 export function useConversationWebSocketHandlers(
   activeConvId: string | null,
+  activeGroupId: string | null,
   userId: string | null,
   setConversations: React.Dispatch<
     React.SetStateAction<ConversationResponse[]>
   >,
+  setGroups: React.Dispatch<React.SetStateAction<GroupConversationResponse[]>>,
+  setGroupMessages: React.Dispatch<React.SetStateAction<GroupMessageResponse[]>>,
   setMessages: React.Dispatch<React.SetStateAction<MessageResponse[]>>,
 ) {
   const handleWsMessage = useCallback(
@@ -39,23 +49,17 @@ export function useConversationWebSocketHandlers(
 
   const handleGlobalMessage = useCallback(
     (msg: MessageResponse) => {
-      if (msg.conversationId === activeConvId) return;
-      setConversations((prev) => {
-        const existing = prev.find((c) => c.id === msg.conversationId);
-        if (!existing) return prev;
-        return prev.map((c) =>
-          c.id === msg.conversationId
-            ? {
-                ...c,
-                lastMessage: msg,
-                updatedAt: msg.createdAt,
-                unreadCount: c.unreadCount + 1,
-              }
-            : c,
-        );
-      });
+      setConversations((prev) => applyIncomingDirectMessage(prev, activeConvId, msg));
     },
     [activeConvId, setConversations],
+  );
+
+  const handleGlobalGroupMessage = useCallback(
+    (msg: GroupMessageResponse) => {
+      setGroups((prev) => applyIncomingGroupMessage(prev, activeGroupId, msg));
+      setGroupMessages((prev) => appendIncomingGroupThreadMessage(prev, activeGroupId, msg));
+    },
+    [activeGroupId, setGroupMessages, setGroups],
   );
 
   const handleReadReceipt = useCallback(
@@ -71,5 +75,5 @@ export function useConversationWebSocketHandlers(
     [userId, setMessages],
   );
 
-  return { handleWsMessage, handleGlobalMessage, handleReadReceipt };
+  return { handleWsMessage, handleGlobalMessage, handleGlobalGroupMessage, handleReadReceipt };
 }

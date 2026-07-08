@@ -90,6 +90,7 @@ export const notificationApi = {
       .then((r) => r.data.count),
   markAsRead: (id: string) => api.put(`/notifications/${id}/read`),
   markAllAsRead: () => api.put("/notifications/read-all"),
+  delete: (id: string) => api.delete(`/notifications/${id}`),
 };
 
 export const activityLogApi = {

@@ -153,8 +153,8 @@ public class GroupMessagingService {
                         NotificationType.MESSAGE_RECEIVED,
                         "Yeni grup mesajı",
                         request.getContent(),
-                        "MESSAGE",
-                        message.getId()
+                        "GROUP_MESSAGE",
+                        groupId
                 );
             }
         }

@@ -38,13 +38,13 @@ export function useNotifications() {
             heartbeatOutgoing: 10000,
             onConnect: () => {
                 client.subscribe(
-                    `/user/${user.id}/queue/notifications`,
+                    '/user/queue/notifications',
                     (message: IMessage) => {
                         try {
                             const notification: NotificationResponse = JSON.parse(message.body);
                             setNotifications(prev => [notification, ...prev].slice(0, 10));
                             setUnreadCount(prev => prev + 1);
-                            notifyIncomingBrowserNotification(notification);
+                            void notifyIncomingBrowserNotification(notification);
                         } catch (err) {
                             console.error('[Notifications WS] Parse error:', err);
                         }
@@ -74,5 +74,14 @@ export function useNotifications() {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     }, []);
 
-    return { notifications, unreadCount, error, markAsRead, markAllAsRead, refresh };
+    const deleteNotification = useCallback(async (id: string) => {
+        const target = notifications.find(n => n.id === id);
+        await notificationApi.delete(id);
+        if (target && !target.isRead) {
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        }
+        setNotifications(prev => prev.filter(n => n.id !== id));
+    }, [notifications]);
+
+    return { notifications, unreadCount, error, markAsRead, markAllAsRead, deleteNotification, refresh };
 }

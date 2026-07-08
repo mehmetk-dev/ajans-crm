@@ -90,7 +90,7 @@ describe('SettingsPage', () => {
         mocks.changePassword.mockResolvedValue({ message: 'ok' });
         mocks.updateMailEmail.mockResolvedValue({ mailEmail: 'new-notify@test.com' });
         mocks.uploadAvatar.mockResolvedValue({ avatarUrl: '/api/settings/avatar/user-1/avatar.png' });
-        mocks.playNotificationSound.mockReturnValue(true);
+        mocks.playNotificationSound.mockResolvedValue(true);
     });
 
     it('lets the current user upload a profile photo from settings', async () => {

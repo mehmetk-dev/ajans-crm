@@ -2,23 +2,26 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Client, type IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client/dist/sockjs';
-import type { MessageResponse } from '../api/messaging.types';
+import type { GroupMessageResponse, MessageResponse } from '../api/messaging.types';
 
 interface UseWebSocketOptions {
     conversationId: string | null;
     userId?: string | null;
     onMessage?: (message: MessageResponse) => void;
     onGlobalMessage?: (message: MessageResponse) => void;
+    onGlobalGroupMessage?: (message: GroupMessageResponse) => void;
     onReadReceipt?: (data: { conversationId: string; readBy: string }) => void;
     enabled?: boolean;
 }
 
-export function useWebSocket({ conversationId, userId, onMessage, onGlobalMessage, onReadReceipt, enabled = true }: UseWebSocketOptions) {
+export function useWebSocket({ conversationId, userId, onMessage, onGlobalMessage, onGlobalGroupMessage, onReadReceipt, enabled = true }: UseWebSocketOptions) {
     const clientRef = useRef<Client | null>(null);
     const onMessageRef = useRef(onMessage);
     onMessageRef.current = onMessage;
     const onGlobalMessageRef = useRef(onGlobalMessage);
     onGlobalMessageRef.current = onGlobalMessage;
+    const onGlobalGroupMessageRef = useRef(onGlobalGroupMessage);
+    onGlobalGroupMessageRef.current = onGlobalGroupMessage;
     const onReadReceiptRef = useRef(onReadReceipt);
     onReadReceiptRef.current = onReadReceipt;
     const [connected, setConnected] = useState(false);
@@ -79,8 +82,12 @@ export function useWebSocket({ conversationId, userId, onMessage, onGlobalMessag
             `/topic/user/${userId}`,
             (message: IMessage) => {
                 try {
-                    const parsed: MessageResponse = JSON.parse(message.body);
-                    onGlobalMessageRef.current?.(parsed);
+                    const parsed: MessageResponse | GroupMessageResponse = JSON.parse(message.body);
+                    if ('groupId' in parsed) {
+                        onGlobalGroupMessageRef.current?.(parsed);
+                    } else {
+                        onGlobalMessageRef.current?.(parsed);
+                    }
                 } catch (err) {
                     console.error('[WS] Global parse error:', err);
                 }

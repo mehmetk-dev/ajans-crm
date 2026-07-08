@@ -73,7 +73,7 @@ export async function setDesktopNotificationsEnabled(enabled: boolean): Promise<
     return getBrowserNotificationPreferences();
 }
 
-export function playNotificationSound(): boolean {
+export async function playNotificationSound(): Promise<boolean> {
     if (!readStoredBoolean(NOTIFICATION_SOUND_STORAGE_KEY)) return false;
     if (typeof window === 'undefined') return false;
 
@@ -82,6 +82,9 @@ export function playNotificationSound(): boolean {
 
     try {
         const context = new AudioContextCtor();
+        if (context.state === 'suspended') {
+            await context.resume();
+        }
         const oscillator = context.createOscillator();
         const gain = context.createGain();
         const now = context.currentTime;
@@ -123,9 +126,9 @@ export function showDesktopNotification(notification: NotificationResponse): boo
     return true;
 }
 
-export function notifyIncomingBrowserNotification(notification: NotificationResponse) {
+export async function notifyIncomingBrowserNotification(notification: NotificationResponse) {
     return {
-        soundPlayed: playNotificationSound(),
+        soundPlayed: await playNotificationSound(),
         desktopShown: showDesktopNotification(notification),
     };
 }

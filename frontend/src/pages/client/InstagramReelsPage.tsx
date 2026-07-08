@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -12,6 +13,7 @@ import {
     InstagramDisconnectedState,
     getInstagramDisconnectedCopy,
     igApi,
+    instagramKeys,
     type IgReelRow,
 } from '../../features/instagram';
 import { getApiErrorMessage } from '../../lib/apiError';
@@ -19,6 +21,7 @@ import { useAuth } from '../../store/AuthContext';
 import { MissingCompanyState } from '../../components/client/MissingCompanyState';
 
 const fmtNum = formatInstagramMetric;
+const EMPTY_REELS: IgReelRow[] = [];
 
 function SummaryCard({ label, value, icon: Icon, color, bgColor }: {
     label: string; value: string | number; icon: React.ElementType; color: string; bgColor: string;
@@ -42,7 +45,7 @@ function ReelCard({ item }: { item: IgReelRow }) {
             style={{ boxShadow: '0 4px 24px -8px rgba(0,0,0,0.6)' }}>
             <div className="relative w-full" style={{ aspectRatio: '9/16' }}>
                 {item.thumbnailUrl
-                    ? <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
+                    ? <img src={item.thumbnailUrl} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
                     : <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center"><ImageIcon className="w-8 h-8 text-zinc-700" /></div>
                 }
                 <div className="absolute top-2.5 right-2.5 h-7 w-7 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/15">
@@ -117,34 +120,34 @@ export default function InstagramReelsPage() {
     const location = useLocation();
     const { user, isLoading: authLoading } = useAuth();
     const companyId = user?.companyId;
-    const [reels, setReels] = useState<IgReelRow[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [connected, setConnected] = useState(false);
-    const [username, setUsername] = useState('');
-    const [authUrl, setAuthUrl] = useState('');
-    const [error, setError] = useState('');
     const callbackError = useMemo(
         () => getInstagramOAuthCallbackError(location.search),
         [location.search],
     );
-
-    useEffect(() => {
-        if (authLoading) return;
-        if (!companyId) return;
-        // The request lifecycle owns the page-level loading state.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLoading(true);
-        setError(callbackError);
-        igApi.getStatus(companyId, '/client/instagram/reels')
-            .then(async s => {
-                setConnected(s.connected);
-                setUsername(s.username || '');
-                setAuthUrl(s.authUrl || '');
-                if (s.connected) setReels(await igApi.getReels(companyId, 24));
-            })
-            .catch((err: unknown) => setError(getApiErrorMessage(err, 'Instagram Reels verileri yüklenemedi')))
-            .finally(() => setLoading(false));
-    }, [authLoading, callbackError, companyId]);
+    const companyIdForQuery = companyId ?? '';
+    const statusQuery = useQuery({
+        queryKey: instagramKeys.status(companyIdForQuery, '/client/instagram/reels'),
+        queryFn: () => igApi.getStatus(companyIdForQuery, '/client/instagram/reels'),
+        enabled: !authLoading && Boolean(companyId),
+        staleTime: 5 * 60 * 1000,
+    });
+    const connected = statusQuery.data?.connected ?? false;
+    const reelsQuery = useQuery<IgReelRow[]>({
+        queryKey: [...instagramKeys.reels(companyIdForQuery), 'detail', 24],
+        queryFn: () => igApi.getReels(companyIdForQuery, 24),
+        enabled: Boolean(companyId) && connected,
+        staleTime: 5 * 60 * 1000,
+    });
+    const reels = reelsQuery.data ?? EMPTY_REELS;
+    const username = statusQuery.data?.username || '';
+    const authUrl = statusQuery.data?.authUrl || '';
+    const loading = statusQuery.isLoading || (connected && reelsQuery.isLoading);
+    const error = callbackError
+        || (statusQuery.error
+            ? getApiErrorMessage(statusQuery.error, 'Instagram Reels verileri yüklenemedi')
+            : reelsQuery.error
+                ? getApiErrorMessage(reelsQuery.error, 'Instagram Reels verileri yüklenemedi')
+                : '');
 
     const summary = useMemo(() => ({
         count: reels.length,
@@ -185,7 +188,7 @@ export default function InstagramReelsPage() {
                             <p className="text-sm text-zinc-500">{username ? '@' + username + ' — ' + currentMonthLabel : currentMonthLabel}</p>
                         </div>
                     </div>
-                    {connected && <div className="ml-auto flex items-center gap-1.5 bg-pink-500/10 border border-pink-500/20 rounded-xl px-3 py-2.5"><CheckCircle2 className="w-4 h-4 text-pink-400" /><span className="text-xs text-pink-400 font-medium">Canlı</span></div>}
+                    {connected && <div className="ml-auto flex items-center gap-1.5 bg-pink-500/10 border border-pink-500/20 rounded-xl px-3 py-2.5"><CheckCircle2 className="w-4 h-4 text-pink-400" /><span className="text-xs text-pink-400 font-medium">Bağlı</span></div>}
                 </div>
 
                 {error && (

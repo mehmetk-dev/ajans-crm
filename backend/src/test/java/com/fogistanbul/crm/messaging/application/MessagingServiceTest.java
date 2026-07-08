@@ -89,7 +89,7 @@ class MessagingServiceTest {
                 eq("Yeni mesaj"),
                 eq("hello"),
                 eq("MESSAGE"),
-                eq(savedMsg.getId())
+                eq(convId)
         );
         assertNotNull(result);
         assertEquals("hello", result.getContent());

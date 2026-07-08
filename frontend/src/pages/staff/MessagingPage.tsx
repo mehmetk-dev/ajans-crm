@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, MessageSquare } from "lucide-react";
 import { useAuth } from "../../store/AuthContext";
@@ -22,6 +23,7 @@ import type {
 
 export default function MessagingPage() {
   const { user } = useAuth();
+  const location = useLocation();
   const [conversations, setConversations] = useState<ConversationResponse[]>(
     [],
   );
@@ -43,12 +45,16 @@ export default function MessagingPage() {
     [],
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const routeSelectionRef = useRef<string | null>(null);
 
-  const { handleWsMessage, handleGlobalMessage, handleReadReceipt } =
+  const { handleWsMessage, handleGlobalMessage, handleGlobalGroupMessage, handleReadReceipt } =
     useConversationWebSocketHandlers(
       activeConv?.id || null,
+      activeGroup?.id || null,
       user?.id || null,
       setConversations,
+      setGroups,
+      setGroupMessages,
       setMessages,
     );
 
@@ -57,16 +63,17 @@ export default function MessagingPage() {
     userId: user?.id || null,
     onMessage: handleWsMessage,
     onGlobalMessage: handleGlobalMessage,
+    onGlobalGroupMessage: handleGlobalGroupMessage,
     onReadReceipt: handleReadReceipt,
   });
 
   useEffect(() => {
-  // eslint-disable-next-line react-hooks/immutability
+    // eslint-disable-next-line react-hooks/immutability
     loadConversations();
   }, []);
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, groupMessages]);
 
   const loadConversations = async () => {
     try {
@@ -159,6 +166,33 @@ export default function MessagingPage() {
     }
     setMsgLoading(false);
   };
+
+  useEffect(() => {
+    if (loading) return;
+    const params = new URLSearchParams(location.search);
+    const conversationId = params.get("conversationId");
+    const groupId = params.get("groupId");
+    const routeKey = conversationId ? `dm:${conversationId}` : groupId ? `group:${groupId}` : null;
+    if (!routeKey || routeSelectionRef.current === routeKey) return;
+
+    if (conversationId) {
+      const conversation = conversations.find((item) => item.id === conversationId);
+      if (conversation) {
+        routeSelectionRef.current = routeKey;
+        void selectConversation(conversation);
+      }
+      return;
+    }
+
+    if (groupId) {
+      const group = groups.find((item) => item.id === groupId);
+      if (group) {
+        routeSelectionRef.current = routeKey;
+        setTab("group");
+        void selectGroup(group);
+      }
+    }
+  }, [conversations, groups, loading, location.search]);
 
   const handleGroupSend = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -43,7 +43,7 @@ public class NotificationService {
                 .referenceId(referenceId)
                 .build();
 
-        notification = notificationRepository.save(notification);
+        notification = notificationRepository.saveAndFlush(notification);
         log.debug("Notification sent to user {}: {}", userId, title);
 
         // Real-time push via WebSocket
@@ -73,6 +73,14 @@ public class NotificationService {
     @Transactional
     public void markAllAsRead(UUID userId) {
         notificationRepository.markAllAsRead(userId);
+    }
+
+    @Transactional
+    public void delete(UUID notificationId, UUID userId) {
+        int deleted = notificationRepository.deleteByIdAndUserId(notificationId, userId);
+        if (deleted == 0) {
+            throw new IllegalArgumentException("Bildirim bulunamadı veya silme yetkiniz yok");
+        }
     }
 
     private NotificationResponse toResponse(Notification n) {

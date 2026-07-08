@@ -45,4 +45,10 @@ public class NotificationController {
         notificationService.markAllAsRead(currentUser.id(auth));
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id, Authentication auth) {
+        notificationService.delete(id, currentUser.id(auth));
+        return ResponseEntity.ok().build();
+    }
 }

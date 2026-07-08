@@ -7,6 +7,7 @@ import com.fogistanbul.crm.entity.enums.CompanyKind;
 import com.fogistanbul.crm.entity.enums.ServiceCategory;
 import com.fogistanbul.crm.googleanalytics.application.GoogleAnalyticsService;
 import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse;
+import com.fogistanbul.crm.instagram.application.InstagramMediaSnapshotService;
 import com.fogistanbul.crm.instagram.application.InstagramOverviewService;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshot;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshotStatus;
@@ -58,6 +59,9 @@ class IntegrationSnapshotSyncServiceTest {
     @Mock
     InstagramOverviewService instagramOverviewService;
 
+    @Mock
+    InstagramMediaSnapshotService instagramMediaSnapshotService;
+
     IntegrationSnapshotSyncService service;
 
     @BeforeEach
@@ -69,6 +73,7 @@ class IntegrationSnapshotSyncServiceTest {
                 googleAnalyticsService,
                 searchConsoleService,
                 instagramOverviewService,
+                instagramMediaSnapshotService,
                 new ObjectMapper());
     }
 
@@ -202,6 +207,29 @@ class IntegrationSnapshotSyncServiceTest {
         verify(googleAnalyticsService).getOverview(company.getId(), null, null);
         verify(searchConsoleService).getOverview(company.getId(), null, null);
         verify(snapshotRepository, org.mockito.Mockito.times(2)).save(any());
+    }
+
+    @Test
+    void syncOverviewSnapshotsNow_refreshesInstagramMediaSnapshotsWhenSocialMediaIsActive() {
+        Company company = company();
+
+        when(companyRepository.findById(company.getId())).thenReturn(Optional.of(company));
+        when(companyServiceRepository.findByCompanyIdAndServiceCategory(
+                company.getId(), ServiceCategory.DIGITAL_MARKETING))
+                .thenReturn(Optional.empty());
+        when(companyServiceRepository.findByCompanyIdAndServiceCategory(
+                company.getId(), ServiceCategory.SOCIAL_MEDIA))
+                .thenReturn(Optional.of(activeService()));
+        when(snapshotRepository.findByCompanyIdAndIntegrationTypeAndSnapshotType(
+                company.getId(), IntegrationType.INSTAGRAM, IntegrationSnapshotType.OVERVIEW))
+                .thenReturn(Optional.empty());
+        when(instagramOverviewService.getOverview(company.getId(), null, null))
+                .thenReturn(com.fogistanbul.crm.instagram.dto.InstagramOverviewResponse.disabled());
+
+        service.syncOverviewSnapshotsNow(company.getId());
+
+        verify(instagramOverviewService).getOverview(company.getId(), null, null);
+        verify(instagramMediaSnapshotService).syncMediaSnapshotsNow(company.getId(), true);
     }
 
     private Company company() {

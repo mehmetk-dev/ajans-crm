@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, CheckCheck, ExternalLink } from 'lucide-react';
+import { Bell, CheckCheck, ExternalLink, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { type NotificationResponse } from '../api/features';
 import { useNotifications } from '../hooks/useNotifications';
@@ -29,18 +29,21 @@ const refRoutes: Record<string, Record<string, string>> = {
         SHOOT: '/client/shoots',
         CONTENT_PLAN: '/client/content-plans',
         MESSAGE: '/client/messaging',
+        GROUP_MESSAGE: '/client/messaging',
     },
     staff: {
         TASK: '/staff/tasks',
         SHOOT: '/staff/shoots',
         CONTENT_PLAN: '/staff/content-plans',
         MESSAGE: '/staff/messaging',
+        GROUP_MESSAGE: '/staff/messaging',
     },
     admin: {
         TASK: '/admin/tasks',
         SHOOT: '/admin/shoots',
         CONTENT_PLAN: '/admin/content-plans',
         MESSAGE: '/admin/messaging',
+        GROUP_MESSAGE: '/admin/messaging',
     },
 };
 
@@ -53,7 +56,7 @@ export default function NotificationBell({ accentColor = 'orange' }: Props) {
     const ref = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
     const location = useLocation();
-    const { notifications, unreadCount, error, markAsRead, markAllAsRead } = useNotifications();
+    const { notifications, unreadCount, error, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
 
     const panel = location.pathname.startsWith('/admin') ? 'admin'
         : location.pathname.startsWith('/staff') ? 'staff' : 'client';
@@ -61,7 +64,15 @@ export default function NotificationBell({ accentColor = 'orange' }: Props) {
     const getRoute = (n: NotificationResponse): string | null => {
         if (!n.referenceType) return null;
         const routes = refRoutes[panel];
-        return routes?.[n.referenceType] || null;
+        const baseRoute = routes?.[n.referenceType];
+        if (!baseRoute) return null;
+        if (n.referenceType === 'MESSAGE' && n.referenceId) {
+            return `${baseRoute}?conversationId=${n.referenceId}`;
+        }
+        if (n.referenceType === 'GROUP_MESSAGE' && n.referenceId) {
+            return `${baseRoute}?groupId=${n.referenceId}`;
+        }
+        return baseRoute;
     };
 
     useEffect(() => {
@@ -133,30 +144,44 @@ export default function NotificationBell({ accentColor = 'orange' }: Props) {
                             </div>
                         ) : (
                             notifications.map(n => (
-                                <button
+                                <div
                                     key={n.id}
-                                    onClick={() => {
-                                        markRead(n);
-                                        const route = getRoute(n);
-                                        if (route) navigate(route);
-                                        setOpen(false);
-                                    }}
-                                    className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-white/[0.03] transition-colors border-b border-white/[0.04] last:border-0 ${!n.isRead ? 'bg-white/[0.02]' : ''}`}
+                                    className={`flex items-start gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors border-b border-white/[0.04] last:border-0 ${!n.isRead ? 'bg-white/[0.02]' : ''}`}
                                 >
-                                    <span className="text-lg mt-0.5">{typeIcons[n.type] || '🔔'}</span>
-                                    <div className="flex-1 min-w-0">
-                                        <p className={`text-[13px] font-medium truncate ${n.isRead ? 'text-zinc-400' : 'text-white'}`}>
-                                            {n.title}
-                                        </p>
-                                        {n.message && (
-                                            <p className="text-[12px] text-zinc-600 truncate mt-0.5">{n.message}</p>
+                                    <button
+                                        onClick={() => {
+                                            markRead(n);
+                                            const route = getRoute(n);
+                                            if (route) navigate(route);
+                                            setOpen(false);
+                                        }}
+                                        className="flex items-start gap-3 text-left flex-1 min-w-0"
+                                    >
+                                        <span className="text-lg mt-0.5">{typeIcons[n.type] || '🔔'}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`text-[13px] font-medium truncate ${n.isRead ? 'text-zinc-400' : 'text-white'}`}>
+                                                {n.title}
+                                            </p>
+                                            {n.message && (
+                                                <p className="text-[12px] text-zinc-600 truncate mt-0.5">{n.message}</p>
+                                            )}
+                                            <p className="text-[10px] text-zinc-700 mt-1">{timeAgo(n.createdAt)}</p>
+                                        </div>
+                                        {!n.isRead && (
+                                            <div className={`w-2 h-2 rounded-full mt-1.5 ${colorMap[accentColor] || 'bg-orange-500'}`} />
                                         )}
-                                        <p className="text-[10px] text-zinc-700 mt-1">{timeAgo(n.createdAt)}</p>
-                                    </div>
-                                    {!n.isRead && (
-                                        <div className={`w-2 h-2 rounded-full mt-1.5 ${colorMap[accentColor] || 'bg-orange-500'}`} />
-                                    )}
-                                </button>
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            void deleteNotification(n.id);
+                                        }}
+                                        className="p-1 rounded-md text-zinc-700 hover:text-red-400 hover:bg-red-400/10 transition-colors mt-0.5 flex-shrink-0"
+                                        title="Bildirimi sil"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
                             ))
                         )}
                     </div>

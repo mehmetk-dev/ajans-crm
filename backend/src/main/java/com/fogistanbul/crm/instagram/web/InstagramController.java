@@ -1,7 +1,7 @@
 package com.fogistanbul.crm.instagram.web;
 
 import com.fogistanbul.crm.instagram.application.InstagramAccessPolicy;
-import com.fogistanbul.crm.instagram.application.InstagramMediaService;
+import com.fogistanbul.crm.instagram.application.InstagramMediaSnapshotService;
 import com.fogistanbul.crm.instagram.application.InstagramOverviewService;
 import com.fogistanbul.crm.instagram.dto.InstagramOverviewResponse;
 import com.fogistanbul.crm.instagram.dto.InstagramOverviewResponse.PostRow;
@@ -27,7 +27,7 @@ public class InstagramController {
 
     private final InstagramOAuthService oAuthService;
     private final InstagramOverviewService overviewService;
-    private final InstagramMediaService mediaService;
+    private final InstagramMediaSnapshotService mediaSnapshotService;
     private final InstagramAccessPolicy accessPolicy;
 
     @GetMapping("/status")
@@ -70,7 +70,7 @@ public class InstagramController {
             Authentication authentication) {
         accessPolicy.requireClientAccess(
                 (UUID) authentication.getPrincipal(), companyId);
-        return mediaService.getReels(companyId, Math.max(0, Math.min(limit, 25)));
+        return mediaSnapshotService.getReels(companyId, Math.max(0, Math.min(limit, 25)));
     }
 
     @GetMapping("/posts")
@@ -80,7 +80,7 @@ public class InstagramController {
             Authentication authentication) {
         accessPolicy.requireClientAccess(
                 (UUID) authentication.getPrincipal(), companyId);
-        return mediaService.getPosts(companyId, Math.max(0, Math.min(limit, 50)));
+        return mediaSnapshotService.getPosts(companyId, Math.max(0, Math.min(limit, 50)));
     }
 
     @DeleteMapping("/disconnect")
