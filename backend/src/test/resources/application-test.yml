@@ -22,6 +22,7 @@ app:
     client-id: test-google-client-id
     client-secret: test-google-client-secret
     redirect-uri: http://localhost:8080/api/oauth/google/callback
+    state-secret: test-google-oauth-state-secret-at-least-256-bits-long
   instagram:
     app-id: test-instagram-app-id
     app-secret: test-instagram-app-secret

@@ -14,4 +14,5 @@ export {
     formatMetric,
     sortCampaigns,
 } from './model/googleAds.utils';
+export { getGoogleAdsOAuthCallbackError } from './model/googleAdsOAuthCallback';
 export { default as GoogleAdsPanel } from './ui/GoogleAdsPanel';

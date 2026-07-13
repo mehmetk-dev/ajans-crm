@@ -270,9 +270,9 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
                             aria-label="Sesli bildirim"
                             aria-checked={notificationPrefs.soundEnabled}
                             onClick={toggleNotificationSound}
-                            className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${notificationPrefs.soundEnabled ? 'border-transparent bg-emerald-500' : 'border-white/[0.12] bg-zinc-800'}`}
+                            className={`relative h-6 w-11 shrink-0 overflow-hidden rounded-full border transition-colors ${notificationPrefs.soundEnabled ? 'border-transparent bg-emerald-500' : 'border-white/[0.12] bg-zinc-800'}`}
                         >
-                            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${notificationPrefs.soundEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                            <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${notificationPrefs.soundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                         </button>
                     </div>
 
@@ -291,9 +291,9 @@ export default function SettingsPage({ accentColor = 'blue' }: Props) {
                             aria-checked={notificationPrefs.desktopEnabled}
                             onClick={toggleDesktopNotifications}
                             disabled={notificationPrefs.desktopPermission === 'unsupported'}
-                            className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${notificationPrefs.desktopEnabled ? 'border-transparent bg-emerald-500' : 'border-white/[0.12] bg-zinc-800'}`}
+                            className={`relative h-6 w-11 shrink-0 overflow-hidden rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${notificationPrefs.desktopEnabled ? 'border-transparent bg-emerald-500' : 'border-white/[0.12] bg-zinc-800'}`}
                         >
-                            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${notificationPrefs.desktopEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                            <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${notificationPrefs.desktopEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                         </button>
                     </div>
                 </div>

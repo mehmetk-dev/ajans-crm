@@ -4,6 +4,7 @@ import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.CampaignMetrics;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.DailyMetrics;
+import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.SummaryMetrics;
 import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,6 +53,7 @@ class GoogleAdsServiceTest {
         UUID companyId = UUID.randomUUID();
         when(oAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
                 .thenReturn(true);
+        when(oAuthService.hasAdsScope(companyId)).thenReturn(true);
         when(oAuthService.getAdsCustomerId(companyId)).thenReturn(Optional.empty());
 
         GoogleAdsOverviewResponse result = service.getOverview(companyId, null, null);
@@ -61,10 +63,23 @@ class GoogleAdsServiceTest {
     }
 
     @Test
+    void getOverview_withoutAdsScopeReturnsReconnectResponse() {
+        UUID companyId = UUID.randomUUID();
+        when(oAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS)).thenReturn(true);
+        when(oAuthService.hasAdsScope(companyId)).thenReturn(false);
+
+        GoogleAdsOverviewResponse result = service.getOverview(companyId, null, null);
+
+        assertThat(result.hasAdsScope()).isFalse();
+        verifyNoInteractions(client, mapper);
+    }
+
+    @Test
     void getOverview_withoutAccessToken_returnsError() {
         UUID companyId = UUID.randomUUID();
         when(oAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
                 .thenReturn(true);
+        when(oAuthService.hasAdsScope(companyId)).thenReturn(true);
         when(oAuthService.getAdsCustomerId(companyId)).thenReturn(Optional.of("123-456-7890"));
         when(mapper.sanitizeCustomerId("123-456-7890")).thenReturn("1234567890");
         when(oAuthService.getValidAccessToken(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
@@ -92,13 +107,16 @@ class GoogleAdsServiceTest {
         GoogleAdsOverviewResponse expected = GoogleAdsOverviewResponse.error("1234567890", "mapped");
         List<CampaignMetrics> campaigns = List.of();
         List<DailyMetrics> daily = List.of();
+        SummaryMetrics summary = new SummaryMetrics("TRY", 0, 0, 0, 0, 0, 0);
         when(client.isConfigured()).thenReturn(true);
         when(mapper.resolveDate(anyString(), any())).thenReturn("2026-06-01", "2026-06-12");
         when(client.fetchCampaigns("token", "1234567890", "2026-06-01", "2026-06-12"))
                 .thenReturn(campaigns);
+        when(client.fetchSummary("token", "1234567890", "2026-06-01", "2026-06-12"))
+                .thenReturn(summary);
         when(client.fetchDailyTrend("token", "1234567890", "2026-06-01", "2026-06-12"))
                 .thenReturn(daily);
-        when(mapper.toOverviewResponse("1234567890", campaigns, daily)).thenReturn(expected);
+        when(mapper.toOverviewResponse("1234567890", summary, campaigns, daily)).thenReturn(expected);
 
         assertThat(service.getOverview(companyId, "11daysAgo", "today")).isSameAs(expected);
     }
@@ -118,6 +136,21 @@ class GoogleAdsServiceTest {
     }
 
     @Test
+    void getOverview_unauthorizedDisconnectsStaleAdsToken() {
+        UUID companyId = configuredCompany();
+        when(client.isConfigured()).thenReturn(true);
+        when(mapper.resolveDate(anyString(), any())).thenReturn("2026-06-01", "2026-06-12");
+        when(client.fetchSummary(anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new RuntimeException("401 Unauthorized"));
+        when(mapper.toUserErrorMessage("401 Unauthorized")).thenReturn("reconnect");
+
+        GoogleAdsOverviewResponse result = service.getOverview(companyId, null, null);
+
+        assertThat(result.connected()).isFalse();
+        verify(oAuthService).disconnect(companyId, GoogleOAuthService.SVC_GOOGLE_ADS);
+    }
+
+    @Test
     void expectedAuthorizationFailuresAreRecognizedForCompactLogging() {
         assertThat(GoogleAdsService.isExpectedAuthorizationFailure("401 Unauthorized")).isTrue();
         assertThat(GoogleAdsService.isExpectedAuthorizationFailure("403 PERMISSION_DENIED")).isTrue();
@@ -129,6 +162,7 @@ class GoogleAdsServiceTest {
         UUID companyId = UUID.randomUUID();
         when(oAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
                 .thenReturn(true);
+        when(oAuthService.hasAdsScope(companyId)).thenReturn(true);
         when(oAuthService.getAdsCustomerId(companyId)).thenReturn(Optional.of("123-456-7890"));
         when(mapper.sanitizeCustomerId("123-456-7890")).thenReturn("1234567890");
         when(oAuthService.getValidAccessToken(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))

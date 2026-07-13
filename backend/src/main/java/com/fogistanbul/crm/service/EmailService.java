@@ -90,7 +90,12 @@ public class EmailService {
 
     private void deliverEmailQuietly(String to, String subject, String htmlContent) {
         try {
-            deliverEmailOrThrow(to, subject, htmlContent);
+            MailSettingsService.EffectiveMailSettings settings = mailSettingsService.loadEffectiveSettings();
+            if (!settings.enabled()) {
+                log.debug("Email delivery skipped because mail is disabled");
+                return;
+            }
+            deliverEmail(to, subject, htmlContent, settings);
         } catch (IllegalStateException | MessagingException | MailException e) {
             log.error("Failed to send email to {}: {}", to, e.getMessage());
         }
@@ -102,6 +107,15 @@ public class EmailService {
         if (!settings.enabled()) {
             throw new IllegalStateException("Mail sistemi pasif");
         }
+        deliverEmail(to, subject, htmlContent, settings);
+    }
+
+    private void deliverEmail(
+            String to,
+            String subject,
+            String htmlContent,
+            MailSettingsService.EffectiveMailSettings settings
+    ) throws MessagingException, MailException {
         if (to == null || to.isBlank()) {
             throw new IllegalStateException("Alıcı email boş");
         }

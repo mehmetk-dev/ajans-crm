@@ -9,11 +9,13 @@ export function formatMetric(value: number): string {
     return value.toLocaleString('tr-TR');
 }
 
-export function formatCurrency(value: number): string {
-    return '₺' + value.toLocaleString('tr-TR', {
+export function formatCurrency(value: number, currencyCode = 'TRY'): string {
+    return new Intl.NumberFormat('tr-TR', {
+        style: 'currency',
+        currency: currencyCode || 'TRY',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-    });
+    }).format(value);
 }
 
 export function sortCampaigns(

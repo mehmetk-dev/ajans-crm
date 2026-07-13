@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import {
     TrendingUp, MousePointerClick, Eye, Target, AlertTriangle,
@@ -9,6 +10,7 @@ import {
     campaignStatusTone,
     formatCurrency,
     formatMetric,
+    getGoogleAdsOAuthCallbackError,
     googleAdsApi,
     googleAdsKeys,
     sortCampaigns,
@@ -16,14 +18,22 @@ import {
 } from '../../features/google-ads';
 import { MissingCompanyState } from '../../components/client/MissingCompanyState';
 import { useAuth } from '../../store/AuthContext';
+import { getApiErrorMessage } from '../../lib/apiError';
 
 export default function GoogleAdsDetailPage() {
     const { user, isLoading: authLoading } = useAuth();
     const qc = useQueryClient();
+    const location = useLocation();
+    const navigate = useNavigate();
     const [customerIdInput, setCustomerIdInput] = useState('');
     const [showSetup, setShowSetup] = useState(false);
     const [sortCol, setSortCol] = useState<GoogleAdsSortColumn>('spend');
     const [sortAsc, setSortAsc] = useState(false);
+    const [actionError, setActionError] = useState('');
+    const callbackError = useMemo(
+        () => getGoogleAdsOAuthCallbackError(location.search),
+        [location.search],
+    );
 
     const { data: status, isLoading: statusLoading } = useQuery({
         queryKey: googleAdsKeys.status(user?.companyId ?? ''),
@@ -43,8 +53,18 @@ export default function GoogleAdsDetailPage() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: googleAdsKeys.all });
             setShowSetup(false);
+            setActionError('');
         },
+        onError: (error: unknown) => setActionError(
+            getApiErrorMessage(error, 'Müşteri ID kaydedilemedi'),
+        ),
     });
+
+    useEffect(() => {
+        if (new URLSearchParams(location.search).get('connected') !== 'true') return;
+        qc.invalidateQueries({ queryKey: googleAdsKeys.all });
+        navigate(location.pathname, { replace: true });
+    }, [location.pathname, location.search, navigate, qc]);
 
     const disconnectMut = useMutation({
         mutationFn: () => googleAdsApi.disconnect(user!.companyId!),
@@ -68,6 +88,9 @@ export default function GoogleAdsDetailPage() {
     }
 
     const customerId = status?.customerId || data?.customerId || '';
+    const effectiveConnected = Boolean(status?.connected && data?.connected !== false);
+    const needsReconnect = Boolean(status && (!effectiveConnected || !status.hasAdsScope));
+    const visibleError = callbackError || actionError || data?.errorMessage || '';
     const sortedCampaigns = sortCampaigns(data?.campaigns ?? [], sortCol, sortAsc);
 
     const handleSort = (col: typeof sortCol) => {
@@ -100,21 +123,17 @@ export default function GoogleAdsDetailPage() {
                             className="p-2 rounded-xl border border-white/[0.06] text-zinc-500 hover:text-zinc-300 transition-colors">
                             <RefreshCw className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => setShowSetup(v => !v)}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/[0.06] text-zinc-400 hover:text-white text-[12px] transition-colors">
-                            <Link className="w-3.5 h-3.5" />
-                            {customerId ? 'ID Güncelle' : 'ID Bağla'}
-                        </button>
-                        {status && !status.connected && (
+                        {effectiveConnected && (
+                            <button onClick={() => setShowSetup(v => !v)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/[0.06] text-zinc-400 hover:text-white text-[12px] transition-colors">
+                                <Link className="w-3.5 h-3.5" />
+                                {customerId ? 'ID Güncelle' : 'ID Bağla'}
+                            </button>
+                        )}
+                        {needsReconnect && status && (
                             <a href={status.authUrl}
                                 className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-semibold transition-colors">
-                                Google ile Bağla
-                            </a>
-                        )}
-                        {status?.connected && !status.hasAdsScope && (
-                            <a href={status.authUrl}
-                                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[12px] font-semibold transition-colors">
-                                Yetki Güncelle
+                                {status.connected ? 'Yeniden Bağla' : 'Google ile Bağla'}
                             </a>
                         )}
                         {status?.connected && (
@@ -136,7 +155,7 @@ export default function GoogleAdsDetailPage() {
                 </div>
 
                 {/* Setup form */}
-                {(showSetup || (status?.connected && !customerId)) && (
+                {effectiveConnected && (showSetup || !customerId) && (
                     <div className="relative mt-4 flex items-center gap-3">
                         <input
                             value={customerIdInput}
@@ -156,7 +175,7 @@ export default function GoogleAdsDetailPage() {
                 )}
             </div>
 
-            {!status?.connected && (
+            {!effectiveConnected && !visibleError && (
                 <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                     <div>
@@ -166,7 +185,7 @@ export default function GoogleAdsDetailPage() {
                 </div>
             )}
 
-            {status?.connected && !customerId && (
+            {effectiveConnected && !customerId && (
                 <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-5 flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
                     <div>
@@ -176,12 +195,12 @@ export default function GoogleAdsDetailPage() {
                 </div>
             )}
 
-            {status?.connected && customerId && data?.errorMessage && (
+            {visibleError && (
                 <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                     <div>
-                        <p className="text-sm font-semibold text-white">{data.errorMessage}</p>
-                        <p className="text-xs text-zinc-500 mt-1">Bağlantı aktif görünüyor; izinleri veya müşteri ID'sini kontrol edin.</p>
+                        <p className="text-sm font-semibold text-white">{visibleError}</p>
+                        <p className="text-xs text-zinc-500 mt-1">Google Ads hesabını, iki adımlı doğrulamayı ve yönetici hesap erişimini kontrol edin.</p>
                     </div>
                 </div>
             )}
@@ -192,12 +211,12 @@ export default function GoogleAdsDetailPage() {
                 </div>
             )}
 
-            {data?.connected && customerId && !data.errorMessage && !isLoading && (
+            {effectiveConnected && data?.connected && customerId && !visibleError && !isLoading && (
                 <>
                     {/* KPI cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         {[
-                            { label: 'Toplam Harcama',  value: formatCurrency(data.totalSpend), icon: TrendingUp,        color: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20' },
+                            { label: 'Toplam Harcama',  value: formatCurrency(data.totalSpend, data.currencyCode), icon: TrendingUp,        color: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20' },
                             { label: 'Tıklama',         value: formatMetric(data.clicks),       icon: MousePointerClick,  color: 'text-violet-400',  bg: 'bg-violet-500/10',  border: 'border-violet-500/20' },
                             { label: 'Gösterim',        value: formatMetric(data.impressions),  icon: Eye,                color: 'text-cyan-400',    bg: 'bg-cyan-500/10',    border: 'border-cyan-500/20' },
                             { label: 'Dönüşüm',         value: formatMetric(data.conversions),  icon: Target,             color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
@@ -218,7 +237,7 @@ export default function GoogleAdsDetailPage() {
                     {/* Secondary metrics */}
                     <div className="grid grid-cols-3 gap-4">
                         {[
-                            { label: 'CPC (Tıklama Başı Maliyet)', value: formatCurrency(data.cpc) },
+                            { label: 'CPC (Tıklama Başı Maliyet)', value: formatCurrency(data.cpc, data.currencyCode) },
                             { label: 'CTR (Tıklama Oranı)',         value: data.ctr.toFixed(2) + '%' },
                             { label: 'Dönüşüm Oranı',               value: data.conversionRate.toFixed(2) + '%' },
                         ].map(m => (
@@ -250,7 +269,7 @@ export default function GoogleAdsDetailPage() {
                                         contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12 }}
                                         labelStyle={{ color: '#a1a1aa', fontSize: 11 }}
                                         itemStyle={{ color: '#3b82f6', fontSize: 12 }}
-                                        formatter={(v) => [formatCurrency(Number(v ?? 0)), 'Harcama']}
+                                        formatter={(v) => [formatCurrency(Number(v ?? 0), data.currencyCode), 'Harcama']}
                                     />
                                     <Area type="monotone" dataKey="spend" stroke="#3b82f6" strokeWidth={2} fill="url(#gadsGrad)" />
                                 </AreaChart>
@@ -288,7 +307,7 @@ export default function GoogleAdsDetailPage() {
                                                     <p className="text-[12px] text-white font-medium">{c.campaignName}</p>
                                                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${campaignStatusTone(c.status)}`}>{c.status}</span>
                                                 </td>
-                                                <td className="px-4 py-3 text-right text-[12px] font-semibold text-blue-400">{formatCurrency(c.spend)}</td>
+                                                <td className="px-4 py-3 text-right text-[12px] font-semibold text-blue-400">{formatCurrency(c.spend, data.currencyCode)}</td>
                                                 <td className="px-4 py-3 text-right text-[12px] text-zinc-300">{formatMetric(c.clicks)}</td>
                                                 <td className="px-4 py-3 text-right text-[12px] text-zinc-300">{formatMetric(c.impressions)}</td>
                                                 <td className="px-4 py-3 text-right text-[12px] text-zinc-300">{formatMetric(c.conversions)}</td>

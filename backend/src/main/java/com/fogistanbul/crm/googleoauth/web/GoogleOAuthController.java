@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 
@@ -28,16 +29,48 @@ public class GoogleOAuthController {
      * ?code=...&state=<companyId>
      */
     @GetMapping("/callback")
-    public void callback(@RequestParam String code,
+    public void callback(@RequestParam(required = false) String code,
+                         @RequestParam(required = false) String error,
                          @RequestParam String state,
                          HttpServletResponse response) throws IOException {
         try {
+            if (error != null && !error.isBlank()) {
+                redirectWithError(response, googleOAuthService.getRedirectPathForState(state),
+                        "Google bağlantı izni reddedildi");
+                return;
+            }
+            if (code == null || code.isBlank()) {
+                redirectWithError(response, googleOAuthService.getRedirectPathForState(state),
+                        "Google bağlantı kodu alınamadı");
+                return;
+            }
             String redirectPath = googleOAuthService.handleCallback(code, state);
             response.sendRedirect(googleOAuthService.getFrontendUrl() + redirectPath);
         } catch (Exception e) {
             log.error("OAuth callback hatası: {}", e.getMessage(), e);
-            response.sendRedirect(googleOAuthService.getFrontendUrl()
-                    + "/client/analytics?error=" + e.getMessage());
+            redirectWithError(response, safeRedirectPath(state), e.getMessage());
         }
+    }
+
+    private String safeRedirectPath(String state) {
+        try {
+            return googleOAuthService.getRedirectPathForState(state);
+        } catch (Exception ignored) {
+            return "/client/analytics";
+        }
+    }
+
+    private void redirectWithError(HttpServletResponse response, String redirectPath, String message)
+            throws IOException {
+        String location = UriComponentsBuilder
+                .fromUriString(googleOAuthService.getFrontendUrl() + redirectPath)
+                .replaceQueryParam("connected")
+                .queryParam("oauthError", message != null && !message.isBlank()
+                        ? message
+                        : "Google bağlantısı tamamlanamadı")
+                .build()
+                .encode()
+                .toUriString();
+        response.sendRedirect(location);
     }
 }

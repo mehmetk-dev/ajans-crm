@@ -1,4 +1,4 @@
-import { useState, useId } from 'react';
+import { useState, useId, useRef } from 'react';
 import type { CompanyResponse } from '../../company';
 import { taskApi } from '../api/taskApi';
 import type { AssignableUser, TaskCategory } from '../api/task.types';
@@ -27,6 +27,7 @@ export function QuickTaskForm({
     onDone,
 }: Props) {
     const fid = useId();
+    const submittingRef = useRef(false);
     const [form, setForm] = useState({
         assignedToId: '',
         title: '',
@@ -40,7 +41,8 @@ export function QuickTaskForm({
 
     async function submit(event: React.FormEvent) {
         event.preventDefault();
-        if (!form.assignedToId || !form.title.trim()) return;
+        if (submittingRef.current || !form.assignedToId || !form.title.trim()) return;
+        submittingRef.current = true;
         setLoading(true);
         try {
             await taskApi.create({
@@ -56,6 +58,7 @@ export function QuickTaskForm({
         } catch {
             // Keep the form open so the user can retry.
         } finally {
+            submittingRef.current = false;
             setLoading(false);
         }
     }

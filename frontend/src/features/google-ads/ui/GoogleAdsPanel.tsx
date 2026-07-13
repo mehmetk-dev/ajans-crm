@@ -63,13 +63,19 @@ export default function GoogleAdsPanel({ companyId }: Props) {
         </div>
     );
 
-    if (!data.hasAdsScope || (data.customerId && data.errorMessage)) return (
+    if (!data.connected || !data.hasAdsScope || (data.customerId && data.errorMessage)) return (
         <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
             <div className="flex items-start gap-3">
                 <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <div>
                     <p className="text-[12px] font-semibold text-white">{data.errorMessage || 'Yetki eksik'}</p>
                     <p className="text-[11px] text-zinc-500 mt-1">Google hesabını yeniden bağlayın veya Müşteri ID'yi girin.</p>
+                    {status?.authUrl && (
+                        <a href={status.authUrl}
+                            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-[11px] font-semibold text-white hover:bg-blue-500">
+                            <Link2 className="h-3.5 w-3.5" /> Yeniden Bağla
+                        </a>
+                    )}
                 </div>
             </div>
         </div>
@@ -87,7 +93,7 @@ export default function GoogleAdsPanel({ companyId }: Props) {
     );
 
     const stats = [
-        { label: 'Harcama',        value: formatCurrency(data.totalSpend), icon: TrendingUp,        color: 'text-blue-400' },
+        { label: 'Harcama',        value: formatCurrency(data.totalSpend, data.currencyCode), icon: TrendingUp,        color: 'text-blue-400' },
         { label: 'Tıklama',        value: formatMetric(data.clicks),       icon: MousePointerClick,  color: 'text-violet-400' },
         { label: 'Gösterim',       value: formatMetric(data.impressions),  icon: Eye,                color: 'text-cyan-400' },
         { label: 'Dönüşüm',        value: formatMetric(data.conversions),  icon: Target,             color: 'text-emerald-400' },
@@ -113,7 +119,7 @@ export default function GoogleAdsPanel({ companyId }: Props) {
 
             {/* Secondary metrics */}
             <div className="flex items-center gap-4 px-1 text-[11px] text-zinc-500 flex-wrap">
-                <span>CPC: <strong className="text-zinc-300">{formatCurrency(data.cpc)}</strong></span>
+                <span>CPC: <strong className="text-zinc-300">{formatCurrency(data.cpc, data.currencyCode)}</strong></span>
                 <span>CTR: <strong className="text-zinc-300">{data.ctr.toFixed(2)}%</strong></span>
                 <span>Dönüşüm Oranı: <strong className="text-zinc-300">{data.conversionRate.toFixed(2)}%</strong></span>
             </div>
@@ -128,7 +134,7 @@ export default function GoogleAdsPanel({ companyId }: Props) {
                                 <p className="text-[12px] font-medium text-white truncate">{c.campaignName}</p>
                                 <p className="text-[10px] text-zinc-600">{c.clicks.toLocaleString()} tıklama · {c.impressions.toLocaleString()} gösterim</p>
                             </div>
-                            <span className="text-[12px] font-semibold text-blue-400 shrink-0">{formatCurrency(c.spend)}</span>
+                            <span className="text-[12px] font-semibold text-blue-400 shrink-0">{formatCurrency(c.spend, data.currencyCode)}</span>
                         </div>
                     ))}
                 </div>

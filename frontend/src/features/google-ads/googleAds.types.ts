@@ -21,6 +21,7 @@ export interface GoogleAdsOverviewResponse {
     connected: boolean;
     hasAdsScope: boolean;
     customerId: string | null;
+    currencyCode: string;
     errorMessage: string | null;
     totalSpend: number;
     impressions: number;

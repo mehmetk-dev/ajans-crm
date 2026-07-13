@@ -42,10 +42,11 @@ public class GoogleOAuthService {
     private final GoogleOAuthTokenRepository tokenRepository;
     private final CompanyRepository companyRepository;
     private final GoogleTokenHttpClient tokenHttpClient;
+    private final GoogleOAuthStateCodec stateCodec;
 
     public String buildAuthorizationUrl(UUID companyId, String serviceType) {
         String scope = GoogleServiceRegistry.scopeFor(serviceType);
-        String state = companyId.toString() + ":" + serviceType;
+        String state = stateCodec.encode(companyId, serviceType);
         return UriComponentsBuilder.fromHttpUrl(AUTH_URL)
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
@@ -64,15 +65,9 @@ public class GoogleOAuthService {
 
     @Transactional
     public String handleCallback(String code, String state) {
-        String serviceType = SVC_ANALYTICS;
-        UUID companyId;
-        if (state.contains(":")) {
-            String[] parts = state.split(":", 2);
-            companyId = UUID.fromString(parts[0]);
-            serviceType = parts[1];
-        } else {
-            companyId = UUID.fromString(state);
-        }
+        GoogleOAuthStateCodec.OAuthState oauthState = stateCodec.decode(state);
+        String serviceType = oauthState.serviceType();
+        UUID companyId = oauthState.companyId();
 
         Map<String, Object> tokenResponse = tokenHttpClient.exchangeCodeForTokens(code);
         String accessToken = (String) tokenResponse.get("access_token");
@@ -80,7 +75,7 @@ public class GoogleOAuthService {
         Integer expiresIn = (Integer) tokenResponse.get("expires_in");
         String scope = (String) tokenResponse.get("scope");
 
-        if (accessToken == null || refreshToken == null) {
+        if (accessToken == null) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR", "Google token exchange başarısız");
         }
 
@@ -91,6 +86,14 @@ public class GoogleOAuthService {
         GoogleOAuthToken token = tokenRepository.findByCompanyIdAndServiceType(companyId, serviceType)
                 .orElse(GoogleOAuthToken.builder().company(company).serviceType(serviceType).build());
 
+        if (refreshToken == null || refreshToken.isBlank()) {
+            refreshToken = token.getRefreshToken();
+        }
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_ERROR",
+                    "Google yenileme tokenı alınamadı; hesabı yeniden bağlayın");
+        }
+
         token.setAccessToken(accessToken);
         token.setRefreshToken(refreshToken);
         token.setTokenExpiry(expiry);
@@ -100,6 +103,10 @@ public class GoogleOAuthService {
         log.info("Google OAuth token kaydedildi, company={}, serviceType={}", companyId, serviceType);
 
         return GoogleServiceRegistry.redirectFor(serviceType);
+    }
+
+    public String getRedirectPathForState(String state) {
+        return GoogleServiceRegistry.redirectFor(stateCodec.decode(state).serviceType());
     }
 
     @Transactional
@@ -157,10 +164,11 @@ public class GoogleOAuthService {
 
     @Transactional
     public void saveAdsCustomerId(UUID companyId, String customerId) {
-        tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_GOOGLE_ADS).ifPresent(token -> {
-            token.setAdsCustomerId(customerId.replaceAll("[^0-9]", ""));
-            tokenRepository.save(token);
-        });
+        GoogleOAuthToken token = tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_GOOGLE_ADS)
+                .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "GOOGLE_ADS_NOT_CONNECTED",
+                        "Önce Google Ads hesabını bağlayın"));
+        token.setAdsCustomerId(customerId);
+        tokenRepository.save(token);
     }
 
     public Optional<String> getAdsCustomerId(UUID companyId) {
@@ -198,7 +206,10 @@ public class GoogleOAuthService {
     }
 
     public boolean hasAdsScope(UUID companyId) {
-        return tokenRepository.existsByCompanyIdAndServiceType(companyId, SVC_GOOGLE_ADS);
+        return tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_GOOGLE_ADS)
+                .map(GoogleOAuthToken::getScope)
+                .map(scope -> scope.contains(GoogleServiceRegistry.scopeFor(SVC_GOOGLE_ADS)))
+                .orElse(false);
     }
 
     public String getFrontendUrl() {

@@ -3,6 +3,7 @@ package com.fogistanbul.crm.googleads.application;
 import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.CampaignMetrics;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.DailyMetrics;
+import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.SummaryMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -40,13 +41,14 @@ class GoogleAdsMapperTest {
     void toCampaignRow_convertsMicrosAndCtrRatio() {
         CampaignMetrics metrics = new CampaignMetrics(
                 "1", "Brand", "ENABLED",
-                12_500_000, 1000, 50, 5, 0.05, 250_000);
+                12_500_000, 1000, 50, 5.5, 0.05, 250_000);
 
         GoogleAdsOverviewResponse.CampaignRow result = mapper.toCampaignRow(metrics);
 
         assertThat(result.spend()).isEqualTo(12.5);
         assertThat(result.cpc()).isEqualTo(0.25);
         assertThat(result.ctr()).isEqualTo(5.0);
+        assertThat(result.conversions()).isEqualTo(5.5);
     }
 
     @Test
@@ -73,13 +75,15 @@ class GoogleAdsMapperTest {
 
         GoogleAdsOverviewResponse result = mapper.toOverviewResponse(
                 "1234567890",
+                new SummaryMetrics("EUR", 45_000_000, 4500, 225, 22.5, 0.05, 200_000),
                 List.of(first, second),
                 List.of(new DailyMetrics("2026-06-12", 30_000_000, 150, 3000)));
 
-        assertThat(result.totalSpend()).isEqualTo(30.0);
-        assertThat(result.impressions()).isEqualTo(3000);
-        assertThat(result.clicks()).isEqualTo(150);
-        assertThat(result.conversions()).isEqualTo(15);
+        assertThat(result.currencyCode()).isEqualTo("EUR");
+        assertThat(result.totalSpend()).isEqualTo(45.0);
+        assertThat(result.impressions()).isEqualTo(4500);
+        assertThat(result.clicks()).isEqualTo(225);
+        assertThat(result.conversions()).isEqualTo(22.5);
         assertThat(result.ctr()).isEqualTo(5.0);
         assertThat(result.cpc()).isEqualTo(0.2);
         assertThat(result.conversionRate()).isEqualTo(10.0);

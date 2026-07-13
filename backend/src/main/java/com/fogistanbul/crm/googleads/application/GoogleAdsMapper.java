@@ -5,6 +5,7 @@ import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse.CampaignRow;
 import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse.DailySpendRow;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.CampaignMetrics;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.DailyMetrics;
+import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.SummaryMetrics;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -17,32 +18,30 @@ public class GoogleAdsMapper {
 
     public GoogleAdsOverviewResponse toOverviewResponse(
             String customerId,
+            SummaryMetrics summary,
             List<CampaignMetrics> campaignMetrics,
             List<DailyMetrics> dailyMetrics) {
         List<CampaignRow> campaigns = campaignMetrics.stream()
                 .map(this::toCampaignRow)
                 .toList();
 
-        double totalSpend = campaigns.stream().mapToDouble(CampaignRow::spend).sum();
-        long impressions = campaigns.stream().mapToLong(CampaignRow::impressions).sum();
-        long clicks = campaigns.stream().mapToLong(CampaignRow::clicks).sum();
-        long conversions = campaigns.stream().mapToLong(CampaignRow::conversions).sum();
-
-        double ctr = impressions > 0 ? (double) clicks / impressions * 100 : 0;
-        double cpc = clicks > 0 ? totalSpend / clicks : 0;
-        double conversionRate = clicks > 0 ? (double) conversions / clicks * 100 : 0;
+        double totalSpend = fromMicros(summary.costMicros());
+        double conversionRate = summary.clicks() > 0
+                ? summary.conversions() / summary.clicks() * 100
+                : 0;
 
         return new GoogleAdsOverviewResponse(
                 true,
                 true,
                 customerId,
+                summary.currencyCode(),
                 null,
                 totalSpend,
-                impressions,
-                clicks,
-                conversions,
-                ctr,
-                cpc,
+                summary.impressions(),
+                summary.clicks(),
+                summary.conversions(),
+                summary.ctr() * 100,
+                fromMicros(summary.averageCpcMicros()),
                 conversionRate,
                 campaigns,
                 aggregateDailyRows(dailyMetrics));
@@ -95,14 +94,21 @@ public class GoogleAdsMapper {
     }
 
     public String toUserErrorMessage(String message) {
+        if (message.contains("TWO_STEP_VERIFICATION_NOT_ENROLLED")) {
+            return "Google Ads için Google hesabında iki adımlı doğrulamayı etkinleştirin.";
+        }
+        if (message.contains("DEVELOPER_TOKEN_") || message.contains("developer-token")) {
+            return "Google Ads developer token geçersiz, onaysız veya OAuth projesiyle uyumsuz.";
+        }
+        if (message.contains("INVALID_LOGIN_CUSTOMER_ID_SERVING_CUSTOMER_ID_COMBINATION")
+                || message.contains("USER_PERMISSION_DENIED")) {
+            return "Google Ads yönetici hesabının bu müşteri hesabına erişimi yok.";
+        }
         if (message.contains("401") || message.contains("UNAUTHENTICATED")) {
             return "Google Ads oturumu sona ermiş. Lütfen hesabı yeniden bağlayın.";
         }
         if (message.contains("403") || message.contains("PERMISSION_DENIED")) {
             return "Google Ads hesabına erişim yetkisi yok. Müşteri ve yönetici hesaplarını kontrol edin.";
-        }
-        if (message.contains("developer-token")) {
-            return "Google Ads developer token geçersiz veya onaylanmamış.";
         }
         return "Veri çekme hatası: " + message.split("\n")[0];
     }

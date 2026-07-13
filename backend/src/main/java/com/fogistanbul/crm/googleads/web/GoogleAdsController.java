@@ -8,6 +8,8 @@ import com.fogistanbul.crm.googleads.dto.GoogleAdsStatusResponse;
 import com.fogistanbul.crm.googleads.dto.GoogleAdsWriteResponse;
 import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import lombok.RequiredArgsConstructor;
+import com.fogistanbul.crm.exception.ApiException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,14 +27,15 @@ public class GoogleAdsController {
     @GetMapping("/status")
     public GoogleAdsStatusResponse status(@RequestParam UUID companyId, Authentication auth) {
         accessPolicy.requireClientAccess((UUID) auth.getPrincipal(), companyId);
-        boolean connected = googleOAuthService.isConnected(
-                companyId, GoogleOAuthService.SVC_GOOGLE_ADS);
+        boolean connected = googleOAuthService.getValidAccessToken(
+                companyId, GoogleOAuthService.SVC_GOOGLE_ADS).isPresent();
+        boolean hasAdsScope = googleOAuthService.hasAdsScope(companyId);
         String customerId = googleOAuthService.getAdsCustomerId(companyId).orElse(null);
         String authUrl = googleOAuthService.buildAuthorizationUrl(
                 companyId, GoogleOAuthService.SVC_GOOGLE_ADS);
         return new GoogleAdsStatusResponse(
                 connected,
-                connected,
+                hasAdsScope,
                 customerId != null ? customerId : "",
                 authUrl);
     }
@@ -51,11 +54,14 @@ public class GoogleAdsController {
             @RequestBody GoogleAdsCustomerIdRequest request,
             Authentication auth) {
         accessPolicy.requireClientAccess((UUID) auth.getPrincipal(), companyId);
-        String customerId = request.customerId();
-        if (customerId == null || customerId.isBlank()) {
-            return GoogleAdsWriteResponse.error("customerId bos olamaz");
+        String customerId = request.customerId() != null
+                ? request.customerId().replaceAll("[^0-9]", "")
+                : "";
+        if (!customerId.matches("\\d{10}")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_GOOGLE_ADS_CUSTOMER_ID",
+                    "Google Ads müşteri ID'si 10 haneli olmalıdır");
         }
-        googleOAuthService.saveAdsCustomerId(companyId, customerId.trim());
+        googleOAuthService.saveAdsCustomerId(companyId, customerId);
         return GoogleAdsWriteResponse.ok();
     }
 

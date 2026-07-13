@@ -48,10 +48,14 @@ describe('formatMetric', () => {
 
 describe('formatCurrency', () => {
     it('Türk lirasını iki ondalıkla biçimlendirir', () => {
-        const result = formatCurrency(1234.5);
+        const result = formatCurrency(1234.5, 'TRY');
         expect(result).toContain('₺');
         expect(result).toContain('1.234');
         expect(result).toContain('50');
+    });
+
+    it('hesabın para birimini kullanır', () => {
+        expect(formatCurrency(1234.5, 'EUR')).toContain('€');
     });
 });
 

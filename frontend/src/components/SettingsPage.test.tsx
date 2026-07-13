@@ -157,4 +157,17 @@ describe('SettingsPage', () => {
         fireEvent.click(withinSection.getByRole('button', { name: /Sesi test et/i }));
         expect(mocks.playNotificationSound).toHaveBeenCalledTimes(1);
     });
+
+    it('keeps notification switch knobs anchored inside their tracks', () => {
+        renderSettingsPage();
+
+        const notificationsSection = screen.getByRole('heading', { name: 'Bildirimler' }).parentElement!.parentElement!;
+        const switches = within(notificationsSection).getAllByRole('switch');
+
+        expect(switches).toHaveLength(2);
+        switches.forEach((switchButton) => {
+            expect(switchButton).toHaveClass('overflow-hidden');
+            expect(switchButton.firstElementChild).toHaveClass('left-0.5');
+        });
+    });
 });

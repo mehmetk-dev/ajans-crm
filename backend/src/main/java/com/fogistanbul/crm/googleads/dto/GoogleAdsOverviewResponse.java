@@ -6,13 +6,14 @@ public record GoogleAdsOverviewResponse(
         boolean connected,
         boolean hasAdsScope,
         String customerId,
+        String currencyCode,
         String errorMessage,
 
         // Temel metrikler (son 30 gün)
         double totalSpend,
         long impressions,
         long clicks,
-        long conversions,
+        double conversions,
         double ctr,
         double cpc,
         double conversionRate,
@@ -24,18 +25,23 @@ public record GoogleAdsOverviewResponse(
         List<DailySpendRow> dailyTrend
 ) {
     public static GoogleAdsOverviewResponse disabled() {
-        return new GoogleAdsOverviewResponse(false, false, null, null,
+        return new GoogleAdsOverviewResponse(false, false, null, "TRY", null,
                 0, 0, 0, 0, 0, 0, 0, List.of(), List.of());
     }
 
     public static GoogleAdsOverviewResponse noScope(String customerId) {
-        return new GoogleAdsOverviewResponse(true, false, customerId,
+        return new GoogleAdsOverviewResponse(true, false, customerId, "TRY",
                 "Google Ads yetkisi eksik. Lütfen Google hesabını yeniden bağlayın.",
                 0, 0, 0, 0, 0, 0, 0, List.of(), List.of());
     }
 
     public static GoogleAdsOverviewResponse error(String customerId, String msg) {
-        return new GoogleAdsOverviewResponse(true, true, customerId, msg,
+        return new GoogleAdsOverviewResponse(true, true, customerId, "TRY", msg,
+                0, 0, 0, 0, 0, 0, 0, List.of(), List.of());
+    }
+
+    public static GoogleAdsOverviewResponse disconnected(String customerId, String msg) {
+        return new GoogleAdsOverviewResponse(false, false, customerId, "TRY", msg,
                 0, 0, 0, 0, 0, 0, 0, List.of(), List.of());
     }
 
@@ -46,7 +52,7 @@ public record GoogleAdsOverviewResponse(
             double spend,
             long impressions,
             long clicks,
-            long conversions,
+            double conversions,
             double ctr,
             double cpc
     ) {}

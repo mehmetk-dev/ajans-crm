@@ -41,7 +41,7 @@ export function CreateCompanyForm({
                 </button>
             </div>
 
-            <form onSubmit={onSubmit} className="p-6 space-y-6">
+            <form onSubmit={onSubmit} autoComplete="off" className="p-6 space-y-6">
                 {error && (
                     <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs">{error}</div>
                 )}
@@ -95,12 +95,14 @@ export function CreateCompanyForm({
                     <input value={form.ownerFullName ?? ''} onChange={e => onFieldChange('ownerFullName', e.target.value)}
                         className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none"
                         placeholder="Ad Soyad *" required />
-                    <input value={form.ownerEmail ?? ''} onChange={e => onFieldChange('ownerEmail', e.target.value)}
+                    <input name="ownerEmail" value={form.ownerEmail ?? ''} onChange={e => onFieldChange('ownerEmail', e.target.value)}
+                        autoComplete="off"
                         type="email" className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none"
                         placeholder="Email *" required />
-                    <input value={form.ownerPassword ?? ''} onChange={e => onFieldChange('ownerPassword', e.target.value)}
+                    <input name="ownerPassword" value={form.ownerPassword ?? ''} onChange={e => onFieldChange('ownerPassword', e.target.value)}
+                        autoComplete="new-password" minLength={8}
                         type="password" className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none"
-                        placeholder="Şifre *" required />
+                        placeholder="Şifre (en az 8 karakter) *" required />
                     <input value={form.ownerPhone ?? ''} onChange={e => onFieldChange('ownerPhone', e.target.value)}
                         className="w-full px-4 py-3 glass-input rounded-xl text-sm text-white outline-none" placeholder="Telefon" />
                     <div className="col-span-1 sm:col-span-2">

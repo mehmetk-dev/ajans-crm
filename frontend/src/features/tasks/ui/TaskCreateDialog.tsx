@@ -1,4 +1,4 @@
-import { useEffect, useState, useId } from 'react';
+import { useEffect, useState, useId, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { CompanyResponse } from '../../company';
@@ -32,6 +32,7 @@ const inputClass = 'w-full mt-1 px-4 py-2.5 bg-[#18181b]/60 border border-white/
 export function TaskCreateDialog({ open, companies, mode = 'staff', defaultCompanyId, onClose, onCreated }: Props) {
     const fid = useId();
     const [form, setForm] = useState<CreateTaskInput>(() => emptyForm(defaultCompanyId));
+    const submittingRef = useRef(false);
     const { data: users = [] } = useAssignableUsers(form.companyId, mode);
     const { data: notificationRecipients = [] } = useNotificationRecipients(form.companyId, mode);
     const createTask = useCreateTask(mode);
@@ -46,6 +47,7 @@ export function TaskCreateDialog({ open, companies, mode = 'staff', defaultCompa
     }, [defaultCompanyId, open]);
 
     function close() {
+        submittingRef.current = false;
         setForm(emptyForm(defaultCompanyId));
         onClose();
     }
@@ -61,7 +63,8 @@ export function TaskCreateDialog({ open, companies, mode = 'staff', defaultCompa
 
     function submit(event: React.FormEvent) {
         event.preventDefault();
-        if (!form.assignedToId || !form.title.trim()) return;
+        if (submittingRef.current || !form.assignedToId || !form.title.trim()) return;
+        submittingRef.current = true;
         const payload: CreateTaskInput = { ...form };
         if (!payload.notifyUserIds?.length) {
             delete payload.notifyUserIds;
@@ -70,6 +73,9 @@ export function TaskCreateDialog({ open, companies, mode = 'staff', defaultCompa
             onSuccess: task => {
                 onCreated?.(task);
                 close();
+            },
+            onError: () => {
+                submittingRef.current = false;
             },
         });
     }

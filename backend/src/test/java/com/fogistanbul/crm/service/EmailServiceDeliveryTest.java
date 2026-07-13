@@ -5,8 +5,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.core.read.ListAppender;
 import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -20,6 +24,26 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 class EmailServiceDeliveryTest {
+
+    @Test
+    void notificationEmailDoesNotLogAnErrorWhenMailIsDisabled() {
+        MailSettingsService mailSettingsService = mock(MailSettingsService.class);
+        when(mailSettingsService.loadEffectiveSettings()).thenReturn(settings(false, 2525));
+        EmailService emailService = new EmailService(mailSettingsService);
+        Logger logger = (Logger) LoggerFactory.getLogger(EmailService.class);
+        ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            emailService.sendEmail("user@example.com", "Bildirim", "<p>Test</p>");
+
+            assertThat(appender.list)
+                    .noneMatch(event -> event.getLevel() == Level.ERROR);
+        } finally {
+            logger.detachAppender(appender);
+        }
+    }
 
     @Test
     void sendTestEmailDoesNotContactSmtpWhenMailIsDisabled() {

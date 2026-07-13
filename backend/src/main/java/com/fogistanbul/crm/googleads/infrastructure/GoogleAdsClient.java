@@ -13,6 +13,10 @@ import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
@@ -61,6 +65,30 @@ public class GoogleAdsClient {
                 .toList();
     }
 
+    public SummaryMetrics fetchSummary(
+            String accessToken,
+            String customerId,
+            String startDate,
+            String endDate) {
+        String query = """
+                SELECT
+                  customer.currency_code,
+                  metrics.cost_micros,
+                  metrics.impressions,
+                  metrics.clicks,
+                  metrics.conversions,
+                  metrics.ctr,
+                  metrics.average_cpc
+                FROM customer
+                WHERE segments.date BETWEEN '%s' AND '%s'
+                """.formatted(startDate, endDate);
+        return executeGaql(accessToken, customerId, query).stream()
+                .map(this::toSummaryMetrics)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(new SummaryMetrics("TRY", 0, 0, 0, 0, 0, 0));
+    }
+
     public List<DailyMetrics> fetchDailyTrend(
             String accessToken,
             String customerId,
@@ -87,15 +115,31 @@ public class GoogleAdsClient {
             String accessToken,
             String customerId,
             String query) {
-        ResponseEntity<Map> response = restTemplate.exchange(
-                API_URL.formatted(customerId),
-                HttpMethod.POST,
-                new HttpEntity<>(Map.of("query", query), headers(accessToken, customerId)),
-                Map.class);
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            return List.of();
-        }
-        return mapList(response.getBody().get("results"));
+        List<Map<String, Object>> allRows = new ArrayList<>();
+        Set<String> seenPageTokens = new HashSet<>();
+        String pageToken = null;
+        do {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("query", query);
+            if (pageToken != null) {
+                body.put("pageToken", pageToken);
+            }
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    API_URL.formatted(customerId),
+                    HttpMethod.POST,
+                    new HttpEntity<>(body, headers(accessToken, customerId)),
+                    Map.class);
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                break;
+            }
+            allRows.addAll(mapList(response.getBody().get("results")));
+            pageToken = stringValue(response.getBody().get("nextPageToken"));
+            if (pageToken.isBlank() || !seenPageTokens.add(pageToken)) {
+                pageToken = null;
+            }
+        } while (pageToken != null);
+        return allRows;
     }
 
     private HttpHeaders headers(String accessToken, String customerId) {
@@ -124,7 +168,23 @@ public class GoogleAdsClient {
                 longValue(metrics.get("costMicros")),
                 longValue(metrics.get("impressions")),
                 longValue(metrics.get("clicks")),
-                longValue(metrics.get("conversions")),
+                doubleValue(metrics.get("conversions")),
+                doubleValue(metrics.get("ctr")),
+                longValue(metrics.get("averageCpc")));
+    }
+
+    private SummaryMetrics toSummaryMetrics(Map<String, Object> row) {
+        Map<String, Object> customer = mapValue(row.get("customer"));
+        Map<String, Object> metrics = mapValue(row.get("metrics"));
+        if (customer == null || metrics == null) {
+            return null;
+        }
+        return new SummaryMetrics(
+                stringValueOrDefault(customer.get("currencyCode"), "TRY"),
+                longValue(metrics.get("costMicros")),
+                longValue(metrics.get("impressions")),
+                longValue(metrics.get("clicks")),
+                doubleValue(metrics.get("conversions")),
                 doubleValue(metrics.get("ctr")),
                 longValue(metrics.get("averageCpc")));
     }
@@ -207,7 +267,17 @@ public class GoogleAdsClient {
             long costMicros,
             long impressions,
             long clicks,
-            long conversions,
+            double conversions,
+            double ctr,
+            long averageCpcMicros) {
+    }
+
+    public record SummaryMetrics(
+            String currencyCode,
+            long costMicros,
+            long impressions,
+            long clicks,
+            double conversions,
             double ctr,
             long averageCpcMicros) {
     }

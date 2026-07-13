@@ -27,6 +27,10 @@ public class GoogleAdsService {
         if (!oAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS)) {
             return GoogleAdsOverviewResponse.disabled();
         }
+        if (!oAuthService.hasAdsScope(companyId)) {
+            return GoogleAdsOverviewResponse.noScope(
+                    oAuthService.getAdsCustomerId(companyId).orElse(null));
+        }
 
         String customerId = oAuthService.getAdsCustomerId(companyId)
                 .map(mapper::sanitizeCustomerId)
@@ -55,6 +59,7 @@ public class GoogleAdsService {
         try {
             return mapper.toOverviewResponse(
                     customerId,
+                    client.fetchSummary(accessToken, customerId, rangeStart, rangeEnd),
                     client.fetchCampaigns(accessToken, customerId, rangeStart, rangeEnd),
                     client.fetchDailyTrend(accessToken, customerId, rangeStart, rangeEnd));
         } catch (Exception exception) {
@@ -64,8 +69,12 @@ public class GoogleAdsService {
             } else {
                 log.error("Google Ads overview hatası, company={}: {}", companyId, message, exception);
             }
-            return GoogleAdsOverviewResponse.error(
-                    customerId, mapper.toUserErrorMessage(message));
+            String userMessage = mapper.toUserErrorMessage(message);
+            if (isAuthenticationFailure(message)) {
+                oAuthService.disconnect(companyId, GoogleOAuthService.SVC_GOOGLE_ADS);
+                return GoogleAdsOverviewResponse.disconnected(customerId, userMessage);
+            }
+            return GoogleAdsOverviewResponse.error(customerId, userMessage);
         }
     }
 
@@ -77,6 +86,12 @@ public class GoogleAdsService {
                 || message.contains("403")
                 || message.contains("UNAUTHENTICATED")
                 || message.contains("PERMISSION_DENIED");
+    }
+
+    static boolean isAuthenticationFailure(String message) {
+        return message != null && (message.contains("401")
+                || message.contains("UNAUTHENTICATED")
+                || message.contains("OAUTH_TOKEN_"));
     }
 
     private String valueOrDefault(String value, String defaultValue) {

@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,5 +57,16 @@ class GoogleOAuthServiceTest {
         assertThat(accessToken).isEmpty();
         verify(tokenRepository).deleteByCompanyIdAndServiceType(
                 companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE);
+    }
+
+    @Test
+    void saveAdsCustomerIdRejectsDisconnectedCompany() {
+        UUID companyId = UUID.randomUUID();
+        when(tokenRepository.findByCompanyIdAndServiceType(
+                companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.saveAdsCustomerId(companyId, "1234567890"))
+                .isInstanceOf(com.fogistanbul.crm.exception.ApiException.class);
     }
 }

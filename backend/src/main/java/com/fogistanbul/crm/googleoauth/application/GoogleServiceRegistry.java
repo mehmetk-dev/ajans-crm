@@ -1,6 +1,10 @@
 package com.fogistanbul.crm.googleoauth.application;
 
 import java.util.Map;
+import java.util.Set;
+
+import com.fogistanbul.crm.exception.ApiException;
+import org.springframework.http.HttpStatus;
 
 public final class GoogleServiceRegistry {
 
@@ -20,13 +24,24 @@ public final class GoogleServiceRegistry {
             SVC_GOOGLE_ADS, "/client/google-ads?connected=true"
     );
 
+    private static final Set<String> SUPPORTED_SERVICES = SCOPE_MAP.keySet();
+
     private GoogleServiceRegistry() {}
 
     public static String scopeFor(String serviceType) {
-        return SCOPE_MAP.getOrDefault(serviceType, SCOPE_MAP.get(SVC_ANALYTICS));
+        requireSupported(serviceType);
+        return SCOPE_MAP.get(serviceType);
     }
 
     public static String redirectFor(String serviceType) {
-        return REDIRECT_MAP.getOrDefault(serviceType, "/client/analytics");
+        requireSupported(serviceType);
+        return REDIRECT_MAP.get(serviceType);
+    }
+
+    public static void requireSupported(String serviceType) {
+        if (!SUPPORTED_SERVICES.contains(serviceType)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_GOOGLE_SERVICE",
+                    "Desteklenmeyen Google servisi");
+        }
     }
 }
