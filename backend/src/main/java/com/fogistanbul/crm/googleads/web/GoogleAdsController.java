@@ -27,15 +27,19 @@ public class GoogleAdsController {
     @GetMapping("/status")
     public GoogleAdsStatusResponse status(@RequestParam UUID companyId, Authentication auth) {
         accessPolicy.requireClientAccess((UUID) auth.getPrincipal(), companyId);
-        boolean connected = googleOAuthService.getValidAccessToken(
+        boolean connected = googleOAuthService.isConnected(
+                companyId, GoogleOAuthService.SVC_GOOGLE_ADS);
+        boolean hasAdsScope = connected && googleOAuthService.hasAdsScope(companyId);
+        boolean hasValidToken = hasAdsScope && googleOAuthService.getValidAccessToken(
                 companyId, GoogleOAuthService.SVC_GOOGLE_ADS).isPresent();
-        boolean hasAdsScope = googleOAuthService.hasAdsScope(companyId);
+        boolean needsReconnect = connected && (!hasAdsScope || !hasValidToken);
         String customerId = googleOAuthService.getAdsCustomerId(companyId).orElse(null);
         String authUrl = googleOAuthService.buildAuthorizationUrl(
                 companyId, GoogleOAuthService.SVC_GOOGLE_ADS);
         return new GoogleAdsStatusResponse(
                 connected,
                 hasAdsScope,
+                needsReconnect,
                 customerId != null ? customerId : "",
                 authUrl);
     }

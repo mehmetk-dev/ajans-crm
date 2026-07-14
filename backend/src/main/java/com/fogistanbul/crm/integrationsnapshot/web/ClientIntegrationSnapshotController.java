@@ -41,4 +41,11 @@ public class ClientIntegrationSnapshotController {
             Authentication authentication) {
         service.refreshSearchConsole(currentUser.id(authentication), companyId);
     }
+
+    @PostMapping("/google-ads/refresh")
+    public void refreshGoogleAds(
+            @RequestParam UUID companyId,
+            Authentication authentication) {
+        service.refreshGoogleAds(currentUser.id(authentication), companyId);
+    }
 }

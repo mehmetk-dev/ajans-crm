@@ -141,6 +141,7 @@ describe('ClientAnalyticsPage service ordering', () => {
         vi.mocked(googleAdsApi.getStatus).mockResolvedValue({
             connected: true,
             hasAdsScope: true,
+            needsReconnect: false,
             customerId: '123',
             authUrl: '',
         });

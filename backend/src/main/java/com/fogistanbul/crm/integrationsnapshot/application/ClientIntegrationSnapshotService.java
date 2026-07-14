@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fogistanbul.crm.company.application.CompanyAccessPolicy;
 import com.fogistanbul.crm.entity.enums.ServiceCategory;
 import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse;
+import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse;
 import com.fogistanbul.crm.instagram.dto.InstagramOverviewResponse;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshot;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshotStatus;
@@ -40,6 +41,7 @@ public class ClientIntegrationSnapshotService {
 
         boolean digitalMarketingActive = hasActiveService(companyId, ServiceCategory.DIGITAL_MARKETING);
         boolean socialMediaActive = hasActiveService(companyId, ServiceCategory.SOCIAL_MEDIA);
+        boolean adManagementActive = hasActiveService(companyId, ServiceCategory.AD_MANAGEMENT);
         Optional<IntegrationSnapshot> ga = digitalMarketingActive
                 ? latest(companyId, IntegrationType.GOOGLE_ANALYTICS)
                 : Optional.empty();
@@ -49,12 +51,17 @@ public class ClientIntegrationSnapshotService {
         Optional<IntegrationSnapshot> ig = socialMediaActive
                 ? latest(companyId, IntegrationType.INSTAGRAM)
                 : Optional.empty();
+        Optional<IntegrationSnapshot> ads = adManagementActive
+                ? latest(companyId, IntegrationType.GOOGLE_ADS)
+                : Optional.empty();
 
         return new ClientIntegrationSnapshotOverviewResponse(
                 payloadOrDefault(ga, GaOverviewResponse.class, GaOverviewResponse::disabled),
                 meta(ga),
                 payloadOrDefault(sc, ScOverviewResponse.class, ScOverviewResponse::disabled),
                 meta(sc),
+                payloadOrDefault(ads, GoogleAdsOverviewResponse.class, GoogleAdsOverviewResponse::disabled),
+                meta(ads),
                 payloadOrDefault(ig, InstagramOverviewResponse.class, InstagramOverviewResponse::disabled),
                 meta(ig));
     }
@@ -67,6 +74,11 @@ public class ClientIntegrationSnapshotService {
     public void refreshSearchConsole(UUID userId, UUID companyId) {
         accessPolicy.requireMembership(userId, companyId);
         syncService.syncSearchConsoleSnapshotNow(companyId);
+    }
+
+    public void refreshGoogleAds(UUID userId, UUID companyId) {
+        accessPolicy.requireMembership(userId, companyId);
+        syncService.syncGoogleAdsSnapshotNow(companyId);
     }
 
     private boolean hasActiveService(UUID companyId, ServiceCategory serviceCategory) {

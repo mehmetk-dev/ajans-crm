@@ -329,7 +329,15 @@ export default function ClientAnalyticsPage() {
             actionLabel: 'Detaylı Rapor',
             actionTo: '/client/google-ads',
             connected: googleAdsStatus.data?.connected,
-            render: () => <GoogleAdsPanel companyId={companyId} />,
+            render: () => (
+                googleAdsStatus.isLoading
+                    ? <PanelPlaceholder minHeight={220} />
+                    : <GoogleAdsPanel
+                        key={`google-ads-${localRefreshVersion}`}
+                        companyId={companyId}
+                        initialStatus={googleAdsStatus.data}
+                    />
+            ),
         },
         {
             key: 'meta-ads',

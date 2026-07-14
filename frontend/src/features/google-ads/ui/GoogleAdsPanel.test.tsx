@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { integrationSnapshotApi } from '../../integration-snapshots/api/integrationSnapshotApi';
@@ -34,6 +34,7 @@ describe('GoogleAdsPanel', () => {
         const status = {
             connected: true,
             hasAdsScope: true,
+            needsReconnect: false,
             customerId: '1234567890',
             authUrl: '',
         };
@@ -49,6 +50,8 @@ describe('GoogleAdsPanel', () => {
                 errorMessage: null,
             },
         } as ClientIntegrationSnapshotOverviewResponse);
+        const refreshSnapshot = vi.spyOn(integrationSnapshotApi, 'refreshGoogleAds')
+            .mockResolvedValue(undefined);
         const queryClient = new QueryClient({
             defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
         });
@@ -67,5 +70,8 @@ describe('GoogleAdsPanel', () => {
         expect(getStatus).not.toHaveBeenCalled();
         expect(liveOverview).not.toHaveBeenCalled();
         expect(screen.getByText(/Son güncelleme:/)).toBeInTheDocument();
+
+        fireEvent.click(screen.getByTitle("Google Ads snapshot'ını yenile"));
+        await waitFor(() => expect(refreshSnapshot).toHaveBeenCalledWith('company-1'));
     });
 });

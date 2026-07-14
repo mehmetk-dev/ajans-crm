@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { googleAdsApi } from '../../features/google-ads/api/googleAdsApi';
-import type { GoogleAdsOverviewResponse } from '../../features/google-ads/googleAds.types';
-import { integrationSnapshotApi } from '../../features/integration-snapshots/api/integrationSnapshotApi';
-import type { ClientIntegrationSnapshotOverviewResponse } from '../../features/integration-snapshots/integrationSnapshot.types';
+import { googleAdsApi, type GoogleAdsOverviewResponse } from '../../features/google-ads';
+import {
+    integrationSnapshotApi,
+    type ClientIntegrationSnapshotOverviewResponse,
+} from '../../features/integration-snapshots';
 import GoogleAdsDetailPage from './GoogleAdsDetailPage';
 
 vi.mock('../../store/AuthContext', () => ({
@@ -61,6 +62,7 @@ describe('GoogleAdsDetailPage', () => {
         vi.spyOn(googleAdsApi, 'getStatus').mockResolvedValue({
             connected: true,
             hasAdsScope: true,
+            needsReconnect: false,
             customerId: '1234567890',
             authUrl: '',
         });
@@ -75,6 +77,8 @@ describe('GoogleAdsDetailPage', () => {
                 errorMessage: null,
             },
         } as ClientIntegrationSnapshotOverviewResponse);
+        const refreshSnapshot = vi.spyOn(integrationSnapshotApi, 'refreshGoogleAds')
+            .mockResolvedValue(undefined);
         const queryClient = new QueryClient({
             defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
         });
@@ -92,5 +96,8 @@ describe('GoogleAdsDetailPage', () => {
         expect(snapshotOverview).toHaveBeenCalledWith('company-1');
         expect(liveOverview).not.toHaveBeenCalled();
         expect(screen.getByText(/Son güncelleme:/)).toBeInTheDocument();
+
+        fireEvent.click(screen.getByTitle("Google Ads snapshot'ını yenile"));
+        await waitFor(() => expect(refreshSnapshot).toHaveBeenCalledWith('company-1'));
     });
 });

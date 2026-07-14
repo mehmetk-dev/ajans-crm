@@ -77,7 +77,7 @@ public class GoogleAdsMapper {
 
     public String resolveDate(String value, LocalDate today) {
         if (value == null || value.isBlank()) {
-            return today.minusDays(30).toString();
+            return today.minusDays(29).toString();
         }
         if ("today".equalsIgnoreCase(value)) {
             return today.toString();
@@ -87,7 +87,7 @@ public class GoogleAdsMapper {
                 int days = Integer.parseInt(value.replace("daysAgo", ""));
                 return today.minusDays(days).toString();
             } catch (NumberFormatException exception) {
-                return today.minusDays(30).toString();
+                return today.minusDays(29).toString();
             }
         }
         return value;
@@ -110,7 +110,16 @@ public class GoogleAdsMapper {
         if (message.contains("403") || message.contains("PERMISSION_DENIED")) {
             return "Google Ads hesabına erişim yetkisi yok. Müşteri ve yönetici hesaplarını kontrol edin.";
         }
-        return "Veri çekme hatası: " + message.split("\n")[0];
+        if (message.contains("429")
+                || message.contains("RESOURCE_EXHAUSTED")
+                || message.toLowerCase().contains("quota")) {
+            return "Google Ads istek limiti aşıldı. Lütfen biraz sonra tekrar deneyin.";
+        }
+        if (message.toLowerCase().contains("timeout")
+                || message.toLowerCase().contains("timed out")) {
+            return "Google Ads şu anda yanıt vermedi. Lütfen biraz sonra tekrar deneyin.";
+        }
+        return "Google Ads verileri şu anda alınamıyor. Lütfen biraz sonra tekrar deneyin.";
     }
 
     private double fromMicros(long value) {

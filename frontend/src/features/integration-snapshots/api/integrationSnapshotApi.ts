@@ -14,4 +14,8 @@ export const integrationSnapshotApi = {
         api.post<void>('/client/integration-snapshots/search-console/refresh', null, {
             params: { companyId },
         }).then(response => response.data),
+    refreshGoogleAds: (companyId: string) =>
+        api.post<void>('/client/integration-snapshots/google-ads/refresh', null, {
+            params: { companyId },
+        }).then(response => response.data),
 };

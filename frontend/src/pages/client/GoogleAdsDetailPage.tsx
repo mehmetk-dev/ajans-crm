@@ -19,6 +19,10 @@ import {
 import { MissingCompanyState } from '../../components/client/MissingCompanyState';
 import { useAuth } from '../../store/AuthContext';
 import { getApiErrorMessage } from '../../lib/apiError';
+import {
+    integrationSnapshotApi,
+    integrationSnapshotKeys,
+} from '../../features/integration-snapshots';
 
 export default function GoogleAdsDetailPage() {
     const { user, isLoading: authLoading } = useAuth();
@@ -35,23 +39,33 @@ export default function GoogleAdsDetailPage() {
         [location.search],
     );
 
-    const { data: status, isLoading: statusLoading } = useQuery({
+    const { data: status, isLoading: statusLoading, error: statusError } = useQuery({
         queryKey: googleAdsKeys.status(user?.companyId ?? ''),
         queryFn: () => googleAdsApi.getStatus(user!.companyId!),
         enabled: !!user?.companyId && !authLoading,
     });
 
-    const { data, isLoading } = useQuery({
-        queryKey: googleAdsKeys.overview(user?.companyId ?? ''),
-        queryFn: () => googleAdsApi.getOverview(user!.companyId!),
+    const { data: snapshotOverview, isLoading, error: snapshotError } = useQuery({
+        queryKey: integrationSnapshotKeys.overview(user?.companyId ?? ''),
+        queryFn: () => integrationSnapshotApi.getOverview(user!.companyId!),
         enabled: !!user?.companyId && !authLoading,
         staleTime: 5 * 60 * 1000,
     });
+    const data = snapshotOverview?.ads;
+    const snapshotMeta = snapshotOverview?.adsSnapshot;
 
     const saveMut = useMutation({
-        mutationFn: (id: string) => googleAdsApi.saveCustomerId(user!.companyId!, id),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: googleAdsKeys.all });
+        mutationFn: async (id: string) => {
+            await googleAdsApi.saveCustomerId(user!.companyId!, id);
+            await integrationSnapshotApi.refreshGoogleAds(user!.companyId!);
+        },
+        onSuccess: async () => {
+            await Promise.all([
+                qc.invalidateQueries({ queryKey: googleAdsKeys.status(user!.companyId!) }),
+                qc.invalidateQueries({
+                    queryKey: integrationSnapshotKeys.overview(user!.companyId!),
+                }),
+            ]);
             setShowSetup(false);
             setActionError('');
         },
@@ -62,15 +76,38 @@ export default function GoogleAdsDetailPage() {
 
     useEffect(() => {
         if (new URLSearchParams(location.search).get('connected') !== 'true') return;
-        qc.invalidateQueries({ queryKey: googleAdsKeys.all });
         navigate(location.pathname, { replace: true });
-    }, [location.pathname, location.search, navigate, qc]);
+    }, [location.pathname, location.search, navigate]);
 
     const disconnectMut = useMutation({
-        mutationFn: () => googleAdsApi.disconnect(user!.companyId!),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: googleAdsKeys.all });
+        mutationFn: async () => {
+            await googleAdsApi.disconnect(user!.companyId!);
+            await integrationSnapshotApi.refreshGoogleAds(user!.companyId!);
         },
+        onSuccess: async () => {
+            await Promise.all([
+                qc.invalidateQueries({ queryKey: googleAdsKeys.status(user!.companyId!) }),
+                qc.invalidateQueries({
+                    queryKey: integrationSnapshotKeys.overview(user!.companyId!),
+                }),
+            ]);
+        },
+        onError: (error: unknown) => setActionError(
+            getApiErrorMessage(error, 'Google Ads bağlantısı kesilemedi'),
+        ),
+    });
+
+    const refreshMut = useMutation({
+        mutationFn: () => integrationSnapshotApi.refreshGoogleAds(user!.companyId!),
+        onSuccess: async () => {
+            await qc.invalidateQueries({
+                queryKey: integrationSnapshotKeys.overview(user!.companyId!),
+            });
+            setActionError('');
+        },
+        onError: (error: unknown) => setActionError(
+            getApiErrorMessage(error, 'Google Ads snapshot yenilenemedi'),
+        ),
     });
 
     if (authLoading || statusLoading) {
@@ -88,10 +125,27 @@ export default function GoogleAdsDetailPage() {
     }
 
     const customerId = status?.customerId || data?.customerId || '';
-    const effectiveConnected = Boolean(status?.connected && data?.connected !== false);
-    const needsReconnect = Boolean(status && (!effectiveConnected || !status.hasAdsScope));
-    const visibleError = callbackError || actionError || data?.errorMessage || '';
+    const effectiveConnected = Boolean(status?.connected && status.hasAdsScope);
+    const needsReconnect = Boolean(status && (
+        !status.connected || !status.hasAdsScope || status.needsReconnect
+    ));
+    const loadError = statusError ?? snapshotError;
+    const visibleError = callbackError
+        || actionError
+        || data?.errorMessage
+        || (snapshotMeta?.status === 'FAILED' && !data?.connected
+            ? 'Google Ads snapshot oluşturulamadı. Bağlantıyı kontrol edip tekrar deneyin.'
+            : '')
+        || (loadError ? getApiErrorMessage(loadError, 'Google Ads verileri yüklenemedi') : '');
     const sortedCampaigns = sortCampaigns(data?.campaigns ?? [], sortCol, sortAsc);
+    const hasPerformanceData = Boolean(data && (
+        data.totalSpend > 0
+        || data.impressions > 0
+        || data.clicks > 0
+        || data.conversions > 0
+        || data.campaigns.length > 0
+        || data.dailyTrend.length > 0
+    ));
 
     const handleSort = (col: typeof sortCol) => {
         if (sortCol === col) setSortAsc(v => !v);
@@ -106,7 +160,7 @@ export default function GoogleAdsDetailPage() {
             {/* Header */}
             <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0C0C0E] p-6">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/8 via-transparent to-violet-500/5 pointer-events-none" />
-                <div className="relative flex items-center justify-between gap-4">
+                <div className="relative flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <div className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-violet-500/20 border border-blue-500/20 flex items-center justify-center">
                             <TrendingUp className="w-5 h-5 text-blue-400" />
@@ -118,10 +172,31 @@ export default function GoogleAdsDetailPage() {
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => qc.invalidateQueries({ queryKey: googleAdsKeys.all })}
-                            className="p-2 rounded-xl border border-white/[0.06] text-zinc-500 hover:text-zinc-300 transition-colors">
-                            <RefreshCw className="w-3.5 h-3.5" />
+                    <div className="flex flex-wrap items-center gap-2">
+                        {snapshotMeta && (
+                            <div className={`rounded-full border px-3 py-1.5 text-[11px] font-medium ${
+                                snapshotMeta.status === 'FAILED'
+                                    ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
+                                    : 'border-white/[0.06] bg-black/20 text-zinc-400'
+                            }`}>
+                                {snapshotMeta.status === 'FAILED'
+                                    ? 'Son başarılı veri korunuyor'
+                                    : snapshotMeta.lastSyncedAt
+                                        ? `Son güncelleme: ${new Date(snapshotMeta.lastSyncedAt).toLocaleString('tr-TR', {
+                                            day: '2-digit',
+                                            month: '2-digit',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                        })}`
+                                        : 'Veriler hazırlanıyor'}
+                            </div>
+                        )}
+                        <button
+                            onClick={() => refreshMut.mutate()}
+                            disabled={refreshMut.isPending || !effectiveConnected || !customerId}
+                            title="Google Ads snapshot'ını yenile"
+                            className="p-2 rounded-xl border border-white/[0.06] text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-40">
+                            <RefreshCw className={`w-3.5 h-3.5 ${refreshMut.isPending ? 'animate-spin' : ''}`} />
                         </button>
                         {effectiveConnected && (
                             <button onClick={() => setShowSetup(v => !v)}
@@ -205,13 +280,41 @@ export default function GoogleAdsDetailPage() {
                 </div>
             )}
 
+            {data?.connected && (snapshotMeta?.status === 'FAILED' || status?.needsReconnect) && (
+                <div className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+                    <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+                    <div>
+                        <p className="text-sm font-semibold text-amber-200">Son başarılı reklam verisi gösteriliyor</p>
+                        <p className="mt-1 text-xs text-zinc-500">
+                            Yeni veri alınamadı; kayıtlı snapshot korunuyor. Gerekirse Google hesabını yeniden bağlayın.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {isLoading && (
                 <div className="flex items-center justify-center h-40">
                     <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
                 </div>
             )}
 
-            {effectiveConnected && data?.connected && customerId && !visibleError && !isLoading && (
+            {effectiveConnected && customerId && !data?.connected && !visibleError && !isLoading && (
+                <div className="rounded-2xl border border-amber-500/20 bg-[#0C0C0E] px-6 py-10 text-center">
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin text-amber-400" />
+                    <p className="mt-3 text-sm font-medium text-amber-200">Google Ads snapshot verileri hazırlanıyor</p>
+                    <p className="mt-1 text-xs text-zinc-500">Yenile düğmesiyle ilk snapshot'ı hemen oluşturabilirsiniz.</p>
+                </div>
+            )}
+
+            {effectiveConnected && data?.connected && customerId && !visibleError && !isLoading && !hasPerformanceData && (
+                <div className="rounded-2xl border border-white/[0.06] bg-[#0C0C0E] px-6 py-12 text-center">
+                    <Target className="mx-auto h-8 w-8 text-zinc-600" />
+                    <h2 className="mt-4 text-base font-semibold text-white">Bu dönemde reklam performansı yok</h2>
+                    <p className="mt-1 text-sm text-zinc-500">Aktif kampanya veya ölçümlenmiş reklam hareketi bulunamadı.</p>
+                </div>
+            )}
+
+            {effectiveConnected && data?.connected && customerId && !visibleError && !isLoading && hasPerformanceData && (
                 <>
                     {/* KPI cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

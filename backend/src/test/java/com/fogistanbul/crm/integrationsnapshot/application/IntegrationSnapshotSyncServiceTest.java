@@ -312,6 +312,38 @@ class IntegrationSnapshotSyncServiceTest {
                 any());
     }
 
+    @Test
+    void syncOverviewSnapshotsNow_includesGoogleAdsWhenAdManagementIsActive() {
+        Company company = company();
+        when(companyRepository.findById(company.getId())).thenReturn(Optional.of(company));
+        when(companyServiceRepository.findByCompanyIdAndServiceCategory(
+                company.getId(), ServiceCategory.DIGITAL_MARKETING))
+                .thenReturn(Optional.empty());
+        when(companyServiceRepository.findByCompanyIdAndServiceCategory(
+                company.getId(), ServiceCategory.SOCIAL_MEDIA))
+                .thenReturn(Optional.empty());
+        when(companyServiceRepository.findByCompanyIdAndServiceCategory(
+                company.getId(), ServiceCategory.AD_MANAGEMENT))
+                .thenReturn(Optional.of(activeService()));
+        when(snapshotRepository.findByCompanyIdAndIntegrationTypeAndSnapshotType(
+                company.getId(), IntegrationType.GOOGLE_ADS, IntegrationSnapshotType.OVERVIEW))
+                .thenReturn(Optional.empty());
+        when(googleAdsService.getOverview(company.getId(), null, null))
+                .thenReturn(GoogleAdsOverviewResponse.disabled());
+
+        service.syncOverviewSnapshotsNow(company.getId());
+
+        verify(googleAdsService).getOverview(company.getId(), null, null);
+        verify(persistenceService).saveReady(
+                eq(company),
+                eq(IntegrationType.GOOGLE_ADS),
+                eq(IntegrationSnapshotType.OVERVIEW),
+                any(),
+                any(),
+                any(),
+                any());
+    }
+
     private Company company() {
         return Company.builder()
                 .id(UUID.randomUUID())

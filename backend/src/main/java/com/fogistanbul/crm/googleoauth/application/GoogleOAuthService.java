@@ -211,9 +211,11 @@ public class GoogleOAuthService {
     }
 
     public boolean hasAdsScope(UUID companyId) {
+        String requiredScope = GoogleServiceRegistry.scopeFor(SVC_GOOGLE_ADS);
         return tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_GOOGLE_ADS)
                 .map(GoogleOAuthToken::getScope)
-                .map(scope -> scope.contains(GoogleServiceRegistry.scopeFor(SVC_GOOGLE_ADS)))
+                .map(scope -> java.util.Arrays.stream(scope.split("\\s+"))
+                        .anyMatch(requiredScope::equals))
                 .orElse(false);
     }
 

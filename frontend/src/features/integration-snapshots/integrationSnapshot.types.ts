@@ -1,4 +1,5 @@
 import type { GaOverviewResponse } from '../google-analytics/googleAnalytics.types';
+import type { GoogleAdsOverviewResponse } from '../google-ads/googleAds.types';
 import type { IgOverviewResponse } from '../instagram/instagram.types';
 import type { ScOverviewResponse } from '../search-console/searchConsole.types';
 
@@ -17,6 +18,8 @@ export interface ClientIntegrationSnapshotOverviewResponse {
     gaSnapshot: IntegrationSnapshotMeta;
     sc: ScOverviewResponse;
     scSnapshot: IntegrationSnapshotMeta;
+    ads: GoogleAdsOverviewResponse;
+    adsSnapshot: IntegrationSnapshotMeta;
     ig: IgOverviewResponse;
     igSnapshot: IntegrationSnapshotMeta;
 }

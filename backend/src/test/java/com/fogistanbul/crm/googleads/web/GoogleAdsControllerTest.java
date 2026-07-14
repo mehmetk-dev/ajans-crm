@@ -35,8 +35,6 @@ class GoogleAdsControllerTest {
         UUID companyId = authenticatedCompany();
         when(googleOAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
                 .thenReturn(true);
-        when(googleOAuthService.getValidAccessToken(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
-                .thenReturn(Optional.of("access"));
         when(googleOAuthService.hasAdsScope(companyId)).thenReturn(false);
         when(googleOAuthService.buildAuthorizationUrl(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
                 .thenReturn("https://accounts.google.test/auth");

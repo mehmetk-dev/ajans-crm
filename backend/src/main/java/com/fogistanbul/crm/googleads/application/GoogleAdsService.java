@@ -1,14 +1,18 @@
 package com.fogistanbul.crm.googleads.application;
 
+import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient;
 import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Service
@@ -16,8 +20,9 @@ import java.util.UUID;
 public class GoogleAdsService {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleAdsService.class);
-    private static final String DEFAULT_START = "30daysAgo";
+    private static final String DEFAULT_START = "29daysAgo";
     private static final String DEFAULT_END = "today";
+    private static final long MAX_RANGE_DAYS = 500;
 
     private final GoogleOAuthService oAuthService;
     private final GoogleAdsClient client;
@@ -55,6 +60,7 @@ public class GoogleAdsService {
         LocalDate today = LocalDate.now();
         String rangeStart = mapper.resolveDate(valueOrDefault(startDate, DEFAULT_START), today);
         String rangeEnd = mapper.resolveDate(valueOrDefault(endDate, DEFAULT_END), today);
+        validateDateRange(rangeStart, rangeEnd);
 
         try {
             return mapper.toOverviewResponse(
@@ -96,5 +102,27 @@ public class GoogleAdsService {
 
     private String valueOrDefault(String value, String defaultValue) {
         return value != null && !value.isBlank() ? value : defaultValue;
+    }
+
+    private void validateDateRange(String startDate, String endDate) {
+        try {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+            if (start.isAfter(end)) {
+                throw invalidDateRange("Başlangıç tarihi bitiş tarihinden sonra olamaz");
+            }
+            if (end.isAfter(LocalDate.now())) {
+                throw invalidDateRange("Bitiş tarihi gelecekte olamaz");
+            }
+            if (ChronoUnit.DAYS.between(start, end) + 1 > MAX_RANGE_DAYS) {
+                throw invalidDateRange("Tarih aralığı en fazla 500 gün olabilir");
+            }
+        } catch (DateTimeParseException exception) {
+            throw invalidDateRange("Tarihler YYYY-AA-GG formatında olmalıdır");
+        }
+    }
+
+    private ApiException invalidDateRange(String message) {
+        return new ApiException(HttpStatus.BAD_REQUEST, "INVALID_DATE_RANGE", message);
     }
 }

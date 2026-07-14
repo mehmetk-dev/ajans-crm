@@ -37,6 +37,7 @@ export interface GoogleAdsOverviewResponse {
 export interface GoogleAdsStatusResponse {
     connected: boolean;
     hasAdsScope: boolean;
+    needsReconnect: boolean;
     customerId: string;
     authUrl: string;
 }

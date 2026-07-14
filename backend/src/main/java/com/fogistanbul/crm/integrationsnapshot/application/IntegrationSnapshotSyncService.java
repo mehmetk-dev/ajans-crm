@@ -7,6 +7,8 @@ import com.fogistanbul.crm.entity.enums.CompanyKind;
 import com.fogistanbul.crm.entity.enums.ServiceCategory;
 import com.fogistanbul.crm.googleanalytics.application.GoogleAnalyticsService;
 import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse;
+import com.fogistanbul.crm.googleads.application.GoogleAdsService;
+import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse;
 import com.fogistanbul.crm.instagram.application.InstagramOverviewService;
 import com.fogistanbul.crm.instagram.application.InstagramMediaSnapshotService;
 import com.fogistanbul.crm.instagram.dto.InstagramOverviewResponse;
@@ -46,6 +48,7 @@ public class IntegrationSnapshotSyncService {
     private final CompanyServiceRepository companyServiceRepository;
     private final GoogleAnalyticsService googleAnalyticsService;
     private final SearchConsoleService searchConsoleService;
+    private final GoogleAdsService googleAdsService;
     private final InstagramOverviewService instagramOverviewService;
     private final InstagramMediaSnapshotService instagramMediaSnapshotService;
     private final IntegrationSnapshotPersistenceService persistenceService;
@@ -79,6 +82,19 @@ public class IntegrationSnapshotSyncService {
                         ScOverviewResponse::errorMessage));
     }
 
+    public void syncGoogleAdsSnapshotNow(UUID companyId) {
+        companyRepository.findById(companyId)
+                .filter(company -> company.getKind() == CompanyKind.CLIENT)
+                .filter(company -> hasActiveService(company, ServiceCategory.AD_MANAGEMENT))
+                .ifPresent(company -> syncIfDue(
+                        company,
+                        IntegrationType.GOOGLE_ADS,
+                        WEB_INTERVAL,
+                        true,
+                        () -> googleAdsService.getOverview(company.getId(), null, null),
+                        GoogleAdsOverviewResponse::errorMessage));
+    }
+
     private void syncCompanyOverviewSnapshots(Company company, boolean force) {
         if (hasActiveService(company, ServiceCategory.DIGITAL_MARKETING)) {
             syncIfDue(
@@ -105,6 +121,15 @@ public class IntegrationSnapshotSyncService {
                     () -> instagramOverviewService.getOverview(company.getId(), null, null),
                     InstagramOverviewResponse::errorMessage);
             instagramMediaSnapshotService.syncMediaSnapshotsNow(company.getId(), force);
+        }
+        if (hasActiveService(company, ServiceCategory.AD_MANAGEMENT)) {
+            syncIfDue(
+                    company,
+                    IntegrationType.GOOGLE_ADS,
+                    WEB_INTERVAL,
+                    force,
+                    () -> googleAdsService.getOverview(company.getId(), null, null),
+                    GoogleAdsOverviewResponse::errorMessage);
         }
     }
 

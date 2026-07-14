@@ -144,8 +144,8 @@ class GoogleAdsServiceTest {
     void getOverview_rejectsReversedDateRangeBeforeProviderCalls() {
         UUID companyId = configuredCompany();
         when(client.isConfigured()).thenReturn(true);
-        when(mapper.resolveDate("2026-06-12", any())).thenReturn("2026-06-12");
-        when(mapper.resolveDate("2026-06-01", any())).thenReturn("2026-06-01");
+        when(mapper.resolveDate(eq("2026-06-12"), any())).thenReturn("2026-06-12");
+        when(mapper.resolveDate(eq("2026-06-01"), any())).thenReturn("2026-06-01");
 
         assertThatThrownBy(() -> service.getOverview(
                 companyId, "2026-06-12", "2026-06-01"))

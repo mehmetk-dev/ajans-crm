@@ -22,6 +22,7 @@ export function clientAnalyticsRefreshKeys(companyId: string) {
         ['shoots', 'list', 'client', 'ALL', 0, 50],
         ['client-sc'],
         ['google-analytics'],
+        ['integration-snapshots', 'overview', companyId],
         ['google-ads', 'overview', companyId, undefined, undefined],
         ['meta-ads', 'overview', companyId, undefined, undefined],
         ['maintenance-log', 'mine'],
