@@ -35,6 +35,7 @@ function makeWrapper() {
 describe('useSCDetailPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        window.history.replaceState({}, '', '/client/search-console');
     });
 
     afterEach(() => {
@@ -202,5 +203,71 @@ describe('useSCDetailPage', () => {
         });
 
         expect(result.current.clickThroughRate).toBe('0');
+    });
+
+    it('cleans the OAuth callback URL without loading the report twice', async () => {
+        window.history.replaceState({}, '', '/client/search-console?connected=true');
+        const getStatus = vi.spyOn(searchConsoleApi, 'getStatus').mockResolvedValue({
+            connected: false,
+            siteUrl: '',
+            hasScScope: false,
+            needsReconnect: false,
+            authUrl: '',
+        });
+
+        const { result } = renderHook(() => useSCDetailPage(), { wrapper: makeWrapper() });
+
+        await waitFor(() => expect(result.current.loading).toBe(false));
+
+        expect(getStatus).toHaveBeenCalledTimes(1);
+        expect(window.location.search).toBe('');
+    });
+
+    it('does not reload while editing a custom range before apply', async () => {
+        const status: ScStatusResponse = {
+            connected: true,
+            siteUrl: 'sc-domain:example.com',
+            hasScScope: true,
+            needsReconnect: false,
+            authUrl: '',
+        };
+        const overview: ScOverviewResponse = {
+            connected: true,
+            siteUrl: 'sc-domain:example.com',
+            errorMessage: null,
+            totalClicks: 1,
+            totalImpressions: 10,
+            avgCtr: 10,
+            avgPosition: 4,
+            dailyTrend: [],
+            topQueries: [],
+            topPages: [],
+            devices: [],
+            countries: [],
+        };
+        vi.spyOn(searchConsoleApi, 'getStatus').mockResolvedValue(status);
+        const getOverview = vi.spyOn(searchConsoleApi, 'getOverview').mockResolvedValue(overview);
+
+        const { result } = renderHook(() => useSCDetailPage(), { wrapper: makeWrapper() });
+        await waitFor(() => expect(getOverview).toHaveBeenCalledTimes(1));
+
+        act(() => {
+            result.current.setCustomStart('2026-06-01');
+            result.current.setCustomEnd('2026-06-30');
+        });
+        await act(async () => {
+            await new Promise(resolve => setTimeout(resolve, 25));
+        });
+
+        expect(getOverview).toHaveBeenCalledTimes(1);
+
+        act(() => result.current.setIsCustomRange(true));
+        await waitFor(() => {
+            expect(getOverview).toHaveBeenLastCalledWith(
+                'company-1',
+                '2026-06-01',
+                '2026-06-30',
+            );
+        });
     });
 });

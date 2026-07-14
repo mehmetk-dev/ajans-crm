@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -63,6 +64,18 @@ class SearchConsoleServiceTest {
         when(client.listSites("token")).thenReturn(sites);
 
         assertThat(service.listSites(companyId)).isEqualTo(sites);
+    }
+
+    @Test
+    void listSites_propagatesProviderFailureInsteadOfPretendingThereAreNoSites() {
+        UUID companyId = UUID.randomUUID();
+        when(oAuthService.getValidAccessToken(companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE))
+                .thenReturn(Optional.of("token"));
+        when(client.listSites("token")).thenThrow(new IllegalStateException("provider unavailable"));
+
+        assertThatThrownBy(() -> service.listSites(companyId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("provider unavailable");
     }
 
     @Test
@@ -116,5 +129,20 @@ class SearchConsoleServiceTest {
         verify(client).query("token", siteUrl, "2026-06-01", "2026-06-12", "page", 10);
         verify(client).query("token", siteUrl, "2026-06-01", "2026-06-12", "device", 5);
         verify(client).query("token", siteUrl, "2026-06-01", "2026-06-12", "country", 8);
+    }
+
+    @Test
+    void getOverview_rejectsReversedDateRangeBeforeCallingGoogle() {
+        UUID companyId = UUID.randomUUID();
+        when(oAuthService.isConnected(companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE))
+                .thenReturn(true);
+        when(oAuthService.getSiteUrl(companyId)).thenReturn(Optional.of("sc-domain:example.com"));
+        when(oAuthService.getValidAccessToken(companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE))
+                .thenReturn(Optional.of("token"));
+        when(mapper.resolveDate(anyString(), any())).thenReturn("2026-07-14", "2026-07-01");
+
+        assertThatThrownBy(() -> service.getOverview(companyId, "2026-07-14", "2026-07-01"))
+                .hasMessageContaining("Başlangıç tarihi");
+        verifyNoInteractions(client);
     }
 }

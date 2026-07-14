@@ -248,6 +248,33 @@ class IntegrationSnapshotSyncServiceTest {
         verify(instagramMediaSnapshotService).syncMediaSnapshotsNow(company.getId(), true);
     }
 
+    @Test
+    void syncSearchConsoleSnapshotNow_doesNotRefreshOtherIntegrations() {
+        Company company = company();
+        when(companyRepository.findById(company.getId())).thenReturn(Optional.of(company));
+        when(companyServiceRepository.findByCompanyIdAndServiceCategory(
+                company.getId(), ServiceCategory.DIGITAL_MARKETING))
+                .thenReturn(Optional.of(activeService()));
+        when(snapshotRepository.findByCompanyIdAndIntegrationTypeAndSnapshotType(
+                company.getId(), IntegrationType.SEARCH_CONSOLE, IntegrationSnapshotType.OVERVIEW))
+                .thenReturn(Optional.empty());
+        when(searchConsoleService.getOverview(company.getId(), null, null))
+                .thenReturn(com.fogistanbul.crm.searchconsole.dto.ScOverviewResponse.disabled());
+
+        service.syncSearchConsoleSnapshotNow(company.getId());
+
+        verify(searchConsoleService).getOverview(company.getId(), null, null);
+        verifyNoInteractions(googleAnalyticsService, instagramOverviewService, instagramMediaSnapshotService);
+        verify(persistenceService).saveReady(
+                eq(company),
+                eq(IntegrationType.SEARCH_CONSOLE),
+                eq(IntegrationSnapshotType.OVERVIEW),
+                any(),
+                any(),
+                any(),
+                any());
+    }
+
     private Company company() {
         return Company.builder()
                 .id(UUID.randomUUID())

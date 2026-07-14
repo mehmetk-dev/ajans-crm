@@ -73,6 +73,7 @@ describe('computeClickThroughRate', () => {
 
 describe('getPositionLabel', () => {
     it('pozisyon aralıklarını kullanıcı mesajına çevirir', () => {
+        expect(getPositionLabel(0)).toBe('Veri yok');
         expect(getPositionLabel(3)).toBe("Harika! İlk 3'te");
         expect(getPositionLabel(8)).toBe('İlk sayfada');
         expect(getPositionLabel(15)).toBe('İkinci sayfada');
@@ -84,6 +85,14 @@ describe('date presets', () => {
     it('altı hazır aralık içerir', () => {
         expect(DATE_PRESETS).toHaveLength(6);
         expect(PANEL_PRESETS).toHaveLength(6);
+        expect(DATE_PRESETS.map(preset => preset.start)).toEqual([
+            '6daysAgo',
+            '13daysAgo',
+            '29daysAgo',
+            '89daysAgo',
+            '179daysAgo',
+            '364daysAgo',
+        ]);
     });
 
     it('panel presetlerinden açıklama alanını çıkarır', () => {
