@@ -3,8 +3,9 @@ import { getApiErrorMessage } from '../../lib/apiError';
 import { adminApi } from '../../api/admin';
 import type { AllUserResponse, UpdateUserInput } from '../../api/admin';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, X, Search, Shield, Briefcase, Building2, ChevronDown, Trash2, Phone, Pencil, Calendar } from 'lucide-react';
+import { Users, X, Search, Shield, Briefcase, Building2, ChevronDown, Trash2, Phone, Pencil, Calendar, KeyRound, CheckCircle2 } from 'lucide-react';
 import { UserAvatar } from '../../components/UserAvatar';
+import UserPasswordResetModal from './UserPasswordResetModal';
 
 const ROLE_LABELS: Record<string, string> = {
     ADMIN: 'Yönetici',
@@ -40,6 +41,8 @@ export default function UsersPage() {
     const [profileForm, setProfileForm] = useState<UpdateUserInput>({ fullName: '' });
     const [profileSaving, setProfileSaving] = useState(false);
     const [profileError, setProfileError] = useState('');
+    const [passwordResetUser, setPasswordResetUser] = useState<AllUserResponse | null>(null);
+    const [success, setSuccess] = useState('');
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/immutability
@@ -199,6 +202,31 @@ export default function UsersPage() {
                 )}
             </AnimatePresence>
 
+            <AnimatePresence>
+                {success && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        role="status"
+                        className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs flex items-center justify-between gap-3"
+                    >
+                        <span className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 shrink-0" />
+                            {success}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setSuccess('')}
+                            aria-label="Başarı mesajını kapat"
+                            className="text-emerald-400/60 hover:text-emerald-400"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Table */}
             {loading ? (
                 <div className="flex items-center justify-center h-40">
@@ -297,13 +325,26 @@ export default function UsersPage() {
                                                     <ChevronDown className="w-3 h-3" />
                                                 </button>
                                                 {u.globalRole !== 'ADMIN' && (
-                                                    <button
-                                                        onClick={() => setDeleteConfirm(u)}
-                                                        className="text-xs bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 p-2 rounded-lg transition-all"
-                                                        title="Kullanıcıyı Sil"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
+                                                    <>
+                                                        <button
+                                                            onClick={() => {
+                                                                setPasswordResetUser(u);
+                                                                setSuccess('');
+                                                            }}
+                                                            aria-label="Şifre Değiştir"
+                                                            className="text-xs bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 text-orange-400 hover:text-orange-300 p-2 rounded-lg transition-all"
+                                                            title="Şifre Değiştir"
+                                                        >
+                                                            <KeyRound className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setDeleteConfirm(u)}
+                                                            className="text-xs bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 p-2 rounded-lg transition-all"
+                                                            title="Kullanıcıyı Sil"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </>
                                                 )}
                                             </div>
                                         </td>
@@ -549,6 +590,19 @@ export default function UsersPage() {
                             )}
                         </motion.div>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {passwordResetUser && (
+                    <UserPasswordResetModal
+                        user={passwordResetUser}
+                        onClose={() => setPasswordResetUser(null)}
+                        onSuccess={message => {
+                            setPasswordResetUser(null);
+                            setSuccess(message);
+                        }}
+                    />
                 )}
             </AnimatePresence>
 

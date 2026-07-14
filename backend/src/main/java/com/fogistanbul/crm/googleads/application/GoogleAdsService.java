@@ -23,6 +23,9 @@ public class GoogleAdsService {
     private static final String DEFAULT_START = "29daysAgo";
     private static final String DEFAULT_END = "today";
     private static final long MAX_RANGE_DAYS = 500;
+    private static final String MANAGER_ACCOUNT_MESSAGE =
+            "Google Ads yönetici hesabı performans raporu içermez. "
+                    + "Yönetici hesabına bağlı reklamveren müşteri ID'sini girin.";
 
     private final GoogleOAuthService oAuthService;
     private final GoogleAdsClient client;
@@ -43,6 +46,9 @@ public class GoogleAdsService {
         if (customerId.isBlank()) {
             return GoogleAdsOverviewResponse.error(
                     null, "Google Ads müşteri ID'si girilmemiş.");
+        }
+        if (client.isManagerCustomerId(customerId)) {
+            return GoogleAdsOverviewResponse.error(customerId, MANAGER_ACCOUNT_MESSAGE);
         }
 
         String accessToken = oAuthService
@@ -91,7 +97,15 @@ public class GoogleAdsService {
         return message.contains("401")
                 || message.contains("403")
                 || message.contains("UNAUTHENTICATED")
-                || message.contains("PERMISSION_DENIED");
+                || message.contains("PERMISSION_DENIED")
+                || message.contains("REQUESTED_METRICS_FOR_MANAGER");
+    }
+
+    public void validateReportingCustomerId(String customerId) {
+        if (client.isManagerCustomerId(customerId)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "GOOGLE_ADS_MANAGER_ID_NOT_REPORTABLE", MANAGER_ACCOUNT_MESSAGE);
+        }
     }
 
     static boolean isAuthenticationFailure(String message) {

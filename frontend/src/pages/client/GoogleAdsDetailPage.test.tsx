@@ -100,4 +100,57 @@ describe('GoogleAdsDetailPage', () => {
         fireEvent.click(screen.getByTitle("Google Ads snapshot'ını yenile"));
         await waitFor(() => expect(refreshSnapshot).toHaveBeenCalledWith('company-1'));
     });
+
+    it('shows the stored Ads snapshot failure reason instead of a generic connection error', async () => {
+        vi.spyOn(googleAdsApi, 'getStatus').mockResolvedValue({
+            connected: true,
+            hasAdsScope: true,
+            needsReconnect: false,
+            customerId: '1234567890',
+            authUrl: '',
+        });
+        vi.spyOn(integrationSnapshotApi, 'getOverview').mockResolvedValue({
+            ads: {
+                ...ads,
+                connected: false,
+                hasAdsScope: false,
+                customerId: null,
+                errorMessage: null,
+                totalSpend: 0,
+                impressions: 0,
+                clicks: 0,
+                conversions: 0,
+                ctr: 0,
+                cpc: 0,
+                conversionRate: 0,
+                campaigns: [],
+                dailyTrend: [],
+            },
+            adsSnapshot: {
+                status: 'FAILED',
+                lastSyncedAt: null,
+                nextSyncAt: '2026-07-14T15:00:00Z',
+                stale: true,
+                errorMessage: 'Google Ads yönetici hesabının bu müşteri hesabına erişimi yok.',
+            },
+        } as unknown as ClientIntegrationSnapshotOverviewResponse);
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        });
+
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={['/client/google-ads']}>
+                    <GoogleAdsDetailPage />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        );
+
+        expect(await screen.findByText(
+            'Google Ads yönetici hesabının bu müşteri hesabına erişimi yok.',
+        )).toBeInTheDocument();
+        expect(screen.queryByText(
+            'Google Ads snapshot oluşturulamadı. Bağlantıyı kontrol edip tekrar deneyin.',
+        )).not.toBeInTheDocument();
+    });
 });

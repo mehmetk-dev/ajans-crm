@@ -37,6 +37,11 @@ public class GoogleAdsClient {
         return developerToken != null && !developerToken.isBlank();
     }
 
+    public boolean isManagerCustomerId(String customerId) {
+        String managerId = digitsOnly(managerCustomerId);
+        return !managerId.isBlank() && managerId.equals(digitsOnly(customerId));
+    }
+
     public List<CampaignMetrics> fetchCampaigns(
             String accessToken,
             String customerId,

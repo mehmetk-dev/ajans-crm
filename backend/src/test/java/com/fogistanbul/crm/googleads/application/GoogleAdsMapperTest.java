@@ -91,7 +91,13 @@ class GoogleAdsMapperTest {
 
     @Test
     void toUserErrorMessage_mapsKnownErrors() {
-        assertThat(mapper.toUserErrorMessage("401 UNAUTHENTICATED")).contains("yeniden bağlayın");
+        assertThat(mapper.toUserErrorMessage("REQUESTED_METRICS_FOR_MANAGER"))
+                .contains("yönetici hesabı")
+                .contains("reklamveren müşteri ID'sini");
+        assertThat(mapper.toUserErrorMessage("401 UNAUTHENTICATED"))
+                .contains("yeniden bağlayın")
+                .contains("developer token")
+                .contains("OAuth");
         assertThat(mapper.toUserErrorMessage("403 PERMISSION_DENIED")).contains("erişim yetkisi yok");
         assertThat(mapper.toUserErrorMessage("invalid developer-token")).contains("developer token");
         assertThat(mapper.toUserErrorMessage("timeout\ninternal-host=secret"))

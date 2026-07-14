@@ -45,4 +45,10 @@ class GoogleAdsClientTest {
         assertThat(rows).hasSize(2);
         server.verify();
     }
+
+    @Test
+    void recognizesConfiguredManagerCustomerIdAfterNormalization() {
+        assertThat(client.isManagerCustomerId("123-456-7890")).isTrue();
+        assertThat(client.isManagerCustomerId("987-654-3210")).isFalse();
+    }
 }

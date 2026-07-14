@@ -81,6 +81,7 @@ class GoogleAdsControllerTest {
         controller.saveCustomerId(
                 companyId, new GoogleAdsCustomerIdRequest("123-456-7890"), authentication);
 
+        verify(googleAdsService).validateReportingCustomerId("1234567890");
         verify(googleOAuthService).saveAdsCustomerId(companyId, "1234567890");
     }
 

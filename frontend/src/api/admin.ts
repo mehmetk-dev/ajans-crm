@@ -37,6 +37,15 @@ export interface UpdateUserInput {
     department?: string | null;
 }
 
+export interface ResetUserPasswordInput {
+    adminPassword: string;
+    newPassword: string;
+}
+
+export interface ResetUserPasswordResponse {
+    message: string;
+}
+
 export interface MailSettingsResponse {
     enabled: boolean;
     host: string;
@@ -79,6 +88,9 @@ export const adminApi = {
         api.put<AllUserResponse>(`/admin/users/${userId}`, input).then(r => r.data),
     updateUserRole: (userId: string, globalRole: string) =>
         api.put(`/admin/users/${userId}/role`, { globalRole }).then(r => r.data),
+    resetUserPassword: (userId: string, input: ResetUserPasswordInput) =>
+        api.put<ResetUserPasswordResponse>(`/admin/users/${userId}/password`, input)
+            .then(r => r.data),
     deleteUser: (userId: string) => api.delete(`/admin/users/${userId}`),
 
     // Mail Settings

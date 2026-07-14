@@ -65,6 +65,7 @@ public class GoogleAdsController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_GOOGLE_ADS_CUSTOMER_ID",
                     "Google Ads müşteri ID'si 10 haneli olmalıdır");
         }
+        googleAdsService.validateReportingCustomerId(customerId);
         googleOAuthService.saveAdsCustomerId(companyId, customerId);
         return GoogleAdsWriteResponse.ok();
     }

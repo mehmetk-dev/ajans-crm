@@ -94,6 +94,10 @@ public class GoogleAdsMapper {
     }
 
     public String toUserErrorMessage(String message) {
+        if (message.contains("REQUESTED_METRICS_FOR_MANAGER")) {
+            return "Google Ads yönetici hesabı performans raporu içermez. "
+                    + "Yönetici hesabına bağlı reklamveren müşteri ID'sini girin.";
+        }
         if (message.contains("TWO_STEP_VERIFICATION_NOT_ENROLLED")) {
             return "Google Ads için Google hesabında iki adımlı doğrulamayı etkinleştirin.";
         }
@@ -105,7 +109,8 @@ public class GoogleAdsMapper {
             return "Google Ads yönetici hesabının bu müşteri hesabına erişimi yok.";
         }
         if (message.contains("401") || message.contains("UNAUTHENTICATED")) {
-            return "Google Ads oturumu sona ermiş. Lütfen hesabı yeniden bağlayın.";
+            return "Google Ads kimlik doğrulaması reddedildi. Hesabı yeniden bağlayın; "
+                    + "hata sürerse developer token ve OAuth ayarlarını kontrol edin.";
         }
         if (message.contains("403") || message.contains("PERMISSION_DENIED")) {
             return "Google Ads hesabına erişim yetkisi yok. Müşteri ve yönetici hesaplarını kontrol edin.";

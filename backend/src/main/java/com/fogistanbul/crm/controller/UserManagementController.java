@@ -2,6 +2,7 @@ package com.fogistanbul.crm.controller;
 
 import com.fogistanbul.crm.entity.enums.ActivityAction;
 import com.fogistanbul.crm.service.ActivityLogService;
+import com.fogistanbul.crm.user.application.AdminResetPasswordRequest;
 import com.fogistanbul.crm.user.application.UserManagementService;
 import com.fogistanbul.crm.user.application.UserManagementService.UserResponse;
 import jakarta.validation.Valid;
@@ -56,6 +57,33 @@ public class UserManagementController {
     }
 
     public record UpdateRoleRequest(String globalRole) {}
+
+    @PutMapping("/{id}/password")
+    public ResponseEntity<Map<String, String>> resetPassword(
+            @PathVariable UUID id,
+            @Valid @RequestBody AdminResetPasswordRequest request,
+            Authentication auth
+    ) {
+        UUID actingAdminId = actorId(auth);
+        userManagementService.resetPassword(
+                actingAdminId,
+                id,
+                request.adminPassword(),
+                request.newPassword()
+        );
+        activityLogService.log(
+                actingAdminId,
+                ActivityAction.UPDATE,
+                "USER",
+                id,
+                null,
+                Map.of("operation", "password_reset")
+        );
+        return ResponseEntity.ok(Map.of(
+                "message",
+                "Kullanıcı şifresi başarıyla değiştirildi"
+        ));
+    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteUser(@PathVariable UUID id, Authentication auth) {

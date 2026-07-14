@@ -90,7 +90,36 @@ class GoogleAdsServiceTest {
         GoogleAdsOverviewResponse result = service.getOverview(companyId, null, null);
 
         assertThat(result.errorMessage()).contains("access token");
-        verifyNoInteractions(client);
+        verify(client, never()).fetchSummary(anyString(), anyString(), anyString(), anyString());
+        verify(client, never()).fetchCampaigns(anyString(), anyString(), anyString(), anyString());
+        verify(client, never()).fetchDailyTrend(anyString(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void getOverview_withManagerCustomerIdReturnsActionableErrorWithoutProviderCall() {
+        UUID companyId = UUID.randomUUID();
+        when(oAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(true);
+        when(oAuthService.hasAdsScope(companyId)).thenReturn(true);
+        when(oAuthService.getAdsCustomerId(companyId)).thenReturn(Optional.of("123-456-7890"));
+        when(mapper.sanitizeCustomerId("123-456-7890")).thenReturn("1234567890");
+        when(client.isManagerCustomerId("1234567890")).thenReturn(true);
+
+        GoogleAdsOverviewResponse result = service.getOverview(companyId, null, null);
+
+        assertThat(result.errorMessage()).contains("yönetici hesabı")
+                .contains("reklamveren müşteri ID'sini");
+        verify(oAuthService, never()).getValidAccessToken(any(), anyString());
+        verify(client, never()).fetchSummary(anyString(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void validateReportingCustomerId_rejectsConfiguredManagerAccount() {
+        when(client.isManagerCustomerId("1234567890")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.validateReportingCustomerId("1234567890"))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("reklamveren müşteri ID'sini");
     }
 
     @Test
@@ -188,6 +217,7 @@ class GoogleAdsServiceTest {
         assertThat(GoogleAdsService.isExpectedAuthorizationFailure("401 Unauthorized")).isTrue();
         assertThat(GoogleAdsService.isExpectedAuthorizationFailure("403 PERMISSION_DENIED")).isTrue();
         assertThat(GoogleAdsService.isExpectedAuthorizationFailure("UNAUTHENTICATED")).isTrue();
+        assertThat(GoogleAdsService.isExpectedAuthorizationFailure("REQUESTED_METRICS_FOR_MANAGER")).isTrue();
         assertThat(GoogleAdsService.isExpectedAuthorizationFailure("network error")).isFalse();
     }
 

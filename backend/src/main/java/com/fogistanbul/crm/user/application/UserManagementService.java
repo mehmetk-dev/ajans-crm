@@ -7,10 +7,12 @@ import com.fogistanbul.crm.entity.enums.GlobalRole;
 import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import com.fogistanbul.crm.repository.PersonRepository;
+import com.fogistanbul.crm.repository.RefreshTokenRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
 import com.fogistanbul.crm.user.infrastructure.UserAccountCleanupRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,8 @@ public class UserManagementService {
     private final CompanyMembershipRepository membershipRepository;
     private final UserAccountCleanupRepository cleanupRepository;
     private final PersonRepository personRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Transactional
     public UserResponse updateUser(UUID userId, UpdateUserRequest req) {
@@ -100,6 +104,42 @@ public class UserManagementService {
 
         cleanupRepository.deleteReferences(user);
         userProfileRepository.delete(user);
+    }
+
+    @Transactional
+    public void resetPassword(UUID actingAdminId, UUID targetUserId,
+            String adminPassword, String newPassword) {
+        UserProfile actingAdmin = requireUser(actingAdminId);
+        if (actingAdmin.getGlobalRole() != GlobalRole.ADMIN) {
+            throw passwordResetForbidden();
+        }
+        if (!passwordEncoder.matches(adminPassword, actingAdmin.getPasswordHash())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "ADMIN_PASSWORD_INVALID",
+                    "Admin şifresi hatalı"
+            );
+        }
+        if (actingAdminId.equals(targetUserId)) {
+            throw passwordResetForbidden();
+        }
+
+        UserProfile target = requireUser(targetUserId);
+        if (target.getGlobalRole() == GlobalRole.ADMIN) {
+            throw passwordResetForbidden();
+        }
+
+        target.setPasswordHash(passwordEncoder.encode(newPassword));
+        userProfileRepository.save(target);
+        refreshTokenRepository.revokeAllByUserId(targetUserId);
+    }
+
+    private ApiException passwordResetForbidden() {
+        return new ApiException(
+                HttpStatus.FORBIDDEN,
+                "ADMIN_PASSWORD_RESET_FORBIDDEN",
+                "Bu kullanıcının şifresi admin panelinden değiştirilemez"
+        );
     }
 
     private UserProfile requireUser(UUID userId) {

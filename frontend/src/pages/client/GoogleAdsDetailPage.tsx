@@ -133,6 +133,7 @@ export default function GoogleAdsDetailPage() {
     const visibleError = callbackError
         || actionError
         || data?.errorMessage
+        || snapshotMeta?.errorMessage
         || (snapshotMeta?.status === 'FAILED' && !data?.connected
             ? 'Google Ads snapshot oluşturulamadı. Bağlantıyı kontrol edip tekrar deneyin.'
             : '')
