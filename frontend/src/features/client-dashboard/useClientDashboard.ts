@@ -63,16 +63,23 @@ export function useClientDashboard() {
         ga: snapshots.data?.ga,
         sc: snapshots.data?.sc,
         ig: snapshots.data?.ig,
+        ads: snapshots.data?.ads,
+        metaAds: snapshots.data?.metaAds,
         gaSnapshot: snapshots.data?.gaSnapshot,
         scSnapshot: snapshots.data?.scSnapshot,
         igSnapshot: snapshots.data?.igSnapshot,
+        adsSnapshot: snapshots.data?.adsSnapshot,
+        metaAdsSnapshot: snapshots.data?.metaAdsSnapshot,
         shoots: shoots.data?.content ?? [],
         tasks: tasks.data?.content ?? [],
         gaConnected: !!(snapshots.data?.ga?.connected && snapshots.data?.ga?.propertyId),
         scConnected: !!(snapshots.data?.sc?.connected && snapshots.data?.sc?.siteUrl),
         igConnected: !!(snapshots.data?.ig?.connected && snapshots.data?.ig?.username),
+        googleAdsConnected: !!snapshots.data?.ads?.connected,
+        metaAdsConnected: !!snapshots.data?.metaAds?.connected,
         hasDigitalMarketing,
         hasSocialMedia,
+        hasAdManagement: activeServices.hasAdManagement,
         hasProduction,
         hasContentMarketing: activeServices.hasContentMarketing,
         hasService: activeServices.hasService,
@@ -85,8 +92,22 @@ export function useRefreshDashboard() {
     const companyId = user?.companyId || '';
 
     const refreshTab = async (tab: TabKey) => {
-        if (companyId && tab !== 'schedule') {
-            await integrationSnapshotApi.refreshOverview(companyId);
+        if (companyId) {
+            if (tab === 'overview') {
+                await integrationSnapshotApi.refreshOverview(companyId);
+            } else if (tab === 'web') {
+                await Promise.all([
+                    integrationSnapshotApi.refreshGoogleAnalytics(companyId),
+                    integrationSnapshotApi.refreshSearchConsole(companyId),
+                ]);
+            } else if (tab === 'social') {
+                await integrationSnapshotApi.refreshInstagram(companyId);
+            } else if (tab === 'ads') {
+                await Promise.all([
+                    integrationSnapshotApi.refreshGoogleAds(companyId),
+                    integrationSnapshotApi.refreshMetaAds(companyId),
+                ]);
+            }
         }
         const keys = dashboardRefreshKeys[tab](companyId);
         await Promise.all(keys.map(k => qc.invalidateQueries({ queryKey: k })));
@@ -101,6 +122,7 @@ export function useRefreshDashboard() {
             ...dashboardRefreshKeys.overview(companyId),
             ...dashboardRefreshKeys.web(companyId),
             ...dashboardRefreshKeys.social(companyId),
+            ...dashboardRefreshKeys.ads(companyId),
             ...dashboardRefreshKeys.schedule(companyId),
             instagramKeys.status(companyId),
             instagramKeys.reels(companyId),

@@ -10,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/client/approval-requests")
@@ -25,5 +26,14 @@ public class ClientApprovalController {
     ) {
         return ResponseEntity.ok(approvalRequestService.create(
                 request, (UUID) auth.getPrincipal()));
+    }
+
+    @GetMapping("/additional-services")
+    public ResponseEntity<List<ApprovalRequestResponse>> listAdditionalServices(
+            @RequestParam UUID companyId,
+            Authentication auth
+    ) {
+        return ResponseEntity.ok(approvalRequestService.getAdditionalServiceRequests(
+                (UUID) auth.getPrincipal(), companyId));
     }
 }

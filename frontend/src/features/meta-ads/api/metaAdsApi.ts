@@ -5,9 +5,9 @@ import type {
 } from '../metaAds.types';
 
 export const metaAdsApi = {
-    getStatus: (companyId: string) =>
+    getStatus: (companyId: string, returnPath?: string) =>
         api.get<MetaAdsStatusResponse>('/client/analytics/meta-ads/status', {
-            params: { companyId }
+            params: { companyId, returnPath }
         }).then(r => r.data),
 
     getOverview: (companyId: string, startDate?: string, endDate?: string) =>

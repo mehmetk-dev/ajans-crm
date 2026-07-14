@@ -25,12 +25,14 @@ interface OverviewTabProps {
     gaConnected: boolean;
     scConnected: boolean;
     igConnected: boolean;
+    googleAdsConnected: boolean;
+    metaAdsConnected: boolean;
 }
 
 export function OverviewTab({
     ga, sc, ig, navigate, upcomingShoots, activeTasks,
     gaSnapshot, scSnapshot, igSnapshot,
-    gaConnected, scConnected, igConnected,
+    gaConnected, scConnected, igConnected, googleAdsConnected, metaAdsConnected,
 }: OverviewTabProps) {
     const stats = [
         { label: 'Ziyaretçi', value: gaConnected ? fmt(ga!.totalUsers) : '—', icon: Users, color: 'from-blue-500/15 to-blue-400/5 border-blue-500/20', textColor: 'text-blue-400', connected: gaConnected, snapshot: gaSnapshot },
@@ -97,7 +99,8 @@ export function OverviewTab({
                         <QuickLink icon={Globe} label="Google Analytics" to="/client/google-analytics" connected={gaConnected} navigate={navigate} />
                         <QuickLink icon={Search} label="Search Console" to="/client/search-console" connected={scConnected} navigate={navigate} />
                         <QuickLink icon={Instagram} label="Instagram" to="/client/instagram" connected={igConnected} navigate={navigate} />
-                        <QuickLink icon={Megaphone} label="Google Ads" to="/client/google-ads" connected={false} navigate={navigate} />
+                        <QuickLink icon={Megaphone} label="Google Ads" to="/client/google-ads" connected={googleAdsConnected} navigate={navigate} />
+                        <QuickLink icon={Megaphone} label="Meta Ads" to="/client/meta-ads" connected={metaAdsConnected} navigate={navigate} />
                         <QuickLink icon={FileText} label="İçerik Planı" to="/client/content-plans" connected navigate={navigate} />
                         <QuickLink icon={CalendarDays} label="Çekim Takvimi" to="/client/shoots" connected navigate={navigate} />
                     </div>

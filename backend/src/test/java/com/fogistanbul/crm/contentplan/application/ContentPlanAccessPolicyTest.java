@@ -4,8 +4,10 @@ import com.fogistanbul.crm.company.application.CompanyAccessPolicy;
 import com.fogistanbul.crm.company.application.CompanyServiceAccessGuard;
 import com.fogistanbul.crm.entity.Company;
 import com.fogistanbul.crm.entity.ContentPlan;
+import com.fogistanbul.crm.entity.CompanyMembership;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
+import com.fogistanbul.crm.entity.enums.MembershipRole;
 import com.fogistanbul.crm.entity.enums.ServiceCategory;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import org.junit.jupiter.api.Test;
@@ -15,10 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.util.UUID;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ContentPlanAccessPolicyTest {
@@ -62,6 +66,32 @@ class ContentPlanAccessPolicyTest {
                 .build();
 
         assertThrows(AccessDeniedException.class, () -> policy.requireManage(plan(), client));
+    }
+
+    @Test
+    void ownerCanRequestAdditionalServices() {
+        ContentPlanAccessPolicy policy = policy();
+        UUID userId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+        when(membershipRepository.findByUserIdAndCompanyId(userId, companyId))
+                .thenReturn(Optional.of(CompanyMembership.builder()
+                        .membershipRole(MembershipRole.OWNER)
+                        .build()));
+
+        assertDoesNotThrow(() -> policy.requireOwner(userId, companyId));
+    }
+
+    @Test
+    void employeeCannotRequestAdditionalServices() {
+        ContentPlanAccessPolicy policy = policy();
+        UUID userId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+        when(membershipRepository.findByUserIdAndCompanyId(userId, companyId))
+                .thenReturn(Optional.of(CompanyMembership.builder()
+                        .membershipRole(MembershipRole.EMPLOYEE)
+                        .build()));
+
+        assertThrows(AccessDeniedException.class, () -> policy.requireOwner(userId, companyId));
     }
 
     private ContentPlanAccessPolicy policy() {

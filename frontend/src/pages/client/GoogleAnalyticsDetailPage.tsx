@@ -26,7 +26,7 @@ export default function GoogleAnalyticsDetailPage() {
   const { user } = useAuth();
   const companyId = user?.companyId ?? "";
   const {
-    status, data, loading, error, refreshing, authLoading,
+    status, data, snapshotMeta, loading, error, refreshing, authLoading,
     activePreset, showDateMenu, customStart, customEnd, isCustomRange,
     currentRange, sourcePieData, countryBarData,
     totalSources, totalPages, maxPageViews,
@@ -243,6 +243,11 @@ export default function GoogleAnalyticsDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {snapshotMeta?.lastSyncedAt && (
+            <span className="text-[11px] text-zinc-500">
+              Son güncelleme: {new Date(snapshotMeta.lastSyncedAt).toLocaleString("tr-TR")}
+            </span>
+          )}
           <div className="flex items-center gap-1.5 bg-pink-500/10 border border-pink-500/20 rounded-full px-3 py-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-pink-400" />
             <span className="text-[11px] text-pink-400 font-medium">Bağlı</span>
@@ -281,6 +286,16 @@ export default function GoogleAnalyticsDetailPage() {
           </button>
         </div>
       </div>
+
+      {snapshotMeta?.status === "FAILED" && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+          <div>
+            <p className="text-sm font-medium text-amber-200">Son başarılı Google Analytics verisi gösteriliyor</p>
+            <p className="mt-0.5 text-xs text-zinc-500">Yeni veri alınamadı; kayıtlı snapshot korunuyor.</p>
+          </div>
+        </div>
+      )}
 
       <GAOverviewSection
         sessions={data.sessions}

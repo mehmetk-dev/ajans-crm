@@ -7,5 +7,6 @@ export { default as ClientDashboardPage } from './ui/ClientDashboardPage';
 export { OverviewTab } from './ui/OverviewTab';
 export { WebAnalyticsTab } from './ui/WebAnalyticsTab';
 export { SocialTab } from './ui/SocialTab';
+export { AdsTab } from './ui/AdsTab';
 export { ScheduleTab } from './ui/ScheduleTab';
 export { MetricCard, MiniStat, ChartCard, ListCard, QuickLink, EmptyState, DashboardLoader } from './ui/DashboardCards';

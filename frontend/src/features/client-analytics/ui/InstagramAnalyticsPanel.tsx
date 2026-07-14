@@ -185,6 +185,16 @@ export default function InstagramAnalyticsPanel({
     }
 
     const connected = status?.connected ?? false;
+    if (!connected) {
+        return (
+            <div className="rounded-2xl border border-white/[0.06] bg-[#0C0C0E] p-5">
+                <InstagramDisconnectedState
+                    {...getInstagramDisconnectedCopy('/client/instagram')}
+                    to="/client/instagram"
+                />
+            </div>
+        );
+    }
     const reelPreview = (reelsQuery.data ?? []).slice(0, 3).map(reelPreviewItem);
     const postPreview = (postsQuery.data ?? []).slice(0, 3).map(postPreviewItem);
 

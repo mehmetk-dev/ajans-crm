@@ -45,6 +45,7 @@ public class InstagramOAuthService {
     private static final String DEFAULT_RETURN_PATH = "/client/analytics";
     private static final Set<String> ALLOWED_RETURN_PATHS = Set.of(
             DEFAULT_RETURN_PATH,
+            "/client/meta-ads",
             "/client/instagram",
             "/client/instagram/reels",
             "/client/instagram/posts");

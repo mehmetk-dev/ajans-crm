@@ -33,6 +33,7 @@ public class MetaAdsController {
     @GetMapping("/status")
     public MetaAdsStatusResponse status(
             @RequestParam UUID companyId,
+            @RequestParam(required = false) String returnPath,
             Authentication authentication) {
         accessPolicy.requireClientAccess(
                 (UUID) authentication.getPrincipal(), companyId);
@@ -40,7 +41,7 @@ public class MetaAdsController {
         return new MetaAdsStatusResponse(
                 connected,
                 accountService.getAdAccountId(companyId).orElse(""),
-                connected ? "" : oAuthService.buildAuthorizationUrl(companyId));
+                oAuthService.buildAuthorizationUrl(companyId, returnPath));
     }
 
     @GetMapping("/overview")

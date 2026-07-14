@@ -5,6 +5,7 @@ import com.fogistanbul.crm.company.application.CompanyServiceAccessGuard;
 import com.fogistanbul.crm.entity.ContentPlan;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
+import com.fogistanbul.crm.entity.enums.MembershipRole;
 import com.fogistanbul.crm.entity.enums.ServiceCategory;
 import com.fogistanbul.crm.repository.CompanyMembershipRepository;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,15 @@ public class ContentPlanAccessPolicy {
 
     public void requireClientService(UUID userId, UUID companyId) {
         serviceAccessGuard.requireService(userId, companyId, ServiceCategory.CONTENT_MARKETING);
+    }
+
+    public void requireOwner(UUID userId, UUID companyId) {
+        boolean owner = membershipRepository.findByUserIdAndCompanyId(userId, companyId)
+                .map(membership -> membership.getMembershipRole() == MembershipRole.OWNER)
+                .orElse(false);
+        if (!owner) {
+            throw new AccessDeniedException("Ek hizmet talebi yalnızca şirket sahibi tarafından oluşturulabilir");
+        }
     }
 
     public List<UUID> accessibleCompanyIds(UserProfile user) {

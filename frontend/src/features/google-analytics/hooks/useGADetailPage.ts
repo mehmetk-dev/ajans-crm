@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../../store/AuthContext';
 import { getApiErrorMessage } from '../../../lib/apiError';
+import { integrationSnapshotApi } from '../../integration-snapshots/api/integrationSnapshotApi';
+import type { IntegrationSnapshotMeta } from '../../integration-snapshots/integrationSnapshot.types';
 import { googleAnalyticsApi } from '../api/googleAnalyticsApi';
 import { DATE_PRESETS, buildSourcePieData, buildCountryBarData, computeEngagementRate, computeSessionsPerUser } from '../model/googleAnalytics.utils';
 import type { GaOverviewResponse, GaStatusResponse } from '../googleAnalytics.types';
@@ -8,6 +10,7 @@ import type { GaOverviewResponse, GaStatusResponse } from '../googleAnalytics.ty
 interface GADetailState {
     status: GaStatusResponse | null;
     data: GaOverviewResponse | null;
+    snapshotMeta: IntegrationSnapshotMeta | null;
     loading: boolean;
     error: string | null;
     refreshing: boolean;
@@ -25,6 +28,7 @@ export function useGADetailPage() {
     const [state, setState] = useState<GADetailState>({
         status: null,
         data: null,
+        snapshotMeta: null,
         loading: true,
         error: null,
         refreshing: false,
@@ -49,13 +53,25 @@ export function useGADetailPage() {
 
         const startDate = state.isCustomRange ? state.customStart : DATE_PRESETS[state.activePreset].start;
         const endDate = state.isCustomRange ? state.customEnd : DATE_PRESETS[state.activePreset].end;
+        const useDefaultSnapshot = !state.isCustomRange && state.activePreset === 2;
 
         googleAnalyticsApi
             .getStatus(companyId)
             .then(s => {
-                setState(prev => ({ ...prev, status: s, data: null }));
+                setState(prev => ({
+                    ...prev,
+                    status: s,
+                    data: null,
+                    snapshotMeta: useDefaultSnapshot ? prev.snapshotMeta : null,
+                }));
                 if (s.connected && s.propertyId) {
-                    return googleAnalyticsApi.getOverview(companyId, startDate, endDate).then(d => setState(prev => ({ ...prev, data: d })));
+                    const overviewRequest = useDefaultSnapshot
+                        ? integrationSnapshotApi.getOverview(companyId).then(snapshot => {
+                            setState(prev => ({ ...prev, snapshotMeta: snapshot.gaSnapshot }));
+                            return snapshot.ga;
+                        })
+                        : googleAnalyticsApi.getOverview(companyId, startDate, endDate);
+                    return overviewRequest.then(d => setState(prev => ({ ...prev, data: d })));
                 }
             })
             .catch((err: unknown) => setState(prev => ({
@@ -67,7 +83,6 @@ export function useGADetailPage() {
 
     useEffect(() => {
         if (authLoading) return;
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         load();
     }, [load, authLoading]);
 
@@ -87,6 +102,26 @@ export function useGADetailPage() {
     const engagementRate = state.data ? computeEngagementRate(state.data.bounceRate) : '0';
     const sessionsPerUser = state.data ? computeSessionsPerUser(state.data.sessions, state.data.totalUsers) : '0';
 
+    const refresh = useCallback(async () => {
+        if (!companyId) return;
+        const useDefaultSnapshot = !state.isCustomRange && state.activePreset === 2;
+        if (!useDefaultSnapshot) {
+            load(true);
+            return;
+        }
+        setState(s => ({ ...s, refreshing: true, error: null }));
+        try {
+            await integrationSnapshotApi.refreshGoogleAnalytics(companyId);
+            load(true);
+        } catch (err: unknown) {
+            setState(s => ({
+                ...s,
+                refreshing: false,
+                error: getApiErrorMessage(err, 'Google Analytics snapshot yenilenemedi'),
+            }));
+        }
+    }, [companyId, load, state.activePreset, state.isCustomRange]);
+
     return {
         ...state,
         authLoading,
@@ -103,6 +138,6 @@ export function useGADetailPage() {
         setCustomStart: (v: string) => setState(s => ({ ...s, customStart: v })),
         setCustomEnd: (v: string) => setState(s => ({ ...s, customEnd: v })),
         setIsCustomRange: (v: boolean) => setState(s => ({ ...s, isCustomRange: v })),
-        refresh: () => load(true),
+        refresh,
     };
 }

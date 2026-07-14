@@ -1,6 +1,7 @@
 import type { GaOverviewResponse } from '../google-analytics/googleAnalytics.types';
 import type { GoogleAdsOverviewResponse } from '../google-ads/googleAds.types';
 import type { IgOverviewResponse } from '../instagram/instagram.types';
+import type { MetaAdsOverviewResponse } from '../meta-ads/metaAds.types';
 import type { ScOverviewResponse } from '../search-console/searchConsole.types';
 
 export type IntegrationSnapshotStatus = 'PENDING' | 'SYNCING' | 'READY' | 'FAILED';
@@ -20,6 +21,8 @@ export interface ClientIntegrationSnapshotOverviewResponse {
     scSnapshot: IntegrationSnapshotMeta;
     ads: GoogleAdsOverviewResponse;
     adsSnapshot: IntegrationSnapshotMeta;
+    metaAds: MetaAdsOverviewResponse;
+    metaAdsSnapshot: IntegrationSnapshotMeta;
     ig: IgOverviewResponse;
     igSnapshot: IntegrationSnapshotMeta;
 }

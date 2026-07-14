@@ -14,6 +14,9 @@ export const dashboardRefreshKeys = {
     social: (companyId: string) => [
         integrationSnapshotKeys.overview(companyId),
     ],
+    ads: (companyId: string) => [
+        integrationSnapshotKeys.overview(companyId),
+    ],
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     schedule: (_companyId: string) => [
         shootKeys.list('client', 0, 20),

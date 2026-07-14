@@ -30,7 +30,7 @@ export default function ProtectedRoute({ children, roles, membershipRoles }: Pro
         return <Navigate to={roleRoutes[user.globalRole] || '/'} replace />;
     }
 
-    if (membershipRoles && user.membershipRole && !membershipRoles.includes(user.membershipRole)) {
+    if (membershipRoles && (!user.membershipRole || !membershipRoles.includes(user.membershipRole))) {
         return <Navigate to="/client" replace />;
     }
 

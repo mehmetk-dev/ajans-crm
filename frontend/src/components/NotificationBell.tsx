@@ -3,6 +3,7 @@ import { Bell, CheckCheck, ExternalLink, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { type NotificationResponse } from '../api/features';
 import { useNotifications } from '../hooks/useNotifications';
+import { getNotificationRoute } from './notificationRoutes';
 
 const typeIcons: Record<string, string> = {
     TASK_ASSIGNED: '📋',
@@ -23,30 +24,6 @@ const typeIcons: Record<string, string> = {
     SYSTEM: '⚙️',
 };
 
-const refRoutes: Record<string, Record<string, string>> = {
-    client: {
-        TASK: '/client/tasks',
-        SHOOT: '/client/shoots',
-        CONTENT_PLAN: '/client/content-plans',
-        MESSAGE: '/client/messaging',
-        GROUP_MESSAGE: '/client/messaging',
-    },
-    staff: {
-        TASK: '/staff/tasks',
-        SHOOT: '/staff/shoots',
-        CONTENT_PLAN: '/staff/content-plans',
-        MESSAGE: '/staff/messaging',
-        GROUP_MESSAGE: '/staff/messaging',
-    },
-    admin: {
-        TASK: '/admin/tasks',
-        SHOOT: '/admin/shoots',
-        CONTENT_PLAN: '/admin/content-plans',
-        MESSAGE: '/admin/messaging',
-        GROUP_MESSAGE: '/admin/messaging',
-    },
-};
-
 interface Props {
     accentColor?: string;
 }
@@ -60,20 +37,6 @@ export default function NotificationBell({ accentColor = 'orange' }: Props) {
 
     const panel = location.pathname.startsWith('/admin') ? 'admin'
         : location.pathname.startsWith('/staff') ? 'staff' : 'client';
-
-    const getRoute = (n: NotificationResponse): string | null => {
-        if (!n.referenceType) return null;
-        const routes = refRoutes[panel];
-        const baseRoute = routes?.[n.referenceType];
-        if (!baseRoute) return null;
-        if (n.referenceType === 'MESSAGE' && n.referenceId) {
-            return `${baseRoute}?conversationId=${n.referenceId}`;
-        }
-        if (n.referenceType === 'GROUP_MESSAGE' && n.referenceId) {
-            return `${baseRoute}?groupId=${n.referenceId}`;
-        }
-        return baseRoute;
-    };
 
     useEffect(() => {
         const handleClick = (e: MouseEvent) => {
@@ -151,7 +114,7 @@ export default function NotificationBell({ accentColor = 'orange' }: Props) {
                                     <button
                                         onClick={() => {
                                             markRead(n);
-                                            const route = getRoute(n);
+                                            const route = getNotificationRoute(panel, n);
                                             if (route) navigate(route);
                                             setOpen(false);
                                         }}

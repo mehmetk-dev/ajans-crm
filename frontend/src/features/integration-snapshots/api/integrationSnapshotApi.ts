@@ -10,12 +10,24 @@ export const integrationSnapshotApi = {
         api.post<void>('/client/integration-snapshots/overview/refresh', null, {
             params: { companyId },
         }).then(response => response.data),
+    refreshGoogleAnalytics: (companyId: string) =>
+        api.post<void>('/client/integration-snapshots/google-analytics/refresh', null, {
+            params: { companyId },
+        }).then(response => response.data),
+    refreshInstagram: (companyId: string) =>
+        api.post<void>('/client/integration-snapshots/instagram/refresh', null, {
+            params: { companyId },
+        }).then(response => response.data),
     refreshSearchConsole: (companyId: string) =>
         api.post<void>('/client/integration-snapshots/search-console/refresh', null, {
             params: { companyId },
         }).then(response => response.data),
     refreshGoogleAds: (companyId: string) =>
         api.post<void>('/client/integration-snapshots/google-ads/refresh', null, {
+            params: { companyId },
+        }).then(response => response.data),
+    refreshMetaAds: (companyId: string) =>
+        api.post<void>('/client/integration-snapshots/meta-ads/refresh', null, {
             params: { companyId },
         }).then(response => response.data),
 };

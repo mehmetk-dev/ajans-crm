@@ -1,5 +1,7 @@
 package com.fogistanbul.crm.contentplan.application;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fogistanbul.crm.contentplan.dto.ApprovalRequestResponse;
 import com.fogistanbul.crm.contentplan.dto.CreateApprovalRequest;
 import com.fogistanbul.crm.contentplan.dto.ReviewApprovalRequest;
@@ -8,22 +10,29 @@ import com.fogistanbul.crm.entity.Company;
 import com.fogistanbul.crm.entity.ContentPlan;
 import com.fogistanbul.crm.entity.UserProfile;
 import com.fogistanbul.crm.entity.enums.GlobalRole;
+import com.fogistanbul.crm.entity.enums.NotificationType;
 import com.fogistanbul.crm.entity.enums.RequestStatus;
 import com.fogistanbul.crm.entity.enums.RequestType;
+import com.fogistanbul.crm.entity.enums.ServiceCategory;
 import com.fogistanbul.crm.repository.ApprovalRequestRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.UserProfileRepository;
+import com.fogistanbul.crm.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class ApprovalRequestService {
+
+    private static final String ADDITIONAL_SERVICE_TITLE = "Ek Hizmet Talebi";
 
     private final ApprovalRequestRepository approvalRequestRepository;
     private final CompanyRepository companyRepository;
@@ -33,6 +42,8 @@ public class ApprovalRequestService {
     private final ContentPlanAccessPolicy accessPolicy;
     private final ContentApprovalMetadata metadataCodec;
     private final ApprovalRequestMapper mapper;
+    private final NotificationService notificationService;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public ApprovalRequestResponse create(CreateApprovalRequest request, UUID userId) {
@@ -40,6 +51,11 @@ public class ApprovalRequestService {
         Company company = companyRepository.findById(request.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
         accessPolicy.requireCompanyAccess(requester, company.getId());
+
+        if (isAdditionalServiceRequest(request)) {
+            accessPolicy.requireOwner(userId, company.getId());
+            validateAdditionalServiceRequest(request, company.getId());
+        }
 
         if (request.getType() == RequestType.CONTENT_APPROVAL) {
             validateContentApproval(request, userId);
@@ -55,7 +71,22 @@ public class ApprovalRequestService {
                 .description(request.getDescription())
                 .metadata(request.getMetadata())
                 .build());
+        notifyAdmins(saved);
         return mapper.toResponse(saved);
+    }
+
+    private void notifyAdmins(ApprovalRequest request) {
+        if (request.getType() != RequestType.GENERAL) return;
+
+        boolean isAdditionalServiceRequest = ADDITIONAL_SERVICE_TITLE.equals(request.getTitle());
+        String title = isAdditionalServiceRequest ? "Yeni ek hizmet talebi" : "Yeni genel istek";
+        String message = isAdditionalServiceRequest
+                ? request.getCompany().getName() + " ek hizmet talebi oluşturdu."
+                : request.getCompany().getName() + " yeni bir istek oluşturdu.";
+        userProfileRepository.findByGlobalRole(GlobalRole.ADMIN).forEach(admin ->
+                notificationService.send(
+                        admin.getId(), NotificationType.APPROVAL_REQUEST,
+                        title, message, "APPROVAL_REQUEST", request.getId()));
     }
 
     @Transactional(readOnly = true)
@@ -71,6 +102,71 @@ public class ApprovalRequestService {
                     : approvalRequestRepository.findByCompanyIdInOrderByCreatedAtDesc(companyIds);
         }
         return requests.stream().map(mapper::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApprovalRequestResponse> getAdditionalServiceRequests(UUID userId, UUID companyId) {
+        accessPolicy.requireOwner(userId, companyId);
+        return approvalRequestRepository.findByCompanyIdInOrderByCreatedAtDesc(List.of(companyId)).stream()
+                .filter(request -> ADDITIONAL_SERVICE_TITLE.equals(request.getTitle()))
+                .map(mapper::toResponse)
+                .toList();
+    }
+
+    private boolean isAdditionalServiceRequest(CreateApprovalRequest request) {
+        return request.getType() == RequestType.GENERAL
+                && ADDITIONAL_SERVICE_TITLE.equals(request.getTitle());
+    }
+
+    private void validateAdditionalServiceRequest(CreateApprovalRequest request, UUID companyId) {
+        Set<ServiceCategory> requestedServices = parseAdditionalServices(request.getMetadata());
+        boolean hasDuplicate = approvalRequestRepository
+                .findByCompanyIdAndStatusOrderByCreatedAtDesc(companyId, RequestStatus.PENDING)
+                .stream()
+                .filter(existing -> ADDITIONAL_SERVICE_TITLE.equals(existing.getTitle()))
+                .map(ApprovalRequest::getMetadata)
+                .map(this::parseExistingAdditionalServices)
+                .anyMatch(existingServices -> existingServices.stream().anyMatch(requestedServices::contains));
+        if (hasDuplicate) {
+            throw new IllegalStateException("Seçilen hizmetlerden biri için bekleyen bir talep zaten var");
+        }
+    }
+
+    private Set<ServiceCategory> parseExistingAdditionalServices(String metadata) {
+        try {
+            return parseAdditionalServices(metadata);
+        } catch (IllegalArgumentException ignored) {
+            return Set.of();
+        }
+    }
+
+    private Set<ServiceCategory> parseAdditionalServices(String metadata) {
+        try {
+            JsonNode root = objectMapper.readTree(metadata);
+            if (root == null || !"ADDITIONAL_SERVICE".equals(root.path("kind").asText())) {
+                throw new IllegalArgumentException("Ek hizmet talebi bilgisi geçersiz");
+            }
+
+            JsonNode servicesNode = root.path("services");
+            if (!servicesNode.isArray() || servicesNode.isEmpty()) {
+                throw new IllegalArgumentException("En az bir ek hizmet seçilmelidir");
+            }
+
+            Set<ServiceCategory> categories = EnumSet.noneOf(ServiceCategory.class);
+            for (JsonNode serviceNode : servicesNode) {
+                String id = serviceNode.path("id").asText();
+                try {
+                    categories.add(ServiceCategory.valueOf(id));
+                } catch (IllegalArgumentException exception) {
+                    throw new IllegalArgumentException("Bilinmeyen hizmet kategorisi: " + id, exception);
+                }
+            }
+            return categories;
+        } catch (IllegalArgumentException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Ek hizmet talebi bilgisi okunamadı", exception);
+        }
     }
 
     @Transactional(readOnly = true)

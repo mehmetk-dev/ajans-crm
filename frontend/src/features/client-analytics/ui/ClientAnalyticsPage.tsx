@@ -34,6 +34,7 @@ import { metaAdsKeys } from '../../meta-ads/metaAdsKeys';
 import { igApi } from '../../instagram/api/instagramApi';
 import { instagramKeys } from '../../instagram/instagramKeys';
 import { integrationSnapshotApi } from '../../integration-snapshots/api/integrationSnapshotApi';
+import { getApiErrorMessage } from '../../../lib/apiError';
 
 const WebDesignPanel = lazy(
     () => import('../../web-design/ui/WebDesignPanel'),
@@ -140,6 +141,7 @@ export default function ClientAnalyticsPage() {
         isLoading: servicesLoading,
     } = useActiveServices();
     const [refreshing, setRefreshing] = useState(false);
+    const [refreshError, setRefreshError] = useState<string | null>(null);
     const [localRefreshVersion, setLocalRefreshVersion] = useState(0);
     const companyId = user?.companyId ?? null;
     const companyIdForQuery = companyId ?? '';
@@ -196,6 +198,7 @@ export default function ClientAnalyticsPage() {
     });
     const handleRefresh = async () => {
         setRefreshing(true);
+        setRefreshError(null);
         try {
             await integrationSnapshotApi.refreshOverview(companyId ?? '');
             await Promise.all(
@@ -207,6 +210,8 @@ export default function ClientAnalyticsPage() {
                 ),
             );
             setLocalRefreshVersion(version => version + 1);
+        } catch (error) {
+            setRefreshError(getApiErrorMessage(error, 'Analitik verileri yenilenemedi'));
         } finally {
             setRefreshing(false);
         }
@@ -349,7 +354,15 @@ export default function ClientAnalyticsPage() {
             actionLabel: 'Detaylı Rapor',
             actionTo: '/client/meta-ads',
             connected: metaAdsStatus.data?.connected,
-            render: () => <MetaAdsPanel companyId={companyId} />,
+            render: () => (
+                metaAdsStatus.isLoading
+                    ? <PanelPlaceholder minHeight={220} />
+                    : <MetaAdsPanel
+                        key={`meta-ads-${localRefreshVersion}`}
+                        companyId={companyId}
+                        initialStatus={metaAdsStatus.data}
+                    />
+            ),
         },
     ];
 
@@ -392,6 +405,13 @@ export default function ClientAnalyticsPage() {
                     </div>
                 </div>
             </header>
+
+            {refreshError && (
+                <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    {refreshError}
+                </div>
+            )}
 
             {orderedPanels.map(panel => (
                 <AnalyticsSection

@@ -11,6 +11,8 @@ import {
     Clock, AlertCircle, Loader2, WifiOff, ExternalLink,
     MapPin, FileText, CheckCircle2, Link2, Unlink, Settings, ArrowUpRight, ChevronDown, Calendar,
 } from 'lucide-react';
+import { integrationSnapshotApi } from '../../integration-snapshots/api/integrationSnapshotApi';
+import type { IntegrationSnapshotMeta } from '../../integration-snapshots/integrationSnapshot.types';
 import { googleAnalyticsApi } from '../api/googleAnalyticsApi';
 import { PANEL_PRESETS, formatDuration, formatNum, buildSourcePieData } from '../model/googleAnalytics.utils';
 import { ChartTooltip, MetricCard } from './GoogleAnalyticsCards';
@@ -24,6 +26,7 @@ export default function GoogleAnalyticsPanel({ companyId }: Props) {
     const navigate = useNavigate();
     const [status, setStatus] = useState<GaStatusResponse | null>(null);
     const [data, setData] = useState<GaOverviewResponse | null>(null);
+    const [snapshotMeta, setSnapshotMeta] = useState<IntegrationSnapshotMeta | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [propertyInput, setPropertyInput] = useState('');
@@ -40,12 +43,22 @@ export default function GoogleAnalyticsPanel({ companyId }: Props) {
         setError(null);
         const startDate = isCustom ? customStart : PANEL_PRESETS[datePreset].start;
         const endDate   = isCustom ? customEnd   : PANEL_PRESETS[datePreset].end;
+        const useDefaultSnapshot = !isCustom && datePreset === 2;
         googleAnalyticsApi.getStatus(companyId)
             .then((s: GaStatusResponse) => {
                 setStatus(s);
                 setPropertyInput(s.propertyId || '');
                 if (s.connected && s.propertyId) {
-                    return googleAnalyticsApi.getOverview(companyId, startDate, endDate).then(d => {
+                    const overviewRequest = useDefaultSnapshot
+                        ? integrationSnapshotApi.getOverview(companyId).then(snapshot => {
+                            setSnapshotMeta(snapshot.gaSnapshot);
+                            return snapshot.ga;
+                        })
+                        : googleAnalyticsApi.getOverview(companyId, startDate, endDate).then(overview => {
+                            setSnapshotMeta(null);
+                            return overview;
+                        });
+                    return overviewRequest.then(d => {
                         setData(d);
                         if (d.errorMessage) setShowPropertyForm(true);
                     });
@@ -64,6 +77,9 @@ export default function GoogleAnalyticsPanel({ companyId }: Props) {
         setSavingProperty(true);
         try {
             await googleAnalyticsApi.saveProperty(companyId, propertyInput.trim());
+            if (!isCustom && datePreset === 2) {
+                await integrationSnapshotApi.refreshGoogleAnalytics(companyId);
+            }
             setShowPropertyForm(false);
             load();
         } finally {
@@ -74,7 +90,9 @@ export default function GoogleAnalyticsPanel({ companyId }: Props) {
     const handleDisconnect = async () => {
         if (!confirm('Google Analytics bağlantısını kesmek istediğinizden emin misiniz?')) return;
         await googleAnalyticsApi.disconnect(companyId);
+        await integrationSnapshotApi.refreshGoogleAnalytics(companyId);
         setData(null);
+        setSnapshotMeta(null);
         setStatus(null);
         load();
     };
@@ -235,7 +253,11 @@ export default function GoogleAnalyticsPanel({ companyId }: Props) {
                     </div>
                     <div className="flex items-center gap-1.5 bg-pink-500/10 border border-pink-500/20 rounded-full px-3 py-1">
                         <CheckCircle2 className="w-3.5 h-3.5 text-pink-400" />
-                        <span className="text-[11px] text-pink-400 font-medium">Canlı</span>
+                        <span className="text-[11px] text-pink-400 font-medium">
+                            {snapshotMeta?.lastSyncedAt
+                                ? `Son güncelleme: ${new Date(snapshotMeta.lastSyncedAt).toLocaleString('tr-TR')}`
+                                : 'Canlı'}
+                        </span>
                     </div>
                     <button onClick={() => setShowPropertyForm(v => !v)} title="Property ID Değiştir"
                         className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.05] transition-colors">
@@ -259,6 +281,16 @@ export default function GoogleAnalyticsPanel({ companyId }: Props) {
                         className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-xl">
                         {savingProperty ? '...' : 'Kaydet'}
                     </button>
+                </div>
+            )}
+
+            {snapshotMeta?.status === 'FAILED' && data && !data.errorMessage && (
+                <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                    <div>
+                        <p className="text-sm font-medium text-amber-200">Son başarılı Google Analytics verisi gösteriliyor</p>
+                        <p className="mt-0.5 text-xs text-zinc-500">Yeni veri alınamadı; kayıtlı snapshot korunuyor.</p>
+                    </div>
                 </div>
             )}
 

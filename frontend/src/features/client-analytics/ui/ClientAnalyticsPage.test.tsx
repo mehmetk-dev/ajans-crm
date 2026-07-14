@@ -222,4 +222,17 @@ describe('ClientAnalyticsPage service ordering', () => {
             expect(integrationSnapshotApi.refreshOverview).toHaveBeenCalledWith('company-1');
         });
     });
+
+    it('shows a visible error when snapshot refresh fails', async () => {
+        mockActiveServices(['SOCIAL_MEDIA']);
+        vi.mocked(integrationSnapshotApi.refreshOverview)
+            .mockRejectedValueOnce(new Error('Snapshot servisi yanıt vermiyor'));
+
+        renderPage();
+        fireEvent.click(screen.getByRole('button', { name: 'Verileri Yenile' }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+            'Analitik verileri yenilenemedi',
+        );
+    });
 });

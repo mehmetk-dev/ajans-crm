@@ -3,7 +3,23 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { igApi } from '../../instagram';
+import { integrationSnapshotApi } from '../../integration-snapshots/api/integrationSnapshotApi';
+import type { ClientIntegrationSnapshotOverviewResponse } from '../../integration-snapshots/integrationSnapshot.types';
+import type { IgOverviewResponse } from '../../instagram/instagram.types';
 import InstagramAnalyticsPanel from './InstagramAnalyticsPanel';
+
+function snapshotWith(ig: IgOverviewResponse): ClientIntegrationSnapshotOverviewResponse {
+    return {
+        ig,
+        igSnapshot: {
+            status: 'READY',
+            lastSyncedAt: '2026-07-14T09:00:00Z',
+            nextSyncAt: '2026-07-14T10:00:00Z',
+            stale: false,
+            errorMessage: null,
+        },
+    } as ClientIntegrationSnapshotOverviewResponse;
+}
 
 function renderPanel() {
     const queryClient = new QueryClient({
@@ -37,6 +53,7 @@ describe('InstagramAnalyticsPanel', () => {
             igUserId: '',
         });
         const getOverview = vi.spyOn(igApi, 'getOverview').mockResolvedValue({} as never);
+        const snapshotOverview = vi.spyOn(integrationSnapshotApi, 'getOverview');
         const getReels = vi.spyOn(igApi, 'getReels').mockResolvedValue([]);
         const getPosts = vi.spyOn(igApi, 'getPosts').mockResolvedValue([]);
 
@@ -45,10 +62,11 @@ describe('InstagramAnalyticsPanel', () => {
         const allConnectLinks = await screen.findAllByText(/Bağla$/);
 
         expect(getOverview).not.toHaveBeenCalled();
+        expect(snapshotOverview).not.toHaveBeenCalled();
         expect(getReels).not.toHaveBeenCalled();
         expect(getPosts).not.toHaveBeenCalled();
         expect(getStatus).toHaveBeenCalledWith('company-1', '/client/instagram');
-        expect(allConnectLinks).toHaveLength(3);
+        expect(allConnectLinks).toHaveLength(1);
     });
 
     it('renders lightweight media previews with views using limited reels and posts requests', async () => {
@@ -59,7 +77,7 @@ describe('InstagramAnalyticsPanel', () => {
             username: 'fogistanbul',
             igUserId: 'ig-1',
         });
-        const getOverview = vi.spyOn(igApi, 'getOverview').mockResolvedValue({
+        const overview: IgOverviewResponse = {
             connected: true,
             username: 'fogistanbul',
             errorMessage: null,
@@ -101,7 +119,10 @@ describe('InstagramAnalyticsPanel', () => {
                     commentsCount: 4,
                 },
             ],
-        });
+        };
+        const liveOverview = vi.spyOn(igApi, 'getOverview').mockResolvedValue(overview);
+        const snapshotOverview = vi.spyOn(integrationSnapshotApi, 'getOverview')
+            .mockResolvedValue(snapshotWith(overview));
         const getReels = vi.spyOn(igApi, 'getReels').mockResolvedValue([
             {
                 id: 'reel-1',
@@ -136,9 +157,10 @@ describe('InstagramAnalyticsPanel', () => {
 
         renderPanel();
 
-        await waitFor(() => expect(getOverview).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(snapshotOverview).toHaveBeenCalledWith('company-1'));
 
         expect(getStatus).toHaveBeenCalledWith('company-1', '/client/instagram');
+        expect(liveOverview).not.toHaveBeenCalled();
         expect(await screen.findByText('Showroom reels')).toBeInTheDocument();
         expect(screen.getByText('Yeni koleksiyon')).toBeInTheDocument();
         expect(screen.getByText('1500')).toBeInTheDocument();
@@ -155,7 +177,7 @@ describe('InstagramAnalyticsPanel', () => {
             username: 'fogistanbul',
             igUserId: 'ig-1',
         });
-        vi.spyOn(igApi, 'getOverview').mockResolvedValue({
+        const overview: IgOverviewResponse = {
             connected: true,
             username: 'fogistanbul',
             errorMessage: null,
@@ -172,7 +194,9 @@ describe('InstagramAnalyticsPanel', () => {
             followersLost: 12,
             dailyTrend: [],
             recentMedia: [],
-        });
+        };
+        vi.spyOn(igApi, 'getOverview').mockResolvedValue(overview);
+        vi.spyOn(integrationSnapshotApi, 'getOverview').mockResolvedValue(snapshotWith(overview));
         vi.spyOn(igApi, 'getReels').mockReturnValue(new Promise(() => undefined));
         vi.spyOn(igApi, 'getPosts').mockReturnValue(new Promise(() => undefined));
 

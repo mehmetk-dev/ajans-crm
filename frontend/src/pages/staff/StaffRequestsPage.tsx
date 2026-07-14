@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
     AlertTriangle, Building2, Calendar, Camera, CheckCircle2, Clock,
     FileText, Inbox, Loader2, MapPin, MessageSquare, User, XCircle,
+    ShoppingBag,
 } from 'lucide-react';
 import {
     ApprovalReviewDialog,
@@ -54,7 +55,7 @@ export default function StaffRequestsPage() {
         <div className="space-y-6">
             <header>
                 <h1 className="text-2xl font-bold text-white">İstekler</h1>
-                <p className="mt-1 text-sm text-zinc-500">Şirketlerden gelen onay talepleri</p>
+                <p className="mt-1 text-sm text-zinc-500">Şirketlerden gelen talepler ve onay işlemleri</p>
             </header>
             <div className="flex gap-2">
                 <TabButton active={tab === 'PENDING'} onClick={() => setTab('PENDING')}>
@@ -114,6 +115,7 @@ function RequestCard({
     const status = statusConfig[request.status];
     const TypeIcon = type.icon;
     const metadata = parseContentApprovalMetadata(request.metadata);
+    const additionalServices = parseAdditionalServices(request.metadata);
     return (
         <article className="overflow-hidden rounded-xl border border-white/[0.06] bg-[#0C0C0E]">
             <button onClick={onToggle} className="flex w-full items-start gap-4 p-4 text-left">
@@ -141,7 +143,28 @@ function RequestCard({
             </button>
             {expanded && (
                 <div className="space-y-3 border-t border-white/[0.05] px-4 pb-4 pt-3">
-                    {request.description && <p className="text-sm text-zinc-400">{request.description}</p>}
+                    {request.description && (
+                        <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-3">
+                            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
+                                {additionalServices.length > 0 ? 'Müşteri notu' : 'Açıklama'}
+                            </p>
+                            <p className="text-sm text-zinc-400">{request.description}</p>
+                        </div>
+                    )}
+                    {additionalServices.length > 0 && (
+                        <div className="rounded-xl border border-pink-500/15 bg-pink-500/5 p-4">
+                            <p className="mb-2 flex items-center gap-2 text-xs font-semibold text-pink-300">
+                                <ShoppingBag className="h-3.5 w-3.5" /> Talep edilen hizmetler
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {additionalServices.map(service => (
+                                    <span key={service.id} className="rounded-lg border border-pink-500/15 bg-pink-500/8 px-2.5 py-1.5 text-xs text-pink-100">
+                                        {service.name}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     {request.type === 'CONTENT_APPROVAL' && (
                         <div className="space-y-2 rounded-xl bg-white/[0.02] p-4 text-xs text-zinc-400">
                             {metadata.shootTitle && <p className="flex gap-2"><Camera className="h-3.5 w-3.5" />{metadata.shootTitle}</p>}
@@ -170,6 +193,23 @@ function RequestCard({
             )}
         </article>
     );
+}
+
+function parseAdditionalServices(value: string | null): Array<{ id: string; name: string }> {
+    if (!value) return [];
+    try {
+        const parsed = JSON.parse(value) as {
+            kind?: unknown;
+            services?: Array<{ id?: unknown; name?: unknown }>;
+        };
+        if (parsed.kind !== 'ADDITIONAL_SERVICE' || !Array.isArray(parsed.services)) return [];
+        return parsed.services.flatMap(service =>
+            typeof service.id === 'string' && typeof service.name === 'string'
+                ? [{ id: service.id, name: service.name }]
+                : []);
+    } catch {
+        return [];
+    }
 }
 
 function TabButton({ active, onClick, children }: {

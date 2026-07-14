@@ -58,6 +58,7 @@ public class MetaAdsMapper {
 
     public String toUserErrorMessage(String message) {
         String value = message != null ? message : "";
+        String lower = value.toLowerCase(java.util.Locale.ROOT);
         if (value.contains("OAuthException")
                 || value.contains("Invalid OAuth")
                 || value.contains("190")) {
@@ -68,8 +69,16 @@ public class MetaAdsMapper {
                 || value.contains("100")) {
             return "Meta reklam hesabına erişim yetkisi yok.";
         }
-        String firstLine = value.lines().findFirst().orElse("");
-        return "Veri çekme hatası: " + firstLine;
+        if (value.contains("429")
+                || value.contains("613")
+                || lower.contains("rate limit")
+                || lower.contains("too many calls")) {
+            return "Meta Ads istek limiti aşıldı. Lütfen biraz sonra tekrar deneyin.";
+        }
+        if (lower.contains("timeout") || lower.contains("timed out")) {
+            return "Meta Ads şu anda yanıt vermedi. Lütfen biraz sonra tekrar deneyin.";
+        }
+        return "Meta Ads verileri şu anda alınamıyor. Lütfen biraz sonra tekrar deneyin.";
     }
 
     private String stringValue(Map<String, Object> row, String key) {

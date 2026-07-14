@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, Lock, Sparkles } from 'lucide-react';
 import { useActiveServices } from '../hooks/useActiveServices';
 import { getServiceInfo, type ServiceCategory } from '../features/serviceCatalog';
+import { useAuth } from '../store/AuthContext';
 
 const fallbackInfo = {
     label: 'Bu Hizmet',
@@ -15,6 +16,8 @@ const fallbackInfo = {
 
 export function ServiceBlurOverlay({ service, compact = false }: { service: ServiceCategory | string; compact?: boolean }) {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isOwner = user?.membershipRole === 'OWNER';
     const info = getServiceInfo(service) ?? fallbackInfo;
     const Icon = info.icon;
 
@@ -61,14 +64,20 @@ export function ServiceBlurOverlay({ service, compact = false }: { service: Serv
                     </div>
                 )}
 
-                <button
-                    onClick={() => navigate('/client/services')}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-bold text-white transition-all hover:scale-105 active:scale-95"
-                    style={{ background: 'linear-gradient(135deg, #D1181C, #C8697A)', boxShadow: '0 8px 20px -6px rgba(209,24,28,0.5)' }}
-                >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Hizmeti Aktif Et
-                </button>
+                {isOwner ? (
+                    <button
+                        onClick={() => navigate('/client/services')}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-bold text-white transition-all hover:scale-105 active:scale-95"
+                        style={{ background: 'linear-gradient(135deg, #D1181C, #C8697A)', boxShadow: '0 8px 20px -6px rgba(209,24,28,0.5)' }}
+                    >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Hizmet Talep Et
+                    </button>
+                ) : (
+                    <p className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[11px] text-zinc-400">
+                        Bu hizmeti talep etmek için şirket sahibinizden yardım isteyin.
+                    </p>
+                )}
             </div>
         </div>
     );

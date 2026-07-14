@@ -52,6 +52,10 @@ export const approvalApi = {
     create: (input: CreateApprovalInput) =>
         api.post<ApprovalRequestResponse>('/client/approval-requests', input)
             .then(response => response.data),
+    listAdditionalServices: (companyId: string) =>
+        api.get<ApprovalRequestResponse[]>('/client/approval-requests/additional-services', {
+            params: { companyId },
+        }).then(response => response.data),
     list: () =>
         api.get<ApprovalRequestResponse[]>('/staff/approval-requests')
             .then(response => response.data),

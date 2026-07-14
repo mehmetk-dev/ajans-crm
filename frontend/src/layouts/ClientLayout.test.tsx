@@ -3,6 +3,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const useClientDashboardMock = vi.fn();
+const hasServiceMock = vi.fn();
+const membershipRoleMock = vi.fn();
 
 vi.mock('../store/AuthContext', () => ({
     useAuth: () => ({
@@ -11,7 +13,7 @@ vi.mock('../store/AuthContext', () => ({
             email: 'client@test.com',
             fullName: 'Client User',
             globalRole: 'COMPANY_USER',
-            membershipRole: 'OWNER',
+            membershipRole: membershipRoleMock(),
             avatarUrl: null,
             companyId: 'company-1',
         },
@@ -30,7 +32,7 @@ vi.mock('../features/client-dashboard', () => ({
 vi.mock('../hooks/useActiveServices', () => ({
     useActiveServices: () => ({
         isLoading: false,
-        hasService: () => true,
+        hasService: (...args: unknown[]) => hasServiceMock(...args),
     }),
 }));
 
@@ -81,12 +83,16 @@ describe('ClientLayout navigation groups', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         useClientDashboardMock.mockReturnValue({ isLoading: false, isAllSettled: true });
+        hasServiceMock.mockReturnValue(true);
+        membershipRoleMock.mockReturnValue('OWNER');
     });
 
     afterEach(() => {
         vi.runOnlyPendingTimers();
         vi.useRealTimers();
         useClientDashboardMock.mockClear();
+        hasServiceMock.mockReset();
+        membershipRoleMock.mockReset();
     });
 
     it('groups client navigation and opens collapsed groups on demand', () => {
@@ -110,5 +116,24 @@ describe('ClientLayout navigation groups', () => {
         renderClientLayout('/client/messaging');
 
         expect(useClientDashboardMock).not.toHaveBeenCalled();
+    });
+
+    it('counts unavailable service packages instead of individual navigation links', () => {
+        hasServiceMock.mockReturnValue(false);
+
+        renderClientLayout();
+
+        expect(screen.getByRole('button', { name: /Ek hizmetleri incele, 6 hizmet/i })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Google Analytics/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Search Console/i })).not.toBeInTheDocument();
+    });
+
+    it('does not route employees to the owner-only service request page', () => {
+        hasServiceMock.mockReturnValue(false);
+        membershipRoleMock.mockReturnValue('EMPLOYEE');
+
+        renderClientLayout();
+
+        expect(screen.queryByRole('button', { name: /Ek hizmetleri incele/i })).not.toBeInTheDocument();
     });
 });

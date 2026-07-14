@@ -13,6 +13,7 @@ import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshotStatus;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshotType;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationType;
 import com.fogistanbul.crm.integrationsnapshot.infrastructure.IntegrationSnapshotRepository;
+import com.fogistanbul.crm.metaads.dto.MetaAdsOverviewResponse;
 import com.fogistanbul.crm.repository.CompanyServiceRepository;
 import com.fogistanbul.crm.searchconsole.dto.ScOverviewResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -130,6 +131,25 @@ class ClientIntegrationSnapshotServiceTest {
                                 entry("conversionRate", 10.67),
                                 entry("campaigns", List.of()),
                                 entry("dailyTrend", List.of())))));
+        when(repository.findByCompanyIdAndIntegrationTypeAndSnapshotType(
+                companyId, IntegrationType.META_ADS, IntegrationSnapshotType.OVERVIEW))
+                .thenReturn(Optional.of(snapshot(
+                        company,
+                        IntegrationType.META_ADS,
+                        syncedAt,
+                        Map.ofEntries(
+                                entry("connected", true),
+                                entry("adAccountId", "act_123456789"),
+                                entry("adAccountName", "Fog Meta Ads"),
+                                entry("totalSpend", 245.75),
+                                entry("impressions", 8000),
+                                entry("clicks", 310),
+                                entry("reach", 6200),
+                                entry("cpm", 30.72),
+                                entry("cpc", 0.79),
+                                entry("ctr", 3.88),
+                                entry("campaigns", List.of()),
+                                entry("dailyTrend", List.of())))));
 
         var result = service.getOverview(userId, companyId);
 
@@ -140,6 +160,8 @@ class ClientIntegrationSnapshotServiceTest {
         assertThat(result.sc().totalClicks()).isEqualTo(9);
         assertThat(result.ads().totalSpend()).isEqualTo(125.5);
         assertThat(result.adsSnapshot().lastSyncedAt()).isEqualTo(syncedAt);
+        assertThat(result.metaAds().totalSpend()).isEqualTo(245.75);
+        assertThat(result.metaAdsSnapshot().lastSyncedAt()).isEqualTo(syncedAt);
         assertThat(result.ig()).isEqualTo(InstagramOverviewResponse.disabled());
         assertThat(result.igSnapshot().status()).isEqualTo(IntegrationSnapshotStatus.PENDING);
     }
@@ -194,6 +216,7 @@ class ClientIntegrationSnapshotServiceTest {
         assertThat(result.ga()).isEqualTo(GaOverviewResponse.disabled());
         assertThat(result.sc()).isEqualTo(ScOverviewResponse.disabled());
         assertThat(result.ads()).isEqualTo(GoogleAdsOverviewResponse.disabled());
+        assertThat(result.metaAds()).isEqualTo(MetaAdsOverviewResponse.disabled());
     }
 
     @Test
@@ -214,10 +237,12 @@ class ClientIntegrationSnapshotServiceTest {
         assertThat(result.sc()).isEqualTo(ScOverviewResponse.disabled());
         assertThat(result.ig()).isEqualTo(InstagramOverviewResponse.disabled());
         assertThat(result.ads()).isEqualTo(GoogleAdsOverviewResponse.disabled());
+        assertThat(result.metaAds()).isEqualTo(MetaAdsOverviewResponse.disabled());
         assertThat(result.gaSnapshot().status()).isEqualTo(IntegrationSnapshotStatus.PENDING);
         assertThat(result.scSnapshot().status()).isEqualTo(IntegrationSnapshotStatus.PENDING);
         assertThat(result.igSnapshot().status()).isEqualTo(IntegrationSnapshotStatus.PENDING);
         assertThat(result.adsSnapshot().status()).isEqualTo(IntegrationSnapshotStatus.PENDING);
+        assertThat(result.metaAdsSnapshot().status()).isEqualTo(IntegrationSnapshotStatus.PENDING);
     }
 
     @Test
@@ -229,6 +254,28 @@ class ClientIntegrationSnapshotServiceTest {
 
         verify(accessPolicy).requireMembership(userId, companyId);
         verify(syncService).syncOverviewSnapshotsNow(companyId);
+    }
+
+    @Test
+    void refreshGoogleAnalytics_requiresMembershipAndOnlyForcesGoogleAnalyticsSync() {
+        UUID userId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+
+        service.refreshGoogleAnalytics(userId, companyId);
+
+        verify(accessPolicy).requireMembership(userId, companyId);
+        verify(syncService).syncGoogleAnalyticsSnapshotNow(companyId);
+    }
+
+    @Test
+    void refreshInstagram_requiresMembershipAndOnlyForcesInstagramSync() {
+        UUID userId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+
+        service.refreshInstagram(userId, companyId);
+
+        verify(accessPolicy).requireMembership(userId, companyId);
+        verify(syncService).syncInstagramSnapshotNow(companyId);
     }
 
     @Test
@@ -251,6 +298,17 @@ class ClientIntegrationSnapshotServiceTest {
 
         verify(accessPolicy).requireMembership(userId, companyId);
         verify(syncService).syncGoogleAdsSnapshotNow(companyId);
+    }
+
+    @Test
+    void refreshMetaAds_requiresMembershipAndOnlyForcesMetaAdsSync() {
+        UUID userId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+
+        service.refreshMetaAds(userId, companyId);
+
+        verify(accessPolicy).requireMembership(userId, companyId);
+        verify(syncService).syncMetaAdsSnapshotNow(companyId);
     }
 
     private IntegrationSnapshot snapshot(

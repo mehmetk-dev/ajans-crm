@@ -21,7 +21,22 @@ vi.mock('../../../store/AuthContext', () => ({
 
 import type { GaOverviewResponse, GaStatusResponse } from '../googleAnalytics.types';
 import { googleAnalyticsApi } from '../api/googleAnalyticsApi';
+import { integrationSnapshotApi } from '../../integration-snapshots/api/integrationSnapshotApi';
+import type { ClientIntegrationSnapshotOverviewResponse } from '../../integration-snapshots/integrationSnapshot.types';
 import { useGADetailPage } from './useGADetailPage';
+
+function snapshotWith(ga: GaOverviewResponse): ClientIntegrationSnapshotOverviewResponse {
+    return {
+        ga,
+        gaSnapshot: {
+            status: 'READY',
+            lastSyncedAt: '2026-07-14T09:00:00Z',
+            nextSyncAt: '2026-07-14T15:00:00Z',
+            stale: false,
+            errorMessage: null,
+        },
+    } as ClientIntegrationSnapshotOverviewResponse;
+}
 
 function makeWrapper() {
     const queryClient = new QueryClient({
@@ -42,7 +57,7 @@ describe('useGADetailPage', () => {
         vi.restoreAllMocks();
     });
 
-    it('loads status and overview when connected', async () => {
+    it('loads the default 30-day report from the persisted snapshot', async () => {
         const status: GaStatusResponse = {
             connected: true,
             propertyId: 'prop-1',
@@ -64,7 +79,9 @@ describe('useGADetailPage', () => {
             topCountries: [{ name: 'TR', value: 60 }, { name: 'US', value: 40 }],
         };
         vi.spyOn(googleAnalyticsApi, 'getStatus').mockResolvedValue(status);
-        vi.spyOn(googleAnalyticsApi, 'getOverview').mockResolvedValue(overview);
+        const liveOverview = vi.spyOn(googleAnalyticsApi, 'getOverview').mockResolvedValue(overview);
+        const snapshotOverview = vi.spyOn(integrationSnapshotApi, 'getOverview')
+            .mockResolvedValue(snapshotWith(overview));
 
         const { result } = renderHook(() => useGADetailPage(), { wrapper: makeWrapper() });
 
@@ -78,6 +95,81 @@ describe('useGADetailPage', () => {
         expect(result.current.totalPages).toBe(150);
         expect(result.current.maxPageViews).toBe(100);
         expect(result.current.error).toBeNull();
+        expect(result.current.snapshotMeta).toEqual(snapshotWith(overview).gaSnapshot);
+        expect(snapshotOverview).toHaveBeenCalledWith('company-1');
+        expect(liveOverview).not.toHaveBeenCalled();
+    });
+
+    it('uses the live overview endpoint for a non-default date preset', async () => {
+        const status: GaStatusResponse = {
+            connected: true,
+            propertyId: 'prop-1',
+            authUrl: '',
+        };
+        const overview: GaOverviewResponse = {
+            connected: true,
+            propertyId: 'prop-1',
+            errorMessage: null,
+            sessions: 7,
+            totalUsers: 6,
+            newUsers: 2,
+            pageViews: 12,
+            bounceRate: 20,
+            avgSessionDuration: 30,
+            dailyTrend: [],
+            trafficSources: [],
+            topPages: [],
+            topCountries: [],
+        };
+        vi.spyOn(googleAnalyticsApi, 'getStatus').mockResolvedValue(status);
+        vi.spyOn(integrationSnapshotApi, 'getOverview').mockResolvedValue(snapshotWith(overview));
+        const liveOverview = vi.spyOn(googleAnalyticsApi, 'getOverview').mockResolvedValue(overview);
+
+        const { result } = renderHook(() => useGADetailPage(), { wrapper: makeWrapper() });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+
+        act(() => result.current.setActivePreset(0));
+
+        await waitFor(() => {
+            expect(liveOverview).toHaveBeenLastCalledWith('company-1', '7daysAgo', 'today');
+        });
+        expect(result.current.snapshotMeta).toBeNull();
+    });
+
+    it('forces only the Google Analytics snapshot when refreshing the default range', async () => {
+        const status: GaStatusResponse = {
+            connected: true,
+            propertyId: 'prop-1',
+            authUrl: '',
+        };
+        const overview: GaOverviewResponse = {
+            connected: true,
+            propertyId: 'prop-1',
+            errorMessage: null,
+            sessions: 100,
+            totalUsers: 80,
+            newUsers: 20,
+            pageViews: 200,
+            bounceRate: 40,
+            avgSessionDuration: 120,
+            dailyTrend: [],
+            trafficSources: [],
+            topPages: [],
+            topCountries: [],
+        };
+        vi.spyOn(googleAnalyticsApi, 'getStatus').mockResolvedValue(status);
+        vi.spyOn(integrationSnapshotApi, 'getOverview').mockResolvedValue(snapshotWith(overview));
+        const refreshSnapshot = vi.spyOn(integrationSnapshotApi, 'refreshGoogleAnalytics')
+            .mockResolvedValue(undefined);
+
+        const { result } = renderHook(() => useGADetailPage(), { wrapper: makeWrapper() });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+
+        await act(async () => {
+            await result.current.refresh();
+        });
+
+        await waitFor(() => expect(refreshSnapshot).toHaveBeenCalledWith('company-1'));
     });
 
     it('skips overview fetch when status.connected is false', async () => {
@@ -125,6 +217,7 @@ describe('useGADetailPage', () => {
         };
         const getStatus = vi.spyOn(googleAnalyticsApi, 'getStatus').mockResolvedValue(status);
         const getOverview = vi.spyOn(googleAnalyticsApi, 'getOverview').mockResolvedValue(overview);
+        vi.spyOn(integrationSnapshotApi, 'getOverview').mockResolvedValue(snapshotWith(overview));
 
         const { result } = renderHook(() => useGADetailPage(), { wrapper: makeWrapper() });
 
@@ -134,7 +227,7 @@ describe('useGADetailPage', () => {
 
         expect(replaceState).toHaveBeenCalledWith({}, '', '/client/google-analytics');
         expect(getStatus).toHaveBeenCalledTimes(1);
-        expect(getOverview).toHaveBeenCalledTimes(1);
+        expect(getOverview).not.toHaveBeenCalled();
         expect(result.current.data).toEqual(overview);
     });
 

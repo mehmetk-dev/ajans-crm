@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    BarChart3, Globe, Instagram, CalendarDays, Loader2, RefreshCw
+    AlertCircle, BarChart3, Globe, Instagram, CalendarDays, Loader2, Megaphone, RefreshCw
 } from 'lucide-react';
 import { ServiceBlurOverlay } from '../../../components/ServiceUpsellOverlay';
 import { useClientDashboard, useRefreshDashboard } from '../useClientDashboard';
@@ -10,25 +10,30 @@ import { OverviewTab } from '../ui/OverviewTab';
 import { WebAnalyticsTab } from '../ui/WebAnalyticsTab';
 import { SocialTab } from '../ui/SocialTab';
 import { ScheduleTab } from '../ui/ScheduleTab';
+import { AdsTab } from '../ui/AdsTab';
+import { MissingCompanyState } from '../../../components/client/MissingCompanyState';
+import { getApiErrorMessage } from '../../../lib/apiError';
 
 const TABS: { key: TabKey; label: string; icon: typeof Globe; service?: string }[] = [
     { key: 'overview', label: 'Genel Bakış', icon: BarChart3 },
     { key: 'web', label: 'Web Performansı', icon: Globe, service: 'DIGITAL_MARKETING' },
     { key: 'social', label: 'Sosyal Medya', icon: Instagram, service: 'SOCIAL_MEDIA' },
-    { key: 'schedule', label: 'Takvim & Görevler', icon: CalendarDays, service: 'PRODUCTION' },
+    { key: 'ads', label: 'Reklamlar', icon: Megaphone, service: 'AD_MANAGEMENT' },
+    { key: 'schedule', label: 'Takvim & Görevler', icon: CalendarDays },
 ];
 
 export default function ClientDashboardPage() {
     const navigate = useNavigate();
     const [tab, setTab] = useState<TabKey>('overview');
     const [refreshing, setRefreshing] = useState<string | null>(null);
+    const [refreshError, setRefreshError] = useState<string | null>(null);
     const { refreshTab } = useRefreshDashboard();
 
     const {
-        isLoading, ga, sc, ig, shoots, tasks,
-        gaSnapshot, scSnapshot, igSnapshot,
-        gaConnected, scConnected, igConnected,
-        hasService, hasProduction, hasContentMarketing,
+        companyId, isLoading, ga, sc, ig, ads, metaAds, shoots, tasks,
+        gaSnapshot, scSnapshot, igSnapshot, adsSnapshot, metaAdsSnapshot,
+        gaConnected, scConnected, igConnected, googleAdsConnected, metaAdsConnected,
+        hasService,
     } = useClientDashboard();
 
     const upcomingShoots = useMemo(() => {
@@ -49,12 +54,19 @@ export default function ClientDashboardPage() {
 
     const handleRefresh = async () => {
         setRefreshing(tab);
+        setRefreshError(null);
         try {
             await refreshTab(tab);
+        } catch (error) {
+            setRefreshError(getApiErrorMessage(error, 'Dashboard verileri yenilenemedi'));
         } finally {
             setRefreshing(null);
         }
     };
+
+    if (!companyId) {
+        return <MissingCompanyState description="Dashboard şirket bilgisi olan bir müşteri hesabıyla açılmalıdır." />;
+    }
 
     return (
         <div className="space-y-6">
@@ -99,6 +111,13 @@ export default function ClientDashboardPage() {
                 })}
             </div>
 
+            {refreshError && (
+                <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    {refreshError}
+                </div>
+            )}
+
             {isLoading ? (
                 <div className="flex items-center justify-center py-20">
                     <Loader2 className="w-6 h-6 text-pink-400 animate-spin" />
@@ -122,6 +141,7 @@ export default function ClientDashboardPage() {
                             gaSnapshot={gaSnapshot} scSnapshot={scSnapshot} igSnapshot={igSnapshot}
                             upcomingShoots={upcomingShoots} activeTasks={activeTasks}
                             gaConnected={gaConnected} scConnected={scConnected} igConnected={igConnected}
+                            googleAdsConnected={googleAdsConnected} metaAdsConnected={metaAdsConnected}
                         />
                     )}
                     {tab === 'web' && (
@@ -134,10 +154,21 @@ export default function ClientDashboardPage() {
                             ? <SocialTab ig={ig} navigate={navigate} igConnected={igConnected} snapshot={igSnapshot} />
                             : <ServiceBlurOverlay service="SOCIAL_MEDIA" />
                     )}
+                    {tab === 'ads' && (
+                        hasService('AD_MANAGEMENT')
+                            ? <AdsTab
+                                ads={ads}
+                                metaAds={metaAds}
+                                googleAdsConnected={googleAdsConnected}
+                                metaAdsConnected={metaAdsConnected}
+                                adsSnapshot={adsSnapshot}
+                                metaAdsSnapshot={metaAdsSnapshot}
+                                navigate={navigate}
+                            />
+                            : <ServiceBlurOverlay service="AD_MANAGEMENT" />
+                    )}
                     {tab === 'schedule' && (
-                        (hasProduction || hasContentMarketing)
-                            ? <ScheduleTab upcomingShoots={upcomingShoots} activeTasks={activeTasks} navigate={navigate} />
-                            : <ServiceBlurOverlay service="PRODUCTION" />
+                        <ScheduleTab upcomingShoots={upcomingShoots} activeTasks={activeTasks} navigate={navigate} />
                     )}
                 </>
             )}

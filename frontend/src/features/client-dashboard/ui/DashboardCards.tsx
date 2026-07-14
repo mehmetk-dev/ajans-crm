@@ -102,6 +102,7 @@ export function QuickLink({ icon: Icon, label, to, connected, navigate }: QuickL
     return (
         <button
             onClick={() => navigate(to)}
+            aria-label={`${label} — ${connected ? 'Bağlı' : 'Bağlı değil'}`}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.12] hover:bg-white/[0.04] transition-all group"
         >
             <Icon className="w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />

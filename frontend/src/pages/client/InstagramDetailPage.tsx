@@ -7,7 +7,8 @@ import {
     Instagram, Users, UserPlus, Eye, MousePointerClick,
     Heart, MessageCircle, TrendingUp, AlertCircle, Loader2,
     ArrowLeft, CheckCircle2, Calendar, ChevronDown, ChevronRight,
-    Image as ImageIcon, LogOut, BarChart3, Play, Share2, Bookmark, Percent
+    Image as ImageIcon, LogOut, BarChart3, Play, Share2, Bookmark, Percent,
+    RefreshCw
 } from 'lucide-react';
 import {
     formatInstagramMetric,
@@ -22,6 +23,10 @@ import {
     type IgReelRow,
     type IgStatusResponse,
 } from '../../features/instagram';
+import {
+    integrationSnapshotApi,
+    type IntegrationSnapshotMeta,
+} from '../../features/integration-snapshots';
 import { useAuth } from '../../store/AuthContext';
 import { MissingCompanyState } from '../../components/client/MissingCompanyState';
 
@@ -75,9 +80,11 @@ export default function InstagramDetailPage() {
     const companyId = user?.companyId;
     const [status, setStatus] = useState<IgStatusResponse | null>(null);
     const [data, setData] = useState<IgOverviewResponse | null>(null);
+    const [snapshotMeta, setSnapshotMeta] = useState<IntegrationSnapshotMeta | null>(null);
     const [reels, setReels] = useState<IgReelRow[]>([]);
     const [posts, setPosts] = useState<IgPostRow[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [datePreset, setDatePreset] = useState(1);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -98,7 +105,6 @@ export default function InstagramDetailPage() {
         if (authLoading) return;
         if (!companyId) return;
         // The request lifecycle owns the page-level loading state.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true); setError(callbackError || null);
         igApi.getStatus(companyId, '/client/instagram')
             .then(s => {
@@ -121,16 +127,49 @@ export default function InstagramDetailPage() {
     // Re-fetch overview when date range changes
     useEffect(() => {
         if (!status?.connected || !companyId) return;
-        igApi.getOverview(companyId, dateRange.start, dateRange.end)
-            .then(d => setData(d))
+        const overviewRequest = datePreset === 1
+            ? integrationSnapshotApi.getOverview(companyId).then(snapshot => {
+                setSnapshotMeta(snapshot.igSnapshot);
+                return snapshot.ig;
+            })
+            : igApi.getOverview(companyId, dateRange.start, dateRange.end).then(overview => {
+                setSnapshotMeta(null);
+                return overview;
+            });
+
+        overviewRequest
+            .then(overview => setData(overview))
             .catch((err: unknown) => setError(getApiErrorMessage(err, 'Instagram verileri yüklenemedi')));
-    }, [companyId, dateRange.start, dateRange.end, status?.connected]);
+    }, [companyId, datePreset, dateRange.start, dateRange.end, status?.connected]);
+
+    const handleRefresh = async () => {
+        if (!companyId) return;
+        setRefreshing(true);
+        setError(null);
+        try {
+            if (datePreset === 1) {
+                await integrationSnapshotApi.refreshInstagram(companyId);
+                const snapshot = await integrationSnapshotApi.getOverview(companyId);
+                setSnapshotMeta(snapshot.igSnapshot);
+                setData(snapshot.ig);
+            } else {
+                const overview = await igApi.getOverview(companyId, dateRange.start, dateRange.end);
+                setSnapshotMeta(null);
+                setData(overview);
+            }
+        } catch (err: unknown) {
+            setError(getApiErrorMessage(err, 'Instagram verileri yenilenemedi'));
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     const handleDisconnect = async () => {
         if (!companyId) return;
         await igApi.disconnect(companyId);
         setStatus(prev => prev ? { ...prev, connected: false } : prev);
         setData(null);
+        setSnapshotMeta(null);
         setReels([]);
         setPosts([]);
     };
@@ -213,6 +252,14 @@ export default function InstagramDetailPage() {
                                     <CheckCircle2 className="w-4 h-4 text-pink-400" />
                                     <span className="text-xs text-pink-400 font-medium">Bağlı</span>
                                 </div>
+                                <button
+                                    onClick={handleRefresh}
+                                    disabled={refreshing}
+                                    title="Instagram snapshot'ını yenile"
+                                    className="h-10 w-10 rounded-xl bg-[#16161a] border border-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-pink-400 hover:bg-pink-500/10 transition-colors disabled:cursor-wait disabled:opacity-60"
+                                >
+                                    <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                                </button>
                                 <button onClick={handleDisconnect} title="Bağlantıyı Kes"
                                     className="h-10 w-10 rounded-xl bg-[#16161a] border border-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
                                     <LogOut className="w-4 h-4" />
@@ -271,6 +318,15 @@ export default function InstagramDetailPage() {
 
                         {data && !data.errorMessage && (
                             <>
+                                {snapshotMeta?.status === 'FAILED' && (
+                                    <div className="flex items-start gap-3 rounded-xl border border-amber-400/20 bg-amber-400/10 px-5 py-4">
+                                        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+                                        <div>
+                                            <p className="text-sm font-medium text-amber-100">Güncelleme tamamlanamadı</p>
+                                            <p className="mt-1 text-xs text-amber-100/70">Son başarılı Instagram verisi gösteriliyor.</p>
+                                        </div>
+                                    </div>
+                                )}
                                 {data.warningMessage && (
                                     <div className="flex items-start gap-3 rounded-xl border border-amber-400/20 bg-amber-400/10 px-5 py-4">
                                         <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
@@ -309,6 +365,11 @@ export default function InstagramDetailPage() {
                                     {data.periodStart && data.periodEnd && (
                                         <span className="text-xs text-zinc-500">
                                             Uygulanan aralık: {new Date(`${data.periodStart}T00:00:00`).toLocaleDateString('tr-TR')} – {new Date(`${data.periodEnd}T00:00:00`).toLocaleDateString('tr-TR')}
+                                        </span>
+                                    )}
+                                    {snapshotMeta?.lastSyncedAt && (
+                                        <span className="text-xs text-zinc-500">
+                                            Son güncelleme: {new Date(snapshotMeta.lastSyncedAt).toLocaleString('tr-TR')}
                                         </span>
                                     )}
                                 </div>

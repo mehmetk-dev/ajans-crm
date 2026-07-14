@@ -109,6 +109,18 @@ class InstagramOAuthServiceTest {
     }
 
     @Test
+    void buildAuthorizationUrl_includesMetaAdsReturnPathInState() {
+        UUID companyId = UUID.randomUUID();
+
+        String url = service.buildAuthorizationUrl(companyId, "/client/meta-ads");
+
+        assertThat(url)
+                .contains(companyId.toString())
+                .contains("client")
+                .contains("meta-ads");
+    }
+
+    @Test
     void buildAuthorizationUrl_ignoresUnsafeReturnPath() {
         UUID companyId = UUID.randomUUID();
 

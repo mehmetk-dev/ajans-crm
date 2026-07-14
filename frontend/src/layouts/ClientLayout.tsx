@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { useActiveServices } from '../hooks/useActiveServices';
@@ -13,7 +13,7 @@ import { UserAvatar } from '../components/UserAvatar';
 import {
     BarChart3, Image, ListTodo, ShoppingBag,
     Settings, MessageSquare, LogOut, Star, Menu, X, TrendingUp, Sparkles, Search, Users, Camera, FileText, LayoutTemplate,
-    Loader2, Globe, Megaphone, Instagram, ChevronDown, BriefcaseBusiness, MessagesSquare, Lock, type LucideIcon
+    Loader2, Globe, Megaphone, Instagram, ChevronDown, BriefcaseBusiness, MessagesSquare, type LucideIcon
 } from 'lucide-react';
 
 type ClientNavItem = {
@@ -98,6 +98,7 @@ function isActiveNavItem(item: ClientNavItem, pathname: string) {
 export default function ClientLayout() {
     const { user, logout } = useAuth();
     const { pathname } = useLocation();
+    const navigate = useNavigate();
     const msgCount = useUnreadCount(clientApi.getMyConversations);
     const { hasService, isLoading: servicesLoading } = useActiveServices();
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -112,6 +113,7 @@ export default function ClientLayout() {
     };
 
     const isUpsellable = (item: ClientNavItem) => {
+        if (!isOwner) return false;
         if (item.ownerOnly && !isOwner) return false;
         if (!item.requiredService) return false;
         return !servicesLoading && !hasService(item.requiredService);
@@ -125,6 +127,9 @@ export default function ClientLayout() {
         .filter(group => group.items.length > 0);
 
     const upsellItems = NAV_GROUPS.flatMap(group => group.items).filter(isUpsellable);
+    const upsellServiceCount = new Set(
+        upsellItems.map(item => item.requiredService).filter(Boolean),
+    ).size;
 
     const toggleGroup = (group: ClientNavGroup, isGroupActive: boolean) => {
         setExpandedGroups(current => ({
@@ -279,25 +284,28 @@ export default function ClientLayout() {
                     })}
                 </nav>
 
-                {upsellItems.length > 0 && (
+                {upsellServiceCount > 0 && (
                     <>
                         <div className="fog-divider mx-6" />
-                        <div className="px-4 py-3 space-y-1.5">
-                            <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-[0.18em] px-3 mb-1">Ek Hizmetler</p>
-                            {upsellItems.map(({ to, label }) => (
-                                <button
-                                    key={to}
-                                    onClick={() => {
-                                        setSidebarOpen(false);
-                                        window.location.href = '/client/services';
-                                    }}
-                                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium w-full text-left text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.02] transition-all"
-                                >
-                                    <Lock className="w-[18px] h-[18px] text-zinc-700" />
-                                    <span className="flex-1">{label}</span>
-                                    <span className="text-[10px] text-zinc-700 bg-white/[0.02] border border-white/[0.04] rounded-md px-1.5 py-0.5">Al</span>
-                                </button>
-                            ))}
+                        <div className="px-4 py-3">
+                            <button
+                                type="button"
+                                aria-label={`Ek hizmetleri incele, ${upsellServiceCount} hizmet`}
+                                onClick={() => {
+                                    setSidebarOpen(false);
+                                    navigate('/client/services');
+                                }}
+                                className="flex w-full items-center gap-3 rounded-xl border border-[#C8697A]/10 bg-[#C8697A]/5 px-3 py-2.5 text-left text-[12px] font-medium text-zinc-500 transition-all hover:border-[#C8697A]/20 hover:bg-[#C8697A]/8 hover:text-[#F5BEC8]"
+                            >
+                                <ShoppingBag className="h-[18px] w-[18px] shrink-0 text-[#C8697A]/70" />
+                                <span className="min-w-0 flex-1">
+                                    <span className="block">Ek hizmetleri incele</span>
+                                    <span className="block text-[10px] font-normal text-zinc-700">Paketinizi genişletin</span>
+                                </span>
+                                <span className="rounded-md border border-white/[0.05] bg-white/[0.03] px-1.5 py-0.5 text-[10px] text-zinc-600">
+                                    {upsellServiceCount} hizmet
+                                </span>
+                            </button>
                         </div>
                     </>
                 )}

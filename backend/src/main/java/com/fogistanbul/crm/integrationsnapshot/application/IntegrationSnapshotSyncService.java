@@ -16,6 +16,8 @@ import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshot;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshotType;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationType;
 import com.fogistanbul.crm.integrationsnapshot.infrastructure.IntegrationSnapshotRepository;
+import com.fogistanbul.crm.metaads.application.MetaAdsService;
+import com.fogistanbul.crm.metaads.dto.MetaAdsOverviewResponse;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import com.fogistanbul.crm.repository.CompanyServiceRepository;
 import com.fogistanbul.crm.searchconsole.application.SearchConsoleService;
@@ -49,6 +51,7 @@ public class IntegrationSnapshotSyncService {
     private final GoogleAnalyticsService googleAnalyticsService;
     private final SearchConsoleService searchConsoleService;
     private final GoogleAdsService googleAdsService;
+    private final MetaAdsService metaAdsService;
     private final InstagramOverviewService instagramOverviewService;
     private final InstagramMediaSnapshotService instagramMediaSnapshotService;
     private final IntegrationSnapshotPersistenceService persistenceService;
@@ -67,6 +70,32 @@ public class IntegrationSnapshotSyncService {
         companyRepository.findById(companyId)
                 .filter(company -> company.getKind() == CompanyKind.CLIENT)
                 .ifPresent(company -> syncCompanyOverviewSnapshots(company, true));
+    }
+
+    public void syncGoogleAnalyticsSnapshotNow(UUID companyId) {
+        companyRepository.findById(companyId)
+                .filter(company -> company.getKind() == CompanyKind.CLIENT)
+                .filter(company -> hasActiveService(company, ServiceCategory.DIGITAL_MARKETING))
+                .ifPresent(company -> syncIfDue(
+                        company,
+                        IntegrationType.GOOGLE_ANALYTICS,
+                        WEB_INTERVAL,
+                        true,
+                        () -> googleAnalyticsService.getOverview(company.getId(), null, null),
+                        GaOverviewResponse::errorMessage));
+    }
+
+    public void syncInstagramSnapshotNow(UUID companyId) {
+        companyRepository.findById(companyId)
+                .filter(company -> company.getKind() == CompanyKind.CLIENT)
+                .filter(company -> hasActiveService(company, ServiceCategory.SOCIAL_MEDIA))
+                .ifPresent(company -> syncIfDue(
+                        company,
+                        IntegrationType.INSTAGRAM,
+                        SOCIAL_INTERVAL,
+                        true,
+                        () -> instagramOverviewService.getOverview(company.getId(), null, null),
+                        InstagramOverviewResponse::errorMessage));
     }
 
     public void syncSearchConsoleSnapshotNow(UUID companyId) {
@@ -93,6 +122,19 @@ public class IntegrationSnapshotSyncService {
                         true,
                         () -> googleAdsService.getOverview(company.getId(), null, null),
                         GoogleAdsOverviewResponse::errorMessage));
+    }
+
+    public void syncMetaAdsSnapshotNow(UUID companyId) {
+        companyRepository.findById(companyId)
+                .filter(company -> company.getKind() == CompanyKind.CLIENT)
+                .filter(company -> hasActiveService(company, ServiceCategory.AD_MANAGEMENT))
+                .ifPresent(company -> syncIfDue(
+                        company,
+                        IntegrationType.META_ADS,
+                        WEB_INTERVAL,
+                        true,
+                        () -> metaAdsService.getOverview(company.getId(), null, null),
+                        MetaAdsOverviewResponse::errorMessage));
     }
 
     private void syncCompanyOverviewSnapshots(Company company, boolean force) {
@@ -130,6 +172,13 @@ public class IntegrationSnapshotSyncService {
                     force,
                     () -> googleAdsService.getOverview(company.getId(), null, null),
                     GoogleAdsOverviewResponse::errorMessage);
+            syncIfDue(
+                    company,
+                    IntegrationType.META_ADS,
+                    WEB_INTERVAL,
+                    force,
+                    () -> metaAdsService.getOverview(company.getId(), null, null),
+                    MetaAdsOverviewResponse::errorMessage);
         }
     }
 

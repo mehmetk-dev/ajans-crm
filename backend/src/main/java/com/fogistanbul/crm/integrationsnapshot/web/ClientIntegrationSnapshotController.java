@@ -35,6 +35,20 @@ public class ClientIntegrationSnapshotController {
         service.refreshOverview(currentUser.id(authentication), companyId);
     }
 
+    @PostMapping("/google-analytics/refresh")
+    public void refreshGoogleAnalytics(
+            @RequestParam UUID companyId,
+            Authentication authentication) {
+        service.refreshGoogleAnalytics(currentUser.id(authentication), companyId);
+    }
+
+    @PostMapping("/instagram/refresh")
+    public void refreshInstagram(
+            @RequestParam UUID companyId,
+            Authentication authentication) {
+        service.refreshInstagram(currentUser.id(authentication), companyId);
+    }
+
     @PostMapping("/search-console/refresh")
     public void refreshSearchConsole(
             @RequestParam UUID companyId,
@@ -47,5 +61,12 @@ public class ClientIntegrationSnapshotController {
             @RequestParam UUID companyId,
             Authentication authentication) {
         service.refreshGoogleAds(currentUser.id(authentication), companyId);
+    }
+
+    @PostMapping("/meta-ads/refresh")
+    public void refreshMetaAds(
+            @RequestParam UUID companyId,
+            Authentication authentication) {
+        service.refreshMetaAds(currentUser.id(authentication), companyId);
     }
 }

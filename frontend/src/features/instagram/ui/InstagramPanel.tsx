@@ -9,10 +9,14 @@ import {
 import { igApi } from '../api/instagramApi';
 import { instagramKeys } from '../instagramKeys';
 import { formatInstagramMetric } from '../model/instagram.utils';
+import {
+    integrationSnapshotApi,
+    integrationSnapshotKeys,
+    type ClientIntegrationSnapshotOverviewResponse,
+} from '../../integration-snapshots';
 import { InstagramDisconnectedState } from './InstagramDisconnectedState';
 import { getInstagramDisconnectedCopy } from './instagramDisconnectedCopy';
 import type {
-    IgOverviewResponse,
     IgPostRow,
     IgReelRow,
     IgStatusResponse,
@@ -25,13 +29,14 @@ interface Props {
 const fmtNum = formatInstagramMetric;
 
 export function StatsColumn({ companyId }: { companyId: string }) {
-    const { data: overview } = useQuery<IgOverviewResponse>({
-        queryKey: instagramKeys.overview(companyId),
-        queryFn: () => igApi.getOverview(companyId, '30daysAgo', 'today'),
+    const { data: snapshot } = useQuery<ClientIntegrationSnapshotOverviewResponse>({
+        queryKey: integrationSnapshotKeys.overview(companyId),
+        queryFn: () => integrationSnapshotApi.getOverview(companyId),
         staleTime: 5 * 60 * 1000,
     });
 
-    const data = overview;
+    const data = snapshot?.ig;
+    const snapshotMeta = snapshot?.igSnapshot;
     const growthRate = data && data.followersCount > 0
         ? ((data.followersGained - data.followersLost) / data.followersCount * 100).toFixed(1) : '0';
     const engagementRate = data && data.followersCount > 0
@@ -49,6 +54,15 @@ export function StatsColumn({ companyId }: { companyId: string }) {
 
     return (
         <>
+            {snapshotMeta?.status === 'FAILED' && (
+                <div className="mb-4 rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 flex items-start gap-3">
+                    <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                    <p className="text-xs leading-relaxed text-amber-100">
+                        Güncelleme başarısız oldu. Son başarılı Instagram verisi gösteriliyor.
+                    </p>
+                </div>
+            )}
+
             {(data.warningMessage || data.errorMessage) && (
                 <div className="mb-4 rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 flex items-start gap-3">
                     <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />

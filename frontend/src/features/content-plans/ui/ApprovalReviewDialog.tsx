@@ -34,10 +34,15 @@ export function ApprovalReviewDialog({
     const [location, setLocation] = useState(metadata.location ?? '');
     const [photographerId, setPhotographerId] = useState('');
     const [notes, setNotes] = useState('');
+    const [reviewNote, setReviewNote] = useState('');
     const [equipment, setEquipment] = useState<EquipmentRow[]>([]);
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
+        if (request.type !== 'CONTENT_APPROVAL') {
+            onApprove({ note: reviewNote.trim() || undefined });
+            return;
+        }
         if (metadata.existingShootId) {
             onApprove({ existingShootId: metadata.existingShootId });
             return;
@@ -69,7 +74,9 @@ export function ApprovalReviewDialog({
                 onClick={event => event.stopPropagation()}>
                 <header className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
                     <div>
-                        <h3 className="text-base font-bold text-white">Çekim Onay Formu</h3>
+                        <h3 className="text-base font-bold text-white">
+                            {request.type === 'CONTENT_APPROVAL' ? 'Çekim Onay Formu' : 'İsteği Onayla'}
+                        </h3>
                         <div className="mt-1 flex items-center gap-1.5 text-[11px] text-zinc-500">
                             <span>{request.companyName}</span>
                             <span>·</span>
@@ -81,7 +88,26 @@ export function ApprovalReviewDialog({
                         <X className="h-4 w-4" />
                     </button>
                 </header>
-                {metadata.existingShootId ? (
+                {request.type !== 'CONTENT_APPROVAL' ? (
+                    <div className="space-y-4 p-5">
+                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                            <p className="text-sm font-semibold text-white">{request.title}</p>
+                            {request.description && <p className="mt-1 text-xs text-zinc-400">{request.description}</p>}
+                        </div>
+                        <label>
+                            <span className="mb-1 block text-[10px] uppercase text-zinc-500">Sonuç Notu</span>
+                            <textarea
+                                rows={3}
+                                maxLength={2000}
+                                value={reviewNote}
+                                onChange={event => setReviewNote(event.target.value)}
+                                placeholder="Müşteriye iletilecek not..."
+                                className={inputClass}
+                            />
+                        </label>
+                        <Actions isLoading={isLoading} onClose={onClose} />
+                    </div>
+                ) : metadata.existingShootId ? (
                     <div className="space-y-4 p-5">
                         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
                             <p className="text-sm font-medium text-emerald-400">Mevcut çekime bağlanacak</p>

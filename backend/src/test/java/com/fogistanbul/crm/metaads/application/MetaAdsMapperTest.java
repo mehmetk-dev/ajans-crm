@@ -84,6 +84,8 @@ class MetaAdsMapperTest {
         assertThat(mapper.toUserErrorMessage("Unsupported get request code 100"))
                 .contains("erişim yetkisi");
         assertThat(mapper.toUserErrorMessage("timeout\ntrace"))
-                .isEqualTo("Veri çekme hatası: timeout");
+                .isEqualTo("Meta Ads şu anda yanıt vermedi. Lütfen biraz sonra tekrar deneyin.");
+        assertThat(mapper.toUserErrorMessage("Graph internal details"))
+                .isEqualTo("Meta Ads verileri şu anda alınamıyor. Lütfen biraz sonra tekrar deneyin.");
     }
 }
