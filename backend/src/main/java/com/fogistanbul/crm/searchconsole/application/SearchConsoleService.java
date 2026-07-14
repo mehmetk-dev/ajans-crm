@@ -5,12 +5,16 @@ import com.fogistanbul.crm.searchconsole.dto.ScSiteResponse;
 import com.fogistanbul.crm.searchconsole.infrastructure.SearchConsoleClient;
 import com.fogistanbul.crm.searchconsole.infrastructure.SearchConsoleClient.QueryRow;
 import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
+import com.fogistanbul.crm.exception.ApiException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,8 +23,9 @@ import java.util.UUID;
 public class SearchConsoleService {
 
     private static final Logger log = LoggerFactory.getLogger(SearchConsoleService.class);
-    private static final String DEFAULT_START = "30daysAgo";
+    private static final String DEFAULT_START = "29daysAgo";
     private static final String DEFAULT_END = "today";
+    private static final long MAX_RANGE_DAYS = 500;
 
     private final GoogleOAuthService oAuthService;
     private final SearchConsoleClient client;
@@ -42,9 +47,12 @@ public class SearchConsoleService {
         try {
             return client.listSites(accessToken);
         } catch (Exception exception) {
-            log.error("SC site listesi alınamadı, companyId={}: {}",
-                    companyId, exception.getMessage());
-            return List.of();
+            log.warn("SC site listesi alınamadı, companyId={}, error={}",
+                    companyId, exception.getClass().getSimpleName());
+            throw new ApiException(
+                    HttpStatus.BAD_GATEWAY,
+                    "SEARCH_CONSOLE_UNAVAILABLE",
+                    "Search Console site listesi şu anda alınamıyor. Lütfen biraz sonra tekrar deneyin.");
         }
     }
 
@@ -58,6 +66,12 @@ public class SearchConsoleService {
             return mapper.emptyConnectedResponse();
         }
 
+        String rangeStart = mapper.resolveDate(
+                valueOrDefault(startDate, DEFAULT_START), LocalDate.now());
+        String rangeEnd = mapper.resolveDate(
+                valueOrDefault(endDate, DEFAULT_END), LocalDate.now());
+        validateDateRange(rangeStart, rangeEnd);
+
         String accessToken = oAuthService
                 .getValidAccessToken(companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE)
                 .orElse(null);
@@ -65,11 +79,6 @@ public class SearchConsoleService {
             log.warn("SC access token alınamadı, companyId={}", companyId);
             return ScOverviewResponse.disabled();
         }
-
-        String rangeStart = mapper.resolveDate(
-                valueOrDefault(startDate, DEFAULT_START), LocalDate.now());
-        String rangeEnd = mapper.resolveDate(
-                valueOrDefault(endDate, DEFAULT_END), LocalDate.now());
 
         try {
             List<QueryRow> overviewRows = client.query(
@@ -102,5 +111,27 @@ public class SearchConsoleService {
 
     private String valueOrDefault(String value, String defaultValue) {
         return value != null && !value.isBlank() ? value : defaultValue;
+    }
+
+    private void validateDateRange(String startDate, String endDate) {
+        try {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+            if (start.isAfter(end)) {
+                throw invalidDateRange("Başlangıç tarihi bitiş tarihinden sonra olamaz");
+            }
+            if (end.isAfter(LocalDate.now())) {
+                throw invalidDateRange("Bitiş tarihi gelecekte olamaz");
+            }
+            if (ChronoUnit.DAYS.between(start, end) + 1 > MAX_RANGE_DAYS) {
+                throw invalidDateRange("Tarih aralığı en fazla 500 gün olabilir");
+            }
+        } catch (DateTimeParseException exception) {
+            throw invalidDateRange("Tarihler YYYY-AA-GG formatında olmalıdır");
+        }
+    }
+
+    private ApiException invalidDateRange(String message) {
+        return new ApiException(HttpStatus.BAD_REQUEST, "INVALID_DATE_RANGE", message);
     }
 }

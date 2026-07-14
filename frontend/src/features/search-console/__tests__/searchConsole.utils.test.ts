@@ -9,6 +9,7 @@ import {
     computeClickThroughRate,
     formatNum,
     getPositionLabel,
+    getSearchConsoleDateRangeError,
 } from '../model/searchConsole.utils';
 
 describe('formatNum', () => {
@@ -100,5 +101,18 @@ describe('date presets', () => {
             expect(preset).not.toHaveProperty('desc');
             expect(preset.end).toBe('today');
         });
+    });
+});
+
+describe('getSearchConsoleDateRangeError', () => {
+    it('rejects reversed and oversized ranges', () => {
+        expect(getSearchConsoleDateRangeError('2026-07-10', '2026-07-01'))
+            .toContain('Başlangıç tarihi');
+        expect(getSearchConsoleDateRangeError('2024-01-01', '2026-01-01'))
+            .toContain('500 gün');
+    });
+
+    it('accepts a valid completed range', () => {
+        expect(getSearchConsoleDateRangeError('2026-06-01', '2026-06-30')).toBeNull();
     });
 });

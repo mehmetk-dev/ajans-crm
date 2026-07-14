@@ -74,8 +74,8 @@ class SearchConsoleServiceTest {
         when(client.listSites("token")).thenThrow(new IllegalStateException("provider unavailable"));
 
         assertThatThrownBy(() -> service.listSites(companyId))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("provider unavailable");
+                .isInstanceOf(com.fogistanbul.crm.exception.ApiException.class)
+                .hasMessageContaining("site listesi");
     }
 
     @Test
@@ -137,8 +137,6 @@ class SearchConsoleServiceTest {
         when(oAuthService.isConnected(companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE))
                 .thenReturn(true);
         when(oAuthService.getSiteUrl(companyId)).thenReturn(Optional.of("sc-domain:example.com"));
-        when(oAuthService.getValidAccessToken(companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE))
-                .thenReturn(Optional.of("token"));
         when(mapper.resolveDate(anyString(), any())).thenReturn("2026-07-14", "2026-07-01");
 
         assertThatThrownBy(() -> service.getOverview(companyId, "2026-07-14", "2026-07-01"))

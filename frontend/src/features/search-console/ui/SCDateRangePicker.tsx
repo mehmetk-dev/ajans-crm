@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
-import { DATE_PRESETS } from '../model/searchConsole.utils';
+import { DATE_PRESETS, getSearchConsoleDateRangeError } from '../model/searchConsole.utils';
 
 interface SCDateRangePickerProps {
     isCustomRange: boolean;
@@ -30,7 +30,9 @@ export function SCDateRangePicker({
     onCloseMenu,
 }: SCDateRangePickerProps) {
     const fid = useId();
-    const canApply = Boolean(customStart && customEnd);
+    const rangeError = getSearchConsoleDateRangeError(customStart, customEnd);
+    const canApply = rangeError === null;
+    const today = new Date().toISOString().slice(0, 10);
 
     return (
         <div className="relative">
@@ -67,13 +69,13 @@ export function SCDateRangePicker({
                             <div className="px-2 space-y-2 mt-1">
                                 <div>
                                     <label htmlFor={`${fid}-scstart`} className="text-[10px] text-zinc-500">Başlangıç</label>
-                                    <input id={`${fid}-scstart`} type="date" value={customStart}
+                                    <input id={`${fid}-scstart`} type="date" value={customStart} max={today}
                                         onChange={e => onSetCustomStart(e.target.value)}
                                         className="w-full bg-[#0C0C0E] border border-white/[0.08] rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-pink-500/50" />
                                 </div>
                                 <div>
                                     <label htmlFor={`${fid}-scend`} className="text-[10px] text-zinc-500">Bitiş</label>
-                                    <input id={`${fid}-scend`} type="date" value={customEnd}
+                                    <input id={`${fid}-scend`} type="date" value={customEnd} max={today}
                                         onChange={e => onSetCustomEnd(e.target.value)}
                                         className="w-full bg-[#0C0C0E] border border-white/[0.08] rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-pink-500/50" />
                                 </div>
@@ -84,6 +86,9 @@ export function SCDateRangePicker({
                                 >
                                     Uygula
                                 </button>
+                                {customStart && customEnd && rangeError && (
+                                    <p className="text-[10px] text-red-400">{rangeError}</p>
+                                )}
                             </div>
                         </div>
                     </div>

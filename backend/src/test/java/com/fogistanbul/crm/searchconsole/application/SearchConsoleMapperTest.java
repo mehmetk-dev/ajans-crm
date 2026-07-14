@@ -32,8 +32,8 @@ class SearchConsoleMapperTest {
     void resolveDate_invalidRelativeValue_usesThirtyDayFallback() {
         LocalDate today = LocalDate.of(2026, 6, 12);
 
-        assertThat(mapper.resolveDate("invaliddaysAgo", today)).isEqualTo("2026-05-13");
-        assertThat(mapper.resolveDate("", today)).isEqualTo("2026-05-13");
+        assertThat(mapper.resolveDate("invaliddaysAgo", today)).isEqualTo("2026-05-14");
+        assertThat(mapper.resolveDate("", today)).isEqualTo("2026-05-14");
     }
 
     @Test
@@ -70,6 +70,9 @@ class SearchConsoleMapperTest {
         assertThat(mapper.toUserErrorMessage("403 Forbidden")).contains("erişim yetkisi yok");
         assertThat(mapper.toUserErrorMessage("401 Unauthorized")).contains("yeniden bağlayın");
         assertThat(mapper.toUserErrorMessage("404 not found")).contains("bulunamadı");
-        assertThat(mapper.toUserErrorMessage("timeout\ntrace")).isEqualTo("Search Console API hatası: timeout");
+        assertThat(mapper.toUserErrorMessage("429 quota exceeded")).contains("istek limiti");
+        assertThat(mapper.toUserErrorMessage("timeout\ntrace")).contains("yanıt vermedi");
+        assertThat(mapper.toUserErrorMessage("internal provider detail"))
+                .isEqualTo("Search Console verileri şu anda alınamıyor. Lütfen biraz sonra tekrar deneyin.");
     }
 }

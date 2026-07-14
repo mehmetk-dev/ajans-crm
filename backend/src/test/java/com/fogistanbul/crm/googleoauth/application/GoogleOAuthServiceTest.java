@@ -69,4 +69,21 @@ class GoogleOAuthServiceTest {
         assertThatThrownBy(() -> service.saveAdsCustomerId(companyId, "1234567890"))
                 .isInstanceOf(com.fogistanbul.crm.exception.ApiException.class);
     }
+
+    @Test
+    void hasScScope_checksTheGrantedScopeInsteadOfTokenExistence() {
+        UUID companyId = UUID.randomUUID();
+        GoogleOAuthToken searchConsoleToken = GoogleOAuthToken.builder()
+                .serviceType(GoogleOAuthService.SVC_SEARCH_CONSOLE)
+                .scope("openid https://www.googleapis.com/auth/webmasters.readonly")
+                .build();
+        when(tokenRepository.findByCompanyIdAndServiceType(
+                companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE))
+                .thenReturn(Optional.of(searchConsoleToken));
+
+        assertThat(service.hasScScope(companyId)).isTrue();
+
+        searchConsoleToken.setScope("openid email");
+        assertThat(service.hasScScope(companyId)).isFalse();
+    }
 }

@@ -18,7 +18,7 @@ import {
 export default function SearchConsoleDetailPage() {
     const navigate = useNavigate();
     const {
-        status, data, loading, error, refreshing, authLoading,
+        status, data, snapshotMeta, loading, error, refreshing, authLoading,
         activePreset, showDateMenu, customStart, customEnd, isCustomRange,
         currentRange, devicePieData, countryBarData,
         clickThroughRate,
@@ -230,6 +230,12 @@ export default function SearchConsoleDetailPage() {
         );
     }
 
+    const hasPerformanceData = data.totalClicks > 0
+        || data.totalImpressions > 0
+        || data.dailyTrend.length > 0
+        || data.topQueries.length > 0
+        || data.topPages.length > 0;
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -253,6 +259,24 @@ export default function SearchConsoleDetailPage() {
                         <CheckCircle2 className="w-3.5 h-3.5 text-pink-400" />
                         <span className="text-[11px] text-pink-400 font-medium">Bağlı</span>
                     </div>
+                    {snapshotMeta && (
+                        <div className={`rounded-full border px-3 py-1.5 text-[11px] font-medium ${
+                            snapshotMeta.status === 'FAILED'
+                                ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
+                                : 'border-white/[0.06] bg-[#0C0C0E] text-zinc-400'
+                        }`}>
+                            {snapshotMeta.status === 'FAILED'
+                                ? 'Son başarılı veri korunuyor'
+                                : snapshotMeta.lastSyncedAt
+                                    ? `Son güncelleme: ${new Date(snapshotMeta.lastSyncedAt).toLocaleString('tr-TR', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    })}`
+                                    : 'Veriler hazırlanıyor'}
+                        </div>
+                    )}
                     <SCDateRangePicker
                         isCustomRange={isCustomRange}
                         activePreset={activePreset}
@@ -299,34 +323,46 @@ export default function SearchConsoleDetailPage() {
                 </div>
             </div>
 
-            <SCOverviewSection
-                totalClicks={data.totalClicks}
-                totalImpressions={data.totalImpressions}
-                avgCtr={data.avgCtr}
-                avgPosition={data.avgPosition}
-                currentRangeDesc={currentRange.desc}
-                clickThroughRate={clickThroughRate}
-                topQueryCount={data.topQueries.length}
-            />
+            {!hasPerformanceData ? (
+                <div className="rounded-2xl border border-white/[0.06] bg-[#0C0C0E] px-6 py-12 text-center">
+                    <Search className="mx-auto h-8 w-8 text-zinc-600" />
+                    <h2 className="mt-4 text-base font-semibold text-white">Bu tarih aralığında veri yok</h2>
+                    <p className="mt-1 text-sm text-zinc-500">
+                        Search Console performans verileri birkaç gün gecikmeli yayınlanabilir.
+                    </p>
+                </div>
+            ) : (
+                <>
+                    <SCOverviewSection
+                        totalClicks={data.totalClicks}
+                        totalImpressions={data.totalImpressions}
+                        avgCtr={data.avgCtr}
+                        avgPosition={data.avgPosition}
+                        currentRangeDesc={currentRange.desc}
+                        clickThroughRate={clickThroughRate}
+                        topQueryCount={data.topQueries.length}
+                    />
 
-            <SCDailyTrendChart data={data.dailyTrend} />
+                    <SCDailyTrendChart data={data.dailyTrend} />
 
-            <SCTopQueriesTable queries={data.topQueries} />
+                    <SCTopQueriesTable queries={data.topQueries} />
 
-            <SCTopPagesList pages={data.topPages} />
+                    <SCTopPagesList pages={data.topPages} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <SCDevicesCard data={devicePieData} />
-                <SCCountriesCard data={countryBarData} countries={data.countries} />
-            </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <SCDevicesCard data={devicePieData} />
+                        <SCCountriesCard data={countryBarData} countries={data.countries} />
+                    </div>
 
-            <SCSummarySection
-                totalImpressions={data.totalImpressions}
-                totalClicks={data.totalClicks}
-                avgPosition={data.avgPosition}
-                avgCtr={data.avgCtr}
-                topQuery={data.topQueries[0]?.query ?? null}
-            />
+                    <SCSummarySection
+                        totalImpressions={data.totalImpressions}
+                        totalClicks={data.totalClicks}
+                        avgPosition={data.avgPosition}
+                        avgCtr={data.avgCtr}
+                        topQuery={data.topQueries[0]?.query ?? null}
+                    />
+                </>
+            )}
         </div>
     );
 }

@@ -96,7 +96,7 @@ public class SearchConsoleMapper {
 
     public String resolveDate(String input, LocalDate today) {
         if (input == null || input.isBlank()) {
-            return today.minusDays(30).format(DATE_FORMAT);
+            return today.minusDays(29).format(DATE_FORMAT);
         }
         if ("today".equalsIgnoreCase(input)) {
             return today.format(DATE_FORMAT);
@@ -106,7 +106,7 @@ public class SearchConsoleMapper {
                 int days = Integer.parseInt(input.replace("daysAgo", ""));
                 return today.minusDays(days).format(DATE_FORMAT);
             } catch (NumberFormatException exception) {
-                return today.minusDays(30).format(DATE_FORMAT);
+                return today.minusDays(29).format(DATE_FORMAT);
             }
         }
         return input;
@@ -129,7 +129,13 @@ public class SearchConsoleMapper {
         if (message.contains("404") || message.contains("not found")) {
             return "Site URL'i Search Console'da bulunamadı. Lütfen doğru URL'i girin.";
         }
-        return "Search Console API hatası: " + message.split("\n")[0];
+        if (message.contains("429") || message.toLowerCase().contains("quota")) {
+            return "Google Search Console istek limiti aşıldı. Lütfen biraz sonra tekrar deneyin.";
+        }
+        if (message.toLowerCase().contains("timeout") || message.toLowerCase().contains("timed out")) {
+            return "Google Search Console şu anda yanıt vermedi. Lütfen biraz sonra tekrar deneyin.";
+        }
+        return "Search Console verileri şu anda alınamıyor. Lütfen biraz sonra tekrar deneyin.";
     }
 
     private String translateDevice(String device) {

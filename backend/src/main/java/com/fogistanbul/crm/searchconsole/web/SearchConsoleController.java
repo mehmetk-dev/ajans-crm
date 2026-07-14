@@ -28,9 +28,10 @@ public class SearchConsoleController {
     public ScStatusResponse status(@RequestParam UUID companyId, Authentication auth) {
         accessPolicy.requireClientAccess((UUID) auth.getPrincipal(), companyId);
         boolean connected = googleOAuthService.isConnected(companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE);
-        boolean hasScScope = connected;
-        boolean needsReconnect = connected && googleOAuthService.isTokenExpired(
-                companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE);
+        boolean hasScScope = connected && googleOAuthService.hasScScope(companyId);
+        boolean hasValidToken = hasScScope && googleOAuthService.getValidAccessToken(
+                companyId, GoogleOAuthService.SVC_SEARCH_CONSOLE).isPresent();
+        boolean needsReconnect = connected && (!hasScScope || !hasValidToken);
 
         String siteUrl = googleOAuthService.getSiteUrl(companyId).orElse(null);
         String authUrl = googleOAuthService.buildAuthorizationUrl(

@@ -9,13 +9,14 @@ import {
 import {
     Search, MousePointerClick, Eye, TrendingUp,
     Target, AlertCircle, Loader2, WifiOff, ExternalLink,
-    CheckCircle2, Link2, Settings, ArrowUpRight, ChevronDown, Calendar,
+    CheckCircle2, Link2, Settings, ArrowUpRight,
     RefreshCw, Unlink
 } from 'lucide-react';
+import { integrationSnapshotApi } from '../../integration-snapshots/api/integrationSnapshotApi';
+import type { IntegrationSnapshotMeta } from '../../integration-snapshots/integrationSnapshot.types';
 import { searchConsoleApi } from '../api/searchConsoleApi';
 import type { ScOverviewResponse, ScSite, ScStatusResponse } from '../searchConsole.types';
 import {
-    PANEL_PRESETS,
     buildDevicePieData,
     formatNum,
 } from '../model/searchConsole.utils';
@@ -23,12 +24,14 @@ import { ChartTooltip, MetricCard } from './SearchConsoleCards';
 
 interface Props {
     companyId: string;
+    initialStatus?: ScStatusResponse;
 }
 
-export default function SearchConsolePanel({ companyId }: Props) {
+export default function SearchConsolePanel({ companyId, initialStatus }: Props) {
     const navigate = useNavigate();
     const [status, setStatus] = useState<ScStatusResponse | null>(null);
     const [data, setData] = useState<ScOverviewResponse | null>(null);
+    const [snapshotMeta, setSnapshotMeta] = useState<IntegrationSnapshotMeta | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [sites, setSites] = useState<ScSite[]>([]);
@@ -36,11 +39,6 @@ export default function SearchConsolePanel({ companyId }: Props) {
     const [savingSiteUrl, setSavingSiteUrl] = useState(false);
     const [loadingSites, setLoadingSites] = useState(false);
     const [showSiteUrlForm, setShowSiteUrlForm] = useState(false);
-    const [datePreset, setDatePreset] = useState(2);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [customStart, setCustomStart] = useState('');
-    const [customEnd, setCustomEnd] = useState('');
-    const [isCustom, setIsCustom] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
 
     const loadSites = useCallback(() => {
@@ -50,26 +48,34 @@ export default function SearchConsolePanel({ companyId }: Props) {
                 setSites(s);
                 if (s.length > 0) setSelectedSite(s[0].siteUrl);
             })
-            .catch(() => setSites([]))
+            .catch((err: unknown) => {
+                setSites([]);
+                setError(getApiErrorMessage(err, 'Search Console site listesi alınamadı'));
+            })
             .finally(() => setLoadingSites(false));
     }, [companyId]);
 
-    const load = useCallback(() => {
+    const load = useCallback((forceStatus = false) => {
         setLoading(true);
         setError(null);
-        const startDate = isCustom ? customStart : PANEL_PRESETS[datePreset].start;
-        const endDate = isCustom ? customEnd : PANEL_PRESETS[datePreset].end;
-        searchConsoleApi.getStatus(companyId)
+        const statusRequest = initialStatus && !forceStatus
+            ? Promise.resolve(initialStatus)
+            : searchConsoleApi.getStatus(companyId);
+        statusRequest
             .then((s: ScStatusResponse) => {
                 setStatus(s);
                 if (s.connected && s.hasScScope && s.siteUrl) {
-                    return searchConsoleApi.getOverview(companyId, startDate, endDate).then(d => {
-                        setData(d);
-                        if (d.errorMessage) {
-                            setShowSiteUrlForm(true);
+                    return integrationSnapshotApi.getOverview(companyId).then(snapshot => {
+                        setSnapshotMeta(snapshot.scSnapshot);
+                        if (snapshot.scSnapshot.lastSyncedAt || snapshot.sc.connected) {
+                            setData(snapshot.sc);
+                        } else {
+                            setData(null);
                         }
                     });
                 }
+                setData(null);
+                setSnapshotMeta(null);
                 if (s.connected && s.hasScScope && !s.siteUrl) {
                     loadSites();
                 }
@@ -78,7 +84,7 @@ export default function SearchConsolePanel({ companyId }: Props) {
                 setError(getApiErrorMessage(err, 'Bağlantı hatası'))
             )
             .finally(() => setLoading(false));
-    }, [companyId, customEnd, customStart, datePreset, isCustom, loadSites]);
+    }, [companyId, initialStatus, loadSites]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -88,8 +94,11 @@ export default function SearchConsolePanel({ companyId }: Props) {
         setSavingSiteUrl(true);
         try {
             await searchConsoleApi.saveSiteUrl(companyId, siteUrl.trim());
+            await integrationSnapshotApi.refreshSearchConsole(companyId);
             setShowSiteUrlForm(false);
-            load();
+            load(true);
+        } catch (err: unknown) {
+            setError(getApiErrorMessage(err, 'Search Console sitesi kaydedilemedi'));
         } finally {
             setSavingSiteUrl(false);
         }
@@ -100,9 +109,13 @@ export default function SearchConsolePanel({ companyId }: Props) {
         setDisconnecting(true);
         try {
             await searchConsoleApi.disconnect(companyId);
+            await integrationSnapshotApi.refreshSearchConsole(companyId);
             setData(null);
+            setSnapshotMeta(null);
             setStatus(null);
-            load();
+            load(true);
+        } catch (err: unknown) {
+            setError(getApiErrorMessage(err, 'Search Console bağlantısı kesilemedi'));
         } finally {
             setDisconnecting(false);
         }
@@ -119,12 +132,20 @@ export default function SearchConsolePanel({ companyId }: Props) {
 
     if (error) {
         return (
-            <div className="bg-[#0C0C0E] border border-red-500/20 rounded-2xl p-6 flex items-center gap-4">
-                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                <div>
-                    <p className="text-sm font-medium text-white">Hata</p>
-                    <p className="text-xs text-zinc-500 mt-0.5">{error}</p>
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-red-500/20 bg-[#0C0C0E] p-6">
+                <div className="flex items-center gap-4">
+                    <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-400" />
+                    <div>
+                        <p className="text-sm font-medium text-white">Hata</p>
+                        <p className="mt-0.5 text-xs text-zinc-500">{error}</p>
+                    </div>
                 </div>
+                <button
+                    onClick={() => load(true)}
+                    className="flex-shrink-0 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300 transition-colors hover:bg-red-500/20"
+                >
+                    Tekrar Dene
+                </button>
             </div>
         );
     }
@@ -250,21 +271,28 @@ export default function SearchConsolePanel({ companyId }: Props) {
     // Bağlı ve veri var
     const devicePieData = buildDevicePieData(data?.devices ?? []);
     const totalDeviceClicks = devicePieData.reduce((a, b) => a + b.value, 0);
+    const hasPerformanceData = Boolean(data && (
+        data.totalClicks > 0
+        || data.totalImpressions > 0
+        || data.dailyTrend.length > 0
+        || data.topQueries.length > 0
+        || data.topPages.length > 0
+    ));
 
     return (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
             {/* Başlık */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div className="flex items-center gap-2.5">
                     <div className="h-8 w-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
                         <Search className="w-4 h-4 text-pink-400" />
                     </div>
                     <div>
                         <h3 className="text-sm font-semibold text-white">Google Search Console</h3>
-                        <p className="text-[11px] text-zinc-500">Site: {status.siteUrl} — {isCustom ? `${customStart} — ${customEnd}` : PANEL_PRESETS[datePreset].label}</p>
+                        <p className="text-[11px] text-zinc-500">Site: {status.siteUrl} — Son 30 Gün</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <button
                         onClick={() => navigate('/client/search-console')}
                         className="flex items-center gap-1.5 bg-pink-600 hover:bg-pink-500 text-white text-xs font-medium px-3 py-1.5 rounded-xl transition-colors"
@@ -272,60 +300,20 @@ export default function SearchConsolePanel({ companyId }: Props) {
                         <ArrowUpRight className="w-3.5 h-3.5" />
                         Detaylı İncele
                     </button>
-                    {/* Tarih aralığı seçici */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowDatePicker(v => !v)}
-                            className="flex items-center gap-1.5 bg-[#1a1a1f] border border-white/[0.06] hover:border-white/[0.12] rounded-full px-2.5 py-1 transition-colors"
-                        >
-                            <Calendar className="w-3 h-3 text-zinc-500" />
-                            <span className="text-[11px] text-zinc-400">
-                                {isCustom ? `${customStart} — ${customEnd}` : PANEL_PRESETS[datePreset].label}
-                            </span>
-                            <ChevronDown className="w-3 h-3 text-zinc-500" />
-                        </button>
-                        {showDatePicker && (
-                            <>
-                                <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
-                                <div className="absolute right-0 top-full mt-2 z-50 bg-[#1a1a1f] border border-white/[0.08] rounded-xl shadow-2xl p-2 min-w-[200px]">
-                                    {PANEL_PRESETS.map((p, i) => (
-                                        <button
-                                            key={i}
-                                            onClick={() => { setDatePreset(i); setIsCustom(false); setShowDatePicker(false); }}
-                                            className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                                !isCustom && datePreset === i
-                                                    ? 'bg-pink-500/10 text-pink-400'
-                                                    : 'text-zinc-300 hover:bg-white/[0.05]'
-                                            }`}
-                                        >
-                                            {p.label}
-                                        </button>
-                                    ))}
-                                    <div className="border-t border-white/[0.06] mt-1.5 pt-1.5">
-                                        <p className="text-[10px] text-zinc-500 uppercase tracking-wider px-2 py-0.5">Özel Aralık</p>
-                                        <div className="px-2 space-y-1.5 mt-1">
-                                            <input type="date" value={customStart}
-                                                onChange={e => setCustomStart(e.target.value)}
-                                                className="w-full bg-[#0C0C0E] border border-white/[0.08] rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-pink-500/50" />
-                                            <input type="date" value={customEnd}
-                                                onChange={e => setCustomEnd(e.target.value)}
-                                                className="w-full bg-[#0C0C0E] border border-white/[0.08] rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-pink-500/50" />
-                                            <button
-                                                onClick={() => { if (customStart && customEnd) { setIsCustom(true); setShowDatePicker(false); } }}
-                                                disabled={!customStart || !customEnd}
-                                                className="w-full bg-pink-600 hover:bg-pink-500 disabled:opacity-40 text-white text-[11px] font-medium py-1 rounded-lg transition-colors"
-                                            >
-                                                Uygula
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </div>
                     <div className="flex items-center gap-1.5 bg-pink-500/10 border border-pink-500/20 rounded-full px-3 py-1">
                         <CheckCircle2 className="w-3.5 h-3.5 text-pink-400" />
-                        <span className="text-[11px] text-pink-400 font-medium">Canlı</span>
+                        <span className="text-[11px] text-pink-400 font-medium">
+                            {snapshotMeta?.status === 'FAILED'
+                                ? 'Son veri korunuyor'
+                                : snapshotMeta?.lastSyncedAt
+                                    ? `Son güncelleme: ${new Date(snapshotMeta.lastSyncedAt).toLocaleString('tr-TR', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    })}`
+                                    : 'Veriler hazırlanıyor'}
+                        </span>
                     </div>
                     <button
                         onClick={() => { setShowSiteUrlForm(v => !v); if (!showSiteUrlForm && sites.length === 0) loadSites(); }}
@@ -381,8 +369,25 @@ export default function SearchConsolePanel({ companyId }: Props) {
             )}
 
             {/* Veri */}
+            {!data && (
+                <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+                    <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+                    <p className="text-xs text-amber-200">Search Console snapshot verileri hazırlanıyor.</p>
+                </div>
+            )}
             {data && (
                 <>
+                    {snapshotMeta?.status === 'FAILED' && (
+                        <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+                            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+                            <div>
+                                <p className="text-sm font-medium text-amber-200">Son başarılı veri gösteriliyor</p>
+                                <p className="mt-0.5 text-xs text-amber-400/80">
+                                    Yeni veri şu anda alınamadı. Mevcut snapshot korunuyor.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                     {data.errorMessage && (
                         <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
                             <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
@@ -393,7 +398,16 @@ export default function SearchConsolePanel({ companyId }: Props) {
                         </div>
                     )}
 
-                    {!data.errorMessage && <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {!data.errorMessage && !hasPerformanceData && (
+                        <div className="rounded-xl border border-white/[0.06] bg-[#0C0C0E] px-5 py-8 text-center">
+                            <p className="text-sm font-medium text-zinc-300">Bu tarih aralığında performans verisi yok</p>
+                            <p className="mt-1 text-xs text-zinc-500">
+                                Search Console verileri birkaç gün gecikmeli yayınlanabilir.
+                            </p>
+                        </div>
+                    )}
+
+                    {!data.errorMessage && hasPerformanceData && <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <MetricCard label="Toplam Tıklama" value={formatNum(data.totalClicks)} icon={MousePointerClick} color="text-blue-400" bgColor="bg-blue-500/10" />
                         <MetricCard label="Toplam Gösterim" value={formatNum(data.totalImpressions)} icon={Eye} color="text-pink-400" bgColor="bg-pink-500/10" />
                         <MetricCard label="Ort. TO" value={`%${data.avgCtr}`} icon={TrendingUp} color="text-amber-400" bgColor="bg-amber-500/10" />
@@ -401,7 +415,7 @@ export default function SearchConsolePanel({ companyId }: Props) {
                     </div>}
 
                     {/* Günlük trend */}
-                    {!data.errorMessage && data.dailyTrend.length > 0 && (
+                    {!data.errorMessage && hasPerformanceData && data.dailyTrend.length > 0 && (
                         <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
                             <div className="flex items-center gap-2 mb-4">
                                 <TrendingUp className="w-4 h-4 text-pink-400" />
@@ -432,7 +446,7 @@ export default function SearchConsolePanel({ companyId }: Props) {
                     )}
 
                     {/* Alt satır: Sorgular + Cihazlar */}
-                    {!data.errorMessage && (
+                    {!data.errorMessage && hasPerformanceData && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                             <div className="lg:col-span-2 bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
                                 <div className="flex items-center gap-2 mb-4">

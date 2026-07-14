@@ -295,10 +295,13 @@ export default function ClientAnalyticsPage() {
             minHeight: 360,
             connected: scStatus.data?.connected,
             render: () => (
-                <SearchConsolePanel
-                    key={`search-console-${localRefreshVersion}`}
-                    companyId={companyId}
-                />
+                scStatus.isLoading
+                    ? <PanelPlaceholder minHeight={360} />
+                    : <SearchConsolePanel
+                        key={`search-console-${localRefreshVersion}`}
+                        companyId={companyId}
+                        initialStatus={scStatus.data}
+                    />
             ),
         },
         {

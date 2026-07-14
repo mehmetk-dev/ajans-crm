@@ -38,7 +38,7 @@ import java.util.function.Supplier;
 public class IntegrationSnapshotSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(IntegrationSnapshotSyncService.class);
-    private static final Duration WEB_INTERVAL = Duration.ofHours(2);
+    private static final Duration WEB_INTERVAL = Duration.ofHours(6);
     private static final Duration SOCIAL_INTERVAL = Duration.ofHours(1);
 
     private final IntegrationSnapshotRepository snapshotRepository;
@@ -64,6 +64,19 @@ public class IntegrationSnapshotSyncService {
         companyRepository.findById(companyId)
                 .filter(company -> company.getKind() == CompanyKind.CLIENT)
                 .ifPresent(company -> syncCompanyOverviewSnapshots(company, true));
+    }
+
+    public void syncSearchConsoleSnapshotNow(UUID companyId) {
+        companyRepository.findById(companyId)
+                .filter(company -> company.getKind() == CompanyKind.CLIENT)
+                .filter(company -> hasActiveService(company, ServiceCategory.DIGITAL_MARKETING))
+                .ifPresent(company -> syncIfDue(
+                        company,
+                        IntegrationType.SEARCH_CONSOLE,
+                        WEB_INTERVAL,
+                        true,
+                        () -> searchConsoleService.getOverview(company.getId(), null, null),
+                        ScOverviewResponse::errorMessage));
     }
 
     private void syncCompanyOverviewSnapshots(Company company, boolean force) {
@@ -149,7 +162,7 @@ public class IntegrationSnapshotSyncService {
                 IntegrationSnapshotType.OVERVIEW,
                 objectMapper.convertValue(response, new TypeReference<Map<String, Object>>() {}),
                 interval,
-                today.minusDays(30),
+                today.minusDays(29),
                 today);
     }
 
@@ -165,7 +178,7 @@ public class IntegrationSnapshotSyncService {
                 IntegrationSnapshotType.OVERVIEW,
                 errorMessage,
                 interval,
-                today.minusDays(30),
+                today.minusDays(29),
                 today);
     }
 }

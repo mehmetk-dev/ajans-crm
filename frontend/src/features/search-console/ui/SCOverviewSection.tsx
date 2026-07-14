@@ -103,10 +103,10 @@ export function SCOverviewSection({
                         className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-5">
                         <div className="flex items-center gap-2 mb-3">
                             <BarChart3 className="w-4 h-4 text-pink-400" />
-                            <span className="text-xs text-zinc-500">Sorgu Sayısı</span>
+                            <span className="text-xs text-zinc-500">Gösterilen Sorgu</span>
                         </div>
                         <p className="text-2xl font-bold text-white">{topQueryCount}</p>
-                        <p className="text-[11px] text-zinc-600 mt-2">Üst sıralardaki sorgular</p>
+                        <p className="text-[11px] text-zinc-600 mt-2">En fazla ilk 10 sonuç</p>
                     </motion.div>
                 </div>
             </section>

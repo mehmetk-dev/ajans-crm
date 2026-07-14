@@ -202,6 +202,17 @@ class ClientIntegrationSnapshotServiceTest {
         verify(syncService).syncOverviewSnapshotsNow(companyId);
     }
 
+    @Test
+    void refreshSearchConsole_requiresMembershipAndOnlyForcesSearchConsoleSync() {
+        UUID userId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+
+        service.refreshSearchConsole(userId, companyId);
+
+        verify(accessPolicy).requireMembership(userId, companyId);
+        verify(syncService).syncSearchConsoleSnapshotNow(companyId);
+    }
+
     private IntegrationSnapshot snapshot(
             Company company,
             IntegrationType integrationType,

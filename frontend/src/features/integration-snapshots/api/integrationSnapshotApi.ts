@@ -10,4 +10,8 @@ export const integrationSnapshotApi = {
         api.post<void>('/client/integration-snapshots/overview/refresh', null, {
             params: { companyId },
         }).then(response => response.data),
+    refreshSearchConsole: (companyId: string) =>
+        api.post<void>('/client/integration-snapshots/search-console/refresh', null, {
+            params: { companyId },
+        }).then(response => response.data),
 };

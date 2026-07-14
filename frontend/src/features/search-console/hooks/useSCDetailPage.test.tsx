@@ -21,7 +21,22 @@ vi.mock('../../../store/AuthContext', () => ({
 
 import type { ScOverviewResponse, ScStatusResponse } from '../searchConsole.types';
 import { searchConsoleApi } from '../api/searchConsoleApi';
+import { integrationSnapshotApi } from '../../integration-snapshots/api/integrationSnapshotApi';
+import type { ClientIntegrationSnapshotOverviewResponse } from '../../integration-snapshots/integrationSnapshot.types';
 import { useSCDetailPage } from './useSCDetailPage';
+
+function snapshotWith(sc: ScOverviewResponse): ClientIntegrationSnapshotOverviewResponse {
+    return {
+        sc,
+        scSnapshot: {
+            status: 'READY',
+            lastSyncedAt: '2026-07-14T09:00:00Z',
+            nextSyncAt: '2026-07-14T15:00:00Z',
+            stale: false,
+            errorMessage: null,
+        },
+    } as ClientIntegrationSnapshotOverviewResponse;
+}
 
 function makeWrapper() {
     const queryClient = new QueryClient({
@@ -42,7 +57,7 @@ describe('useSCDetailPage', () => {
         vi.restoreAllMocks();
     });
 
-    it('loads status and overview when connected with a site url', async () => {
+    it('loads the default 30-day report from the persisted snapshot', async () => {
         const status: ScStatusResponse = {
             connected: true,
             siteUrl: 'https://example.com',
@@ -65,7 +80,9 @@ describe('useSCDetailPage', () => {
             countries: [{ name: 'TR', clicks: 40, impressions: 800 }],
         };
         vi.spyOn(searchConsoleApi, 'getStatus').mockResolvedValue(status);
-        vi.spyOn(searchConsoleApi, 'getOverview').mockResolvedValue(overview);
+        const liveOverview = vi.spyOn(searchConsoleApi, 'getOverview').mockResolvedValue(overview);
+        const snapshotOverview = vi.spyOn(integrationSnapshotApi, 'getOverview')
+            .mockResolvedValue(snapshotWith(overview));
 
         const { result } = renderHook(() => useSCDetailPage(), { wrapper: makeWrapper() });
 
@@ -76,6 +93,8 @@ describe('useSCDetailPage', () => {
         expect(result.current.status).toEqual(status);
         expect(result.current.data).toEqual(overview);
         expect(result.current.error).toBeNull();
+        expect(snapshotOverview).toHaveBeenCalledWith('company-1');
+        expect(liveOverview).not.toHaveBeenCalled();
     });
 
     it('skips overview fetch when status.connected is false', async () => {
@@ -170,17 +189,18 @@ describe('useSCDetailPage', () => {
         expect(result.current.currentRange).toBeDefined();
 
         act(() => result.current.setActivePreset(0));
+        await waitFor(() => expect(result.current.loading).toBe(false));
         expect(result.current.activePreset).toBe(0);
         expect(result.current.showDateMenu).toBe(false);
 
         act(() => result.current.setShowDateMenu(true));
         expect(result.current.showDateMenu).toBe(true);
 
-        act(() => result.current.setIsCustomRange(true));
-        expect(result.current.isCustomRange).toBe(true);
-
         act(() => result.current.setCustomStart('2026-01-01'));
         act(() => result.current.setCustomEnd('2026-01-31'));
+        act(() => result.current.setIsCustomRange(true));
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.isCustomRange).toBe(true);
         expect(result.current.customStart).toBe('2026-01-01');
         expect(result.current.customEnd).toBe('2026-01-31');
         expect(result.current.currentRange.desc).toBe('2026-01-01 — 2026-01-31');
@@ -246,10 +266,11 @@ describe('useSCDetailPage', () => {
             countries: [],
         };
         vi.spyOn(searchConsoleApi, 'getStatus').mockResolvedValue(status);
+        vi.spyOn(integrationSnapshotApi, 'getOverview').mockResolvedValue(snapshotWith(overview));
         const getOverview = vi.spyOn(searchConsoleApi, 'getOverview').mockResolvedValue(overview);
 
         const { result } = renderHook(() => useSCDetailPage(), { wrapper: makeWrapper() });
-        await waitFor(() => expect(getOverview).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(result.current.data).toEqual(overview));
 
         act(() => {
             result.current.setCustomStart('2026-06-01');
@@ -259,7 +280,7 @@ describe('useSCDetailPage', () => {
             await new Promise(resolve => setTimeout(resolve, 25));
         });
 
-        expect(getOverview).toHaveBeenCalledTimes(1);
+        expect(getOverview).not.toHaveBeenCalled();
 
         act(() => result.current.setIsCustomRange(true));
         await waitFor(() => {
@@ -269,5 +290,96 @@ describe('useSCDetailPage', () => {
                 '2026-06-30',
             );
         });
+    });
+
+    it('keeps the newest date-range response when an older request finishes later', async () => {
+        const status: ScStatusResponse = {
+            connected: true,
+            siteUrl: 'sc-domain:example.com',
+            hasScScope: true,
+            needsReconnect: false,
+            authUrl: '',
+        };
+        const response = (totalClicks: number): ScOverviewResponse => ({
+            connected: true,
+            siteUrl: 'sc-domain:example.com',
+            errorMessage: null,
+            totalClicks,
+            totalImpressions: 100,
+            avgCtr: totalClicks,
+            avgPosition: 5,
+            dailyTrend: [],
+            topQueries: [],
+            topPages: [],
+            devices: [],
+            countries: [],
+        });
+        let resolveOlder!: (value: ScOverviewResponse) => void;
+        let resolveNewest!: (value: ScOverviewResponse) => void;
+        const older = new Promise<ScOverviewResponse>(resolve => { resolveOlder = resolve; });
+        const newest = new Promise<ScOverviewResponse>(resolve => { resolveNewest = resolve; });
+
+        vi.spyOn(searchConsoleApi, 'getStatus').mockResolvedValue(status);
+        vi.spyOn(integrationSnapshotApi, 'getOverview').mockResolvedValue(snapshotWith(response(1)));
+        const getOverview = vi.spyOn(searchConsoleApi, 'getOverview')
+            .mockReturnValueOnce(older)
+            .mockReturnValueOnce(newest);
+
+        const { result } = renderHook(() => useSCDetailPage(), { wrapper: makeWrapper() });
+        await waitFor(() => expect(result.current.data?.totalClicks).toBe(1));
+
+        act(() => result.current.setActivePreset(0));
+        await waitFor(() => expect(getOverview).toHaveBeenCalledTimes(1));
+        act(() => result.current.setActivePreset(1));
+        await waitFor(() => expect(getOverview).toHaveBeenCalledTimes(2));
+
+        await act(async () => resolveNewest(response(200)));
+        await waitFor(() => expect(result.current.data?.totalClicks).toBe(200));
+        await act(async () => resolveOlder(response(100)));
+
+        expect(result.current.data?.totalClicks).toBe(200);
+    });
+
+    it('surfaces an OAuth callback error without starting an overview request', async () => {
+        window.history.replaceState(
+            {},
+            '',
+            '/client/search-console?oauthError=Google+izni+reddedildi',
+        );
+        const getStatus = vi.spyOn(searchConsoleApi, 'getStatus').mockResolvedValue({
+            connected: false,
+            siteUrl: '',
+            hasScScope: false,
+            needsReconnect: false,
+            authUrl: 'https://google.example/oauth',
+        });
+        const getOverview = vi.spyOn(searchConsoleApi, 'getOverview');
+
+        const { result } = renderHook(() => useSCDetailPage(), { wrapper: makeWrapper() });
+
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.error).toBe('Google izni reddedildi');
+        expect(getStatus).toHaveBeenCalledTimes(1);
+        expect(getOverview).not.toHaveBeenCalled();
+        expect(window.location.search).toBe('');
+    });
+
+    it('surfaces site-save failures', async () => {
+        vi.spyOn(searchConsoleApi, 'getStatus').mockResolvedValue({
+            connected: false,
+            siteUrl: '',
+            hasScScope: false,
+            needsReconnect: false,
+            authUrl: '',
+        });
+        vi.spyOn(searchConsoleApi, 'saveSiteUrl').mockRejectedValue({
+            response: { data: { message: 'Site kaydedilemedi' } },
+        });
+
+        const { result } = renderHook(() => useSCDetailPage(), { wrapper: makeWrapper() });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        await act(async () => result.current.saveSiteUrl('sc-domain:example.com'));
+
+        expect(result.current.error).toBe('Site kaydedilemedi');
     });
 });

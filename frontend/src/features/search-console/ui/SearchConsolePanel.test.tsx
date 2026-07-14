@@ -42,13 +42,14 @@ describe('SearchConsolePanel', () => {
     });
 
     it('renders the persisted snapshot without issuing a live Search Console overview request', async () => {
-        vi.spyOn(searchConsoleApi, 'getStatus').mockResolvedValue({
+        const status = {
             connected: true,
             siteUrl: 'sc-domain:example.com',
             hasScScope: true,
             needsReconnect: false,
             authUrl: '',
-        });
+        };
+        const getStatus = vi.spyOn(searchConsoleApi, 'getStatus').mockResolvedValue(status);
         const liveOverview = vi.spyOn(searchConsoleApi, 'getOverview').mockResolvedValue(sc);
         const snapshotOverview = vi.spyOn(integrationSnapshotApi, 'getOverview').mockResolvedValue({
             sc,
@@ -63,13 +64,14 @@ describe('SearchConsolePanel', () => {
 
         render(
             <MemoryRouter>
-                <SearchConsolePanel companyId="company-1" />
+                <SearchConsolePanel companyId="company-1" initialStatus={status} />
             </MemoryRouter>,
         );
 
         await waitFor(() => expect(screen.getByText('25')).toBeInTheDocument());
 
         expect(snapshotOverview).toHaveBeenCalledWith('company-1');
+        expect(getStatus).not.toHaveBeenCalled();
         expect(liveOverview).not.toHaveBeenCalled();
         expect(screen.getByText(/Son güncelleme:/)).toBeInTheDocument();
     });

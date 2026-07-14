@@ -64,6 +64,11 @@ public class ClientIntegrationSnapshotService {
         syncService.syncOverviewSnapshotsNow(companyId);
     }
 
+    public void refreshSearchConsole(UUID userId, UUID companyId) {
+        accessPolicy.requireMembership(userId, companyId);
+        syncService.syncSearchConsoleSnapshotNow(companyId);
+    }
+
     private boolean hasActiveService(UUID companyId, ServiceCategory serviceCategory) {
         return companyServiceRepository
                 .findByCompanyIdAndServiceCategory(companyId, serviceCategory)

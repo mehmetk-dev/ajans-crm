@@ -202,7 +202,12 @@ public class GoogleOAuthService {
     }
 
     public boolean hasScScope(UUID companyId) {
-        return tokenRepository.existsByCompanyIdAndServiceType(companyId, SVC_SEARCH_CONSOLE);
+        String requiredScope = GoogleServiceRegistry.scopeFor(SVC_SEARCH_CONSOLE);
+        return tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_SEARCH_CONSOLE)
+                .map(GoogleOAuthToken::getScope)
+                .map(scope -> java.util.Arrays.stream(scope.split("\\s+"))
+                        .anyMatch(requiredScope::equals))
+                .orElse(false);
     }
 
     public boolean hasAdsScope(UUID companyId) {

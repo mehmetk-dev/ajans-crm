@@ -34,4 +34,11 @@ public class ClientIntegrationSnapshotController {
             Authentication authentication) {
         service.refreshOverview(currentUser.id(authentication), companyId);
     }
+
+    @PostMapping("/search-console/refresh")
+    public void refreshSearchConsole(
+            @RequestParam UUID companyId,
+            Authentication authentication) {
+        service.refreshSearchConsole(currentUser.id(authentication), companyId);
+    }
 }
