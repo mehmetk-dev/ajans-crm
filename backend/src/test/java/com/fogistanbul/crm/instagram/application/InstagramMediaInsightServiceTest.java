@@ -29,9 +29,7 @@ class InstagramMediaInsightServiceTest {
     @Test
     void reelInsights_fallsBackToSingleMetricsWhenBatchRequestFails() {
         when(client.get("/media-1/insights", "token", Map.of(
-                "metric", "plays,views,ig_reels_aggregated_all_plays_count,video_views,reach,saved,shares")))
-                .thenThrow(new RuntimeException("unsupported metric"));
-        when(client.get("/media-1/insights", "token", Map.of("metric", "plays")))
+                "metric", "views,reach,saved,shares")))
                 .thenThrow(new RuntimeException("unsupported metric"));
         when(client.get("/media-1/insights", "token", Map.of("metric", "views")))
                 .thenReturn(Map.of("data", List.of(Map.of(
@@ -41,5 +39,18 @@ class InstagramMediaInsightServiceTest {
         var result = service.reelInsights("media-1", "token");
 
         assertThat(result.views()).isEqualTo(321);
+    }
+
+    @Test
+    void postInsights_usesCurrentViewsMetricInsteadOfLegacyImpressionsBatch() {
+        when(client.get("/post-1/insights", "token", Map.of(
+                "metric", "views,reach,saved,shares")))
+                .thenReturn(Map.of("data", List.of(Map.of(
+                        "name", "views",
+                        "values", List.of(Map.of("value", 654))))));
+
+        var result = service.postInsights("post-1", "token");
+
+        assertThat(result.impressions()).isEqualTo(654);
     }
 }

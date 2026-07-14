@@ -1,4 +1,4 @@
-import { BarChart3, ChevronRight, Eye, Heart, Image as ImageIcon, Instagram, MessageCircle, Play } from 'lucide-react';
+import { AlertTriangle, BarChart3, ChevronRight, Eye, Heart, Image as ImageIcon, Instagram, Loader2, MessageCircle, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { igApi, instagramKeys, type IgPostRow, type IgReelRow } from '../../instagram';
@@ -129,6 +129,24 @@ function MediaPreviewSection({
     );
 }
 
+function MediaPreviewLoading({ label }: { label: string }) {
+    return (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 text-xs text-zinc-500">
+            <Loader2 className="h-4 w-4 animate-spin text-pink-400" />
+            {label} verileri hazırlanıyor
+        </div>
+    );
+}
+
+function MediaPreviewError({ label }: { label: string }) {
+    return (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-6 text-xs text-amber-100">
+            <AlertTriangle className="h-4 w-4 text-amber-300" />
+            {label} verileri şu anda alınamıyor. Son snapshot korunuyor.
+        </div>
+    );
+}
+
 export default function InstagramAnalyticsPanel({
     companyId,
 }: InstagramAnalyticsPanelProps) {
@@ -137,13 +155,13 @@ export default function InstagramAnalyticsPanel({
         queryFn: () => igApi.getStatus(companyId, '/client/instagram'),
         staleTime: 5 * 60 * 1000,
     });
-    const { data: reels = [] } = useQuery<IgReelRow[]>({
+    const reelsQuery = useQuery<IgReelRow[]>({
         queryKey: [...instagramKeys.reels(companyId), 'preview', 3],
         queryFn: () => igApi.getReels(companyId, 3),
         enabled: status?.connected === true,
         staleTime: 5 * 60 * 1000,
     });
-    const { data: posts = [] } = useQuery<IgPostRow[]>({
+    const postsQuery = useQuery<IgPostRow[]>({
         queryKey: [...instagramKeys.posts(companyId), 'preview', 3],
         queryFn: () => igApi.getPosts(companyId, 3),
         enabled: status?.connected === true,
@@ -167,8 +185,8 @@ export default function InstagramAnalyticsPanel({
     }
 
     const connected = status?.connected ?? false;
-    const reelPreview = reels.slice(0, 3).map(reelPreviewItem);
-    const postPreview = posts.slice(0, 3).map(postPreviewItem);
+    const reelPreview = (reelsQuery.data ?? []).slice(0, 3).map(reelPreviewItem);
+    const postPreview = (postsQuery.data ?? []).slice(0, 3).map(postPreviewItem);
 
     return (
         <div className="space-y-6">
@@ -202,7 +220,11 @@ export default function InstagramAnalyticsPanel({
                     </div>
                     <PanelLink to="/client/instagram/reels">Tümünü Gör</PanelLink>
                 </div>
-                {connected ? (
+                {connected && reelsQuery.data === undefined && !reelsQuery.isError ? (
+                    <MediaPreviewLoading label="Reels" />
+                ) : connected && reelsQuery.isError ? (
+                    <MediaPreviewError label="Reels" />
+                ) : connected ? (
                     <MediaPreviewSection
                         title="Reels"
                         emptyText="Bu ay henüz reels paylaşılmadı"
@@ -227,7 +249,11 @@ export default function InstagramAnalyticsPanel({
                     </div>
                     <PanelLink to="/client/instagram/posts">Tümünü Gör</PanelLink>
                 </div>
-                {connected ? (
+                {connected && postsQuery.data === undefined && !postsQuery.isError ? (
+                    <MediaPreviewLoading label="Gönderi" />
+                ) : connected && postsQuery.isError ? (
+                    <MediaPreviewError label="Gönderi" />
+                ) : connected ? (
                     <MediaPreviewSection
                         title="Gönderi"
                         emptyText="Bu ay henüz gönderi paylaşılmadı"

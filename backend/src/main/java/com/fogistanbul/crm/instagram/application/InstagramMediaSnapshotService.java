@@ -6,10 +6,10 @@ import com.fogistanbul.crm.entity.Company;
 import com.fogistanbul.crm.instagram.dto.InstagramOverviewResponse.PostRow;
 import com.fogistanbul.crm.instagram.dto.InstagramOverviewResponse.ReelRow;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshot;
-import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshotStatus;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshotType;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationType;
 import com.fogistanbul.crm.integrationsnapshot.infrastructure.IntegrationSnapshotRepository;
+import com.fogistanbul.crm.integrationsnapshot.application.IntegrationSnapshotPersistenceService;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -37,6 +37,7 @@ public class InstagramMediaSnapshotService {
     private final IntegrationSnapshotRepository snapshotRepository;
     private final CompanyRepository companyRepository;
     private final InstagramMediaService mediaService;
+    private final IntegrationSnapshotPersistenceService persistenceService;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
@@ -114,64 +115,46 @@ public class InstagramMediaSnapshotService {
         }
 
         try {
-            saveReady(company, snapshotType, previous, fetcher.get());
+            saveReady(company, snapshotType, fetcher.get());
         } catch (Exception exception) {
             String message = exception.getMessage() != null
                     ? exception.getMessage()
                     : exception.getClass().getSimpleName();
             log.warn("Instagram media snapshot sync failed, company={}, type={}: {}",
                     company.getId(), snapshotType, message);
-            saveFailed(company, snapshotType, previous, message);
+            saveFailed(company, snapshotType, message);
         }
     }
 
-    @Transactional
-    protected <T> void saveReady(
+    private <T> void saveReady(
             Company company,
             IntegrationSnapshotType snapshotType,
-            Optional<IntegrationSnapshot> previous,
             List<T> items) {
-        Instant now = Instant.now();
-        IntegrationSnapshot snapshot = previous.orElseGet(() -> baseSnapshot(company, snapshotType));
-        snapshot.setStatus(IntegrationSnapshotStatus.READY);
-        snapshot.setPayload(Map.of("items", objectMapper.convertValue(
-                items,
-                new TypeReference<List<Map<String, Object>>>() {})));
-        snapshot.setLastSyncedAt(now);
-        snapshot.setNextSyncAt(now.plus(MEDIA_INTERVAL));
-        snapshot.setErrorMessage(null);
-        applyDefaultPeriod(snapshot);
-        snapshotRepository.save(snapshot);
+        LocalDate today = LocalDate.now();
+        persistenceService.saveReady(
+                company,
+                IntegrationType.INSTAGRAM,
+                snapshotType,
+                Map.of("items", objectMapper.convertValue(
+                        items,
+                        new TypeReference<List<Map<String, Object>>>() {})),
+                MEDIA_INTERVAL,
+                today.withDayOfMonth(1),
+                today);
     }
 
-    @Transactional
-    protected void saveFailed(
+    private void saveFailed(
             Company company,
             IntegrationSnapshotType snapshotType,
-            Optional<IntegrationSnapshot> previous,
             String errorMessage) {
-        Instant now = Instant.now();
-        IntegrationSnapshot snapshot = previous.orElseGet(() -> baseSnapshot(company, snapshotType));
-        snapshot.setStatus(IntegrationSnapshotStatus.FAILED);
-        snapshot.setPayload(previous.map(IntegrationSnapshot::getPayload).orElse(Map.of()));
-        snapshot.setLastSyncedAt(previous.map(IntegrationSnapshot::getLastSyncedAt).orElse(null));
-        snapshot.setNextSyncAt(now.plus(MEDIA_INTERVAL));
-        snapshot.setErrorMessage(errorMessage);
-        applyDefaultPeriod(snapshot);
-        snapshotRepository.save(snapshot);
-    }
-
-    private IntegrationSnapshot baseSnapshot(Company company, IntegrationSnapshotType snapshotType) {
-        return IntegrationSnapshot.builder()
-                .company(company)
-                .integrationType(IntegrationType.INSTAGRAM)
-                .snapshotType(snapshotType)
-                .build();
-    }
-
-    private void applyDefaultPeriod(IntegrationSnapshot snapshot) {
         LocalDate today = LocalDate.now();
-        snapshot.setPeriodStart(today.minusDays(30));
-        snapshot.setPeriodEnd(today);
+        persistenceService.saveFailed(
+                company,
+                IntegrationType.INSTAGRAM,
+                snapshotType,
+                errorMessage,
+                MEDIA_INTERVAL,
+                today.withDayOfMonth(1),
+                today);
     }
 }

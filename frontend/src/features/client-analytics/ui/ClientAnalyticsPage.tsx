@@ -33,6 +33,7 @@ import { metaAdsApi } from '../../meta-ads/api/metaAdsApi';
 import { metaAdsKeys } from '../../meta-ads/metaAdsKeys';
 import { igApi } from '../../instagram/api/instagramApi';
 import { instagramKeys } from '../../instagram/instagramKeys';
+import { integrationSnapshotApi } from '../../integration-snapshots/api/integrationSnapshotApi';
 
 const WebDesignPanel = lazy(
     () => import('../../web-design/ui/WebDesignPanel'),
@@ -196,6 +197,7 @@ export default function ClientAnalyticsPage() {
     const handleRefresh = async () => {
         setRefreshing(true);
         try {
+            await integrationSnapshotApi.refreshOverview(companyId ?? '');
             await Promise.all(
                 clientAnalyticsRefreshKeys(companyId ?? '').map(queryKey =>
                     queryClient.invalidateQueries({
@@ -374,7 +376,7 @@ export default function ClientAnalyticsPage() {
                     </button>
                     <div className="flex items-center gap-2 self-start rounded-xl border border-white/[0.06] bg-[#0C0C0E] px-3 py-2">
                         <Activity className="h-4 w-4 text-[#C8697A]" />
-                        <span className="text-xs text-zinc-400">Canlı Veriler</span>
+                            <span className="text-xs text-zinc-400">Canlı + Snapshot</span>
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#C8697A]" />
                     </div>
                 </div>

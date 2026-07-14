@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ClientAnalyticsPage from './ClientAnalyticsPage';
@@ -9,6 +9,7 @@ import { searchConsoleApi } from '../../search-console/api/searchConsoleApi';
 import { googleAdsApi } from '../../google-ads/api/googleAdsApi';
 import { metaAdsApi } from '../../meta-ads/api/metaAdsApi';
 import { igApi } from '../../instagram/api/instagramApi';
+import { integrationSnapshotApi } from '../../integration-snapshots/api/integrationSnapshotApi';
 
 const activeServicesMock = vi.fn();
 
@@ -53,6 +54,12 @@ vi.mock('../../meta-ads/api/metaAdsApi', () => ({
 vi.mock('../../instagram/api/instagramApi', () => ({
     igApi: {
         getStatus: vi.fn(),
+    },
+}));
+
+vi.mock('../../integration-snapshots/api/integrationSnapshotApi', () => ({
+    integrationSnapshotApi: {
+        refreshOverview: vi.fn(),
     },
 }));
 
@@ -149,6 +156,7 @@ describe('ClientAnalyticsPage service ordering', () => {
             username: 'fogistanbul',
             igUserId: 'ig-1',
         });
+        vi.mocked(integrationSnapshotApi.refreshOverview).mockResolvedValue(undefined);
     });
 
     it('moves inactive service sections below active service sections', () => {
@@ -200,6 +208,17 @@ describe('ClientAnalyticsPage service ordering', () => {
             expect(titles.indexOf('Meta Ads')).toBeGreaterThan(
                 titles.indexOf('Google Ads'),
             );
+        });
+    });
+
+    it('forces backend snapshots before invalidating analytics queries', async () => {
+        mockActiveServices(['SOCIAL_MEDIA']);
+
+        renderPage();
+        fireEvent.click(screen.getByRole('button', { name: 'Verileri Yenile' }));
+
+        await waitFor(() => {
+            expect(integrationSnapshotApi.refreshOverview).toHaveBeenCalledWith('company-1');
         });
     });
 });

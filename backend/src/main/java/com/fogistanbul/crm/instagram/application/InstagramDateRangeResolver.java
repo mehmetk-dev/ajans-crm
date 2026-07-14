@@ -26,6 +26,16 @@ public class InstagramDateRangeResolver {
         return isCurrentMonth(timestamp, Instant.now());
     }
 
+    public LocalDate startDate(InsightRange range) {
+        return Instant.ofEpochSecond(range.since()).atZone(ZONE).toLocalDate();
+    }
+
+    public LocalDate endDate(InsightRange range) {
+        return Instant.ofEpochSecond(Math.max(range.since(), range.until() - 1))
+                .atZone(ZONE)
+                .toLocalDate();
+    }
+
     InsightRange resolve(String rangeStart, String rangeEnd, Instant now) {
         long until = parseEndInstant(rangeEnd).orElse(now).getEpochSecond();
         long since = parseStartInstant(rangeStart)

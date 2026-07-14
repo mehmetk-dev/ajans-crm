@@ -16,6 +16,11 @@ export {
 } from './model/instagram.utils';
 export { getInstagramOAuthCallbackError } from './model/instagramOAuthCallback';
 export {
+    filterInstagramMediaByDate,
+    getCurrentMonthMediaRange,
+    type InstagramMediaDateRange,
+} from './model/instagramMediaDateFilter';
+export {
     default as InstagramPanel,
     InstagramPanelSkeleton,
     PostsColumn,
@@ -28,3 +33,4 @@ export {
 export {
     getInstagramDisconnectedCopy,
 } from './ui/instagramDisconnectedCopy';
+export { InstagramMediaDateRangeFilter } from './ui/InstagramMediaDateRangeFilter';

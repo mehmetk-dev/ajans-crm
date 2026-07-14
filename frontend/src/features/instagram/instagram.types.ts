@@ -36,6 +36,9 @@ export interface IgOverviewResponse {
     connected: boolean;
     username: string | null;
     errorMessage: string | null;
+    warningMessage?: string | null;
+    periodStart?: string | null;
+    periodEnd?: string | null;
     followersCount: number;
     followsCount: number;
     mediaCount: number;

@@ -49,10 +49,12 @@ export function StatsColumn({ companyId }: { companyId: string }) {
 
     return (
         <>
-            {data.errorMessage && (
+            {(data.warningMessage || data.errorMessage) && (
                 <div className="mb-4 rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 flex items-start gap-3">
                     <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
-                    <p className="text-xs leading-relaxed text-amber-100">{data.errorMessage}</p>
+                    <p className="text-xs leading-relaxed text-amber-100">
+                        {data.warningMessage || data.errorMessage}
+                    </p>
                 </div>
             )}
 

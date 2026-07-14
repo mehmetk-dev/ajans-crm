@@ -12,7 +12,10 @@ import {
     getInstagramOAuthCallbackError,
     InstagramDisconnectedState,
     getInstagramDisconnectedCopy,
+    filterInstagramMediaByDate,
+    getCurrentMonthMediaRange,
     igApi,
+    InstagramMediaDateRangeFilter,
     instagramKeys,
     type IgReelRow,
 } from '../../features/instagram';
@@ -139,6 +142,12 @@ export default function InstagramReelsPage() {
         staleTime: 5 * 60 * 1000,
     });
     const reels = reelsQuery.data ?? EMPTY_REELS;
+    const snapshotRange = useMemo(() => getCurrentMonthMediaRange(), []);
+    const [dateRange, setDateRange] = useState(snapshotRange);
+    const filteredReels = useMemo(
+        () => filterInstagramMediaByDate(reels, dateRange.start, dateRange.end),
+        [dateRange.end, dateRange.start, reels],
+    );
     const username = statusQuery.data?.username || '';
     const authUrl = statusQuery.data?.authUrl || '';
     const loading = statusQuery.isLoading || (connected && reelsQuery.isLoading);
@@ -150,11 +159,11 @@ export default function InstagramReelsPage() {
                 : '');
 
     const summary = useMemo(() => ({
-        count: reels.length,
-        totalLikes: reels.reduce((a, r) => a + r.likeCount, 0),
-        totalComments: reels.reduce((a, r) => a + r.commentsCount, 0),
-        totalPlays: reels.reduce((a, r) => a + r.plays, 0),
-    }), [reels]);
+        count: filteredReels.length,
+        totalLikes: filteredReels.reduce((a, r) => a + r.likeCount, 0),
+        totalComments: filteredReels.reduce((a, r) => a + r.commentsCount, 0),
+        totalPlays: filteredReels.reduce((a, r) => a + r.plays, 0),
+    }), [filteredReels]);
 
     const currentMonthLabel = new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
 
@@ -205,17 +214,23 @@ export default function InstagramReelsPage() {
                     <>
                         <div>
                             <h2 className="text-base font-semibold text-white">{currentMonthLabel} — Reels</h2>
-                            <p className="text-xs text-zinc-500 mt-0.5">Ayın başından bugüne paylaşılan reels'ler</p>
+                            <p className="text-xs text-zinc-500 mt-0.5">Seçilen aralıktaki snapshot sonuçları</p>
                         </div>
+                        <InstagramMediaDateRangeFilter
+                            value={dateRange}
+                            min={snapshotRange.start}
+                            max={snapshotRange.end}
+                            onChange={setDateRange}
+                        />
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <SummaryCard label="Paylaşılan Reels" value={fmtNum(summary.count)} icon={Play} color="text-pink-400" bgColor="bg-pink-500/10" />
                             <SummaryCard label="Toplam Beğeni" value={fmtNum(summary.totalLikes)} icon={Heart} color="text-rose-400" bgColor="bg-rose-500/10" />
                             <SummaryCard label="Toplam Yorum" value={fmtNum(summary.totalComments)} icon={MessageCircle} color="text-violet-400" bgColor="bg-violet-500/10" />
                             <SummaryCard label="Toplam Görüntülenme" value={fmtNum(summary.totalPlays)} icon={Eye} color="text-cyan-400" bgColor="bg-cyan-500/10" />
                         </div>
-                        {reels.length > 0
-                            ? <MediaCarousel items={reels} />
-                            : <div className="bg-[#16161a] border border-white/[0.06] rounded-xl p-10 text-center text-zinc-500 text-sm">Bu ay henüz reels paylaşılmamış.</div>
+                        {filteredReels.length > 0
+                            ? <MediaCarousel items={filteredReels} />
+                            : <div className="bg-[#16161a] border border-white/[0.06] rounded-xl p-10 text-center text-zinc-500 text-sm">Seçilen tarih aralığında reels bulunamadı.</div>
                         }
                     </>
                 )}

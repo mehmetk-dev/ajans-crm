@@ -24,12 +24,8 @@ public class InstagramMediaInsightService {
             return new ReelInsightStats(0, 0, 0, 0);
         }
         Map<String, Long> values = batchInsightValues(mediaId, accessToken,
-                List.of("plays", "views", "ig_reels_aggregated_all_plays_count", "video_views",
-                        "reach", "saved", "shares"));
-        long views = values.getOrDefault("plays",
-                values.getOrDefault("views",
-                values.getOrDefault("ig_reels_aggregated_all_plays_count",
-                values.getOrDefault("video_views", 0L))));
+                List.of("views", "reach", "saved", "shares"));
+        long views = values.getOrDefault("views", 0L);
         return new ReelInsightStats(
                 views,
                 values.getOrDefault("reach", 0L),
@@ -42,10 +38,9 @@ public class InstagramMediaInsightService {
             return new PostInsightStats(0, 0, 0, 0);
         }
         Map<String, Long> values = batchInsightValues(mediaId, accessToken,
-                List.of("impressions", "views", "reach", "saved", "shares"));
-        long impressions = values.getOrDefault("impressions",
-                values.getOrDefault("views",
-                values.getOrDefault("reach", 0L)));
+                List.of("views", "reach", "saved", "shares"));
+        long impressions = values.getOrDefault("views",
+                values.getOrDefault("reach", 0L));
         return new PostInsightStats(
                 impressions,
                 values.getOrDefault("reach", 0L),

@@ -33,7 +33,9 @@ import java.util.UUID;
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -62,6 +64,9 @@ class IntegrationSnapshotSyncServiceTest {
     @Mock
     InstagramMediaSnapshotService instagramMediaSnapshotService;
 
+    @Mock
+    IntegrationSnapshotPersistenceService persistenceService;
+
     IntegrationSnapshotSyncService service;
 
     @BeforeEach
@@ -74,6 +79,7 @@ class IntegrationSnapshotSyncServiceTest {
                 searchConsoleService,
                 instagramOverviewService,
                 instagramMediaSnapshotService,
+                persistenceService,
                 new ObjectMapper());
     }
 
@@ -108,7 +114,11 @@ class IntegrationSnapshotSyncServiceTest {
 
         service.syncDueOverviewSnapshots();
 
-        verifyNoInteractions(googleAnalyticsService, searchConsoleService, instagramOverviewService);
+        verifyNoInteractions(
+                googleAnalyticsService,
+                searchConsoleService,
+                instagramOverviewService,
+                persistenceService);
         verify(snapshotRepository, never()).save(any());
     }
 
@@ -162,15 +172,14 @@ class IntegrationSnapshotSyncServiceTest {
 
         service.syncDueOverviewSnapshots();
 
-        ArgumentCaptor<IntegrationSnapshot> captor = ArgumentCaptor.forClass(IntegrationSnapshot.class);
-        verify(snapshotRepository).save(captor.capture());
-        IntegrationSnapshot saved = captor.getValue();
-        assertThat(saved).isSameAs(previous);
-        assertThat(saved.getStatus()).isEqualTo(IntegrationSnapshotStatus.FAILED);
-        assertThat(saved.getPayload()).isEqualTo(previousPayload);
-        assertThat(saved.getLastSyncedAt()).isEqualTo(Instant.parse("2026-07-01T08:00:00Z"));
-        assertThat(saved.getErrorMessage()).isEqualTo("rate limited");
-        assertThat(saved.getNextSyncAt()).isAfter(Instant.now());
+        verify(persistenceService).saveFailed(
+                eq(company),
+                eq(IntegrationType.GOOGLE_ANALYTICS),
+                eq(IntegrationSnapshotType.OVERVIEW),
+                eq("rate limited"),
+                any(),
+                any(),
+                any());
     }
 
     @Test
@@ -206,7 +215,14 @@ class IntegrationSnapshotSyncServiceTest {
 
         verify(googleAnalyticsService).getOverview(company.getId(), null, null);
         verify(searchConsoleService).getOverview(company.getId(), null, null);
-        verify(snapshotRepository, org.mockito.Mockito.times(2)).save(any());
+        verify(persistenceService, times(2)).saveReady(
+                eq(company),
+                any(),
+                eq(IntegrationSnapshotType.OVERVIEW),
+                any(),
+                any(),
+                any(),
+                any());
     }
 
     @Test

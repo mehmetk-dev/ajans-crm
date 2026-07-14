@@ -28,7 +28,6 @@ import { MissingCompanyState } from '../../components/client/MissingCompanyState
 const DATE_PRESETS = [
     { label: 'Son 1 Hafta', start: '7daysAgo', end: 'today' },
     { label: 'Son 1 Ay', start: '30daysAgo', end: 'today' },
-    { label: 'Son 1 Yıl', start: '365daysAgo', end: 'today' },
     { label: 'Özel Aralık', start: 'custom', end: 'custom' },
 ] as const;
 
@@ -90,7 +89,7 @@ export default function InstagramDetailPage() {
     );
 
     const dateRange = useMemo(() => {
-        if (datePreset === 3) return { start: customStart || '30daysAgo', end: customEnd || 'today' };
+        if (datePreset === 2) return { start: customStart || '30daysAgo', end: customEnd || 'today' };
         const p = DATE_PRESETS[datePreset];
         return { start: p.start as string, end: p.end as string };
     }, [datePreset, customStart, customEnd]);
@@ -150,10 +149,15 @@ export default function InstagramDetailPage() {
             data.totalComments,
         ).toFixed(2)
         : '0';
-    const avgLikesPerPost = reels.length + posts.length > 0
-        ? Math.round((data?.totalLikes ?? 0) / (reels.length + posts.length)) : 0;
-    const avgCommentsPerPost = reels.length + posts.length > 0
-        ? Math.round((data?.totalComments ?? 0) / (reels.length + posts.length)) : 0;
+    const displayedMediaCount = reels.length + posts.length;
+    const displayedMediaLikes = reels.reduce((a, r) => a + r.likeCount, 0)
+        + posts.reduce((a, p) => a + p.likeCount, 0);
+    const displayedMediaComments = reels.reduce((a, r) => a + r.commentsCount, 0)
+        + posts.reduce((a, p) => a + p.commentsCount, 0);
+    const avgLikesPerPost = displayedMediaCount > 0
+        ? Math.round(displayedMediaLikes / displayedMediaCount) : 0;
+    const avgCommentsPerPost = displayedMediaCount > 0
+        ? Math.round(displayedMediaComments / displayedMediaCount) : 0;
     const totalReelPlays = reels.reduce((a, r) => a + r.plays, 0);
     const totalSaved = reels.reduce((a, r) => a + (r.saved || 0), 0) + posts.reduce((a, p) => a + (p.saved || 0), 0);
     const totalShares = reels.reduce((a, r) => a + (r.shares || 0), 0) + posts.reduce((a, p) => a + (p.shares || 0), 0);
@@ -207,7 +211,7 @@ export default function InstagramDetailPage() {
                             <>
                                 <div className="flex items-center gap-1.5 bg-pink-500/10 border border-pink-500/20 rounded-xl px-3 py-2.5">
                                     <CheckCircle2 className="w-4 h-4 text-pink-400" />
-                                    <span className="text-xs text-pink-400 font-medium">Canlı</span>
+                                    <span className="text-xs text-pink-400 font-medium">Bağlı</span>
                                 </div>
                                 <button onClick={handleDisconnect} title="Bağlantıyı Kes"
                                     className="h-10 w-10 rounded-xl bg-[#16161a] border border-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
@@ -257,13 +261,22 @@ export default function InstagramDetailPage() {
                         {data?.errorMessage && (
                             <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-5 py-4">
                                 <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                                <div className="flex-1"><p className="text-sm font-medium text-red-400">Instagram bağlantısı kesildi</p></div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-red-400">Instagram verileri alınamadı</p>
+                                    <p className="mt-1 text-xs text-red-300/70">{data.errorMessage}</p>
+                                </div>
                                 {status?.authUrl && <a href={status.authUrl} className="shrink-0 text-sm font-medium bg-pink-500/10 border border-pink-500/20 text-pink-400 rounded-xl px-4 py-2">Yeniden Bağlan</a>}
                             </div>
                         )}
 
                         {data && !data.errorMessage && (
                             <>
+                                {data.warningMessage && (
+                                    <div className="flex items-start gap-3 rounded-xl border border-amber-400/20 bg-amber-400/10 px-5 py-4">
+                                        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+                                        <p className="text-sm leading-relaxed text-amber-100">{data.warningMessage}</p>
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-3 flex-wrap">
                                     <div className="relative">
                                         <button onClick={() => setShowDatePicker(v => !v)}
@@ -286,12 +299,17 @@ export default function InstagramDetailPage() {
                                             </>
                                         )}
                                     </div>
-                                    {datePreset === 3 && (
+                                    {datePreset === 2 && (
                                         <div className="flex items-center gap-2">
                                             <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-[#16161a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-pink-500/40" />
                                             <span className="text-zinc-500 text-sm">-</span>
                                             <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-[#16161a] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-pink-500/40" />
                                         </div>
+                                    )}
+                                    {data.periodStart && data.periodEnd && (
+                                        <span className="text-xs text-zinc-500">
+                                            Uygulanan aralık: {new Date(`${data.periodStart}T00:00:00`).toLocaleDateString('tr-TR')} – {new Date(`${data.periodEnd}T00:00:00`).toLocaleDateString('tr-TR')}
+                                        </span>
                                     )}
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -310,21 +328,21 @@ export default function InstagramDetailPage() {
                                     <BigMetricCard label="Toplam Beğeni" value={fmtNum(data.totalLikes)} icon={Heart} color="text-rose-400" bgColor="bg-rose-500/10" />
                                     <BigMetricCard label="Toplam Yorum" value={fmtNum(data.totalComments)} icon={MessageCircle} color="text-violet-400" bgColor="bg-violet-500/10" />
                                     <BigMetricCard label="Takip Edilen" value={fmtNum(data.followsCount)} icon={Users} color="text-zinc-400" bgColor="bg-zinc-500/10" />
-                                    <BigMetricCard label="Reels (Bu Ay)" value={String(reels.length)} icon={Play} color="text-pink-400" bgColor="bg-pink-500/10" />
+                                    <BigMetricCard label="Gösterilen Reels (Bu Ay)" value={String(reels.length)} icon={Play} color="text-pink-400" bgColor="bg-pink-500/10" />
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <BigMetricCard label="Gönderi (Bu Ay)" value={String(posts.length)} icon={ImageIcon} color="text-[#F5BEC8]" bgColor="bg-[#C8697A]/10" />
-                                    <BigMetricCard label="Toplam Reel İzlenme" value={fmtNum(totalReelPlays)} icon={Play} color="text-cyan-400" bgColor="bg-cyan-500/10" />
+                                    <BigMetricCard label="Gösterilen Gönderi (Bu Ay)" value={String(posts.length)} icon={ImageIcon} color="text-[#F5BEC8]" bgColor="bg-[#C8697A]/10" />
+                                    <BigMetricCard label="Gösterilen Reel İzlenme" value={fmtNum(totalReelPlays)} icon={Play} color="text-cyan-400" bgColor="bg-cyan-500/10" />
                                     <BigMetricCard label="Toplam Kaydetme" value={fmtNum(totalSaved)} icon={Bookmark} color="text-amber-400" bgColor="bg-amber-500/10" />
                                     <BigMetricCard label="Toplam Paylaşım" value={fmtNum(totalShares)} icon={Share2} color="text-emerald-400" bgColor="bg-emerald-500/10" />
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <BigMetricCard label="Ort. Beğeni/İçerik" value={fmtNum(avgLikesPerPost)} icon={Heart} color="text-rose-400" bgColor="bg-rose-500/10" />
-                                    <BigMetricCard label="Ort. Yorum/İçerik" value={fmtNum(avgCommentsPerPost)} icon={MessageCircle} color="text-violet-400" bgColor="bg-violet-500/10" />
+                                    <BigMetricCard label="Ort. Beğeni/Gösterilen İçerik" value={fmtNum(avgLikesPerPost)} icon={Heart} color="text-rose-400" bgColor="bg-rose-500/10" />
+                                    <BigMetricCard label="Ort. Yorum/Gösterilen İçerik" value={fmtNum(avgCommentsPerPost)} icon={MessageCircle} color="text-violet-400" bgColor="bg-violet-500/10" />
                                     <BigMetricCard label="Net Takipçi Değişimi" value={(data.followersGained - data.followersLost > 0 ? '+' : '') + fmtNum(data.followersGained - data.followersLost)} icon={TrendingUp} color="text-emerald-400" bgColor="bg-emerald-500/10" />
                                     <BigMetricCard label="Etkileşim Oranı" value={'%' + engagementRate} icon={Percent} color="text-amber-400" bgColor="bg-amber-500/10" />
                                 </div>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 gap-6">
                                     {data.dailyTrend.length > 0 && (
                                         <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6">
                                             <div className="flex items-center gap-2 mb-5"><TrendingUp className="w-4 h-4 text-pink-400" /><h4 className="text-sm font-semibold text-white">Takipçi ve Erişim Trendi</h4></div>
@@ -341,23 +359,6 @@ export default function InstagramDetailPage() {
                                                     <Tooltip content={<ChartTooltip />} />
                                                     <Area yAxisId="left" type="monotone" dataKey="followers" stroke="#ec4899" strokeWidth={2} fill="url(#igFollG)" name="Takipçi" />
                                                     <Area yAxisId="right" type="monotone" dataKey="reach" stroke="#06b6d4" strokeWidth={2} fill="url(#igReachG)" name="Erişim" />
-                                                </AreaChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    )}
-                                    {data.dailyTrend.length > 0 && (
-                                        <div className="bg-[#0C0C0E] border border-white/[0.06] rounded-2xl p-6">
-                                            <div className="flex items-center gap-2 mb-5"><Eye className="w-4 h-4 text-violet-400" /><h4 className="text-sm font-semibold text-white">Görüntülenme Trendi</h4></div>
-                                            <ResponsiveContainer width="100%" height={280}>
-                                                <AreaChart data={data.dailyTrend} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                                                    <defs>
-                                                        <linearGradient id="igImpG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.3} /><stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} /></linearGradient>
-                                                    </defs>
-                                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#52525b', fontSize: 11 }} interval="preserveStartEnd" />
-                                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#52525b', fontSize: 11 }} />
-                                                    <Tooltip content={<ChartTooltip />} />
-                                                    <Area type="monotone" dataKey="impressions" stroke="#8b5cf6" strokeWidth={2} fill="url(#igImpG)" name="Görüntülenme" />
                                                 </AreaChart>
                                             </ResponsiveContainer>
                                         </div>

@@ -12,7 +12,10 @@ import {
     getInstagramOAuthCallbackError,
     InstagramDisconnectedState,
     getInstagramDisconnectedCopy,
+    filterInstagramMediaByDate,
+    getCurrentMonthMediaRange,
     igApi,
+    InstagramMediaDateRangeFilter,
     instagramKeys,
     type IgPostRow,
 } from '../../features/instagram';
@@ -136,6 +139,12 @@ export default function InstagramPostsPage() {
         staleTime: 5 * 60 * 1000,
     });
     const posts = postsQuery.data ?? EMPTY_POSTS;
+    const snapshotRange = useMemo(() => getCurrentMonthMediaRange(), []);
+    const [dateRange, setDateRange] = useState(snapshotRange);
+    const filteredPosts = useMemo(
+        () => filterInstagramMediaByDate(posts, dateRange.start, dateRange.end),
+        [dateRange.end, dateRange.start, posts],
+    );
     const username = statusQuery.data?.username || '';
     const authUrl = statusQuery.data?.authUrl || '';
     const loading = statusQuery.isLoading || (connected && postsQuery.isLoading);
@@ -147,11 +156,11 @@ export default function InstagramPostsPage() {
                 : '');
 
     const summary = useMemo(() => ({
-        count: posts.length,
-        totalLikes: posts.reduce((a, p) => a + p.likeCount, 0),
-        totalComments: posts.reduce((a, p) => a + p.commentsCount, 0),
-        totalImpressions: posts.reduce((a, p) => a + p.impressions, 0),
-    }), [posts]);
+        count: filteredPosts.length,
+        totalLikes: filteredPosts.reduce((a, p) => a + p.likeCount, 0),
+        totalComments: filteredPosts.reduce((a, p) => a + p.commentsCount, 0),
+        totalImpressions: filteredPosts.reduce((a, p) => a + p.impressions, 0),
+    }), [filteredPosts]);
 
     const currentMonthLabel = new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
 
@@ -202,17 +211,23 @@ export default function InstagramPostsPage() {
                     <>
                         <div>
                             <h2 className="text-base font-semibold text-white">{currentMonthLabel} — Gönderiler</h2>
-                            <p className="text-xs text-zinc-500 mt-0.5">Ayın başından bugüne paylaşılan gönderiler</p>
+                            <p className="text-xs text-zinc-500 mt-0.5">Seçilen aralıktaki snapshot sonuçları</p>
                         </div>
+                        <InstagramMediaDateRangeFilter
+                            value={dateRange}
+                            min={snapshotRange.start}
+                            max={snapshotRange.end}
+                            onChange={setDateRange}
+                        />
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <SummaryCard label="Paylaşılan Gönderi" value={fmtNum(summary.count)} icon={ImageIcon} color="text-pink-400" bgColor="bg-pink-500/10" />
                             <SummaryCard label="Toplam Beğeni" value={fmtNum(summary.totalLikes)} icon={Heart} color="text-rose-400" bgColor="bg-rose-500/10" />
                             <SummaryCard label="Toplam Yorum" value={fmtNum(summary.totalComments)} icon={MessageCircle} color="text-violet-400" bgColor="bg-violet-500/10" />
                             <SummaryCard label="Toplam Görüntülenme" value={fmtNum(summary.totalImpressions)} icon={Eye} color="text-cyan-400" bgColor="bg-cyan-500/10" />
                         </div>
-                        {posts.length > 0
-                            ? <MediaCarousel items={posts} />
-                            : <div className="bg-[#16161a] border border-white/[0.06] rounded-xl p-10 text-center text-zinc-500 text-sm">Bu ay henüz gönderi paylaşılmamış.</div>
+                        {filteredPosts.length > 0
+                            ? <MediaCarousel items={filteredPosts} />
+                            : <div className="bg-[#16161a] border border-white/[0.06] rounded-xl p-10 text-center text-zinc-500 text-sm">Seçilen tarih aralığında gönderi bulunamadı.</div>
                         }
                     </>
                 )}

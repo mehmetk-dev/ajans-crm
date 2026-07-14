@@ -6,6 +6,9 @@ public record InstagramOverviewResponse(
         boolean connected,
         String username,
         String errorMessage,
+        String warningMessage,
+        String periodStart,
+        String periodEnd,
         long followersCount,
         long followsCount,
         long mediaCount,
@@ -22,14 +25,14 @@ public record InstagramOverviewResponse(
 ) {
     public static InstagramOverviewResponse disabled() {
         return new InstagramOverviewResponse(
-                false, null, null,
+                false, null, null, null, null, null,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 List.of(), List.of());
     }
 
     public static InstagramOverviewResponse error(String username, String message) {
         return new InstagramOverviewResponse(
-                true, username, message,
+                true, username, message, null, null, null,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 List.of(), List.of());
     }

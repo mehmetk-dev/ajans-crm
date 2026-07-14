@@ -8,6 +8,7 @@ import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshot;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshotStatus;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshotType;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationType;
+import com.fogistanbul.crm.integrationsnapshot.application.IntegrationSnapshotPersistenceService;
 import com.fogistanbul.crm.integrationsnapshot.infrastructure.IntegrationSnapshotRepository;
 import com.fogistanbul.crm.repository.CompanyRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +18,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,7 +25,10 @@ import java.util.UUID;
 
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +44,9 @@ class InstagramMediaSnapshotServiceTest {
     @Mock
     InstagramMediaService mediaService;
 
+    @Mock
+    IntegrationSnapshotPersistenceService persistenceService;
+
     InstagramMediaSnapshotService service;
 
     @BeforeEach
@@ -49,6 +55,7 @@ class InstagramMediaSnapshotServiceTest {
                 snapshotRepository,
                 companyRepository,
                 mediaService,
+                persistenceService,
                 new ObjectMapper());
     }
 
@@ -151,17 +158,21 @@ class InstagramMediaSnapshotServiceTest {
 
         service.syncMediaSnapshotsNow(companyId, true);
 
-        ArgumentCaptor<IntegrationSnapshot> captor = ArgumentCaptor.forClass(IntegrationSnapshot.class);
-        verify(snapshotRepository, org.mockito.Mockito.times(2)).save(captor.capture());
-        assertThat(captor.getAllValues())
-                .extracting(IntegrationSnapshot::getSnapshotType)
+        ArgumentCaptor<IntegrationSnapshotType> typeCaptor =
+                ArgumentCaptor.forClass(IntegrationSnapshotType.class);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(persistenceService, times(2)).saveReady(
+                eq(company),
+                eq(IntegrationType.INSTAGRAM),
+                typeCaptor.capture(),
+                payloadCaptor.capture(),
+                any(),
+                any(),
+                any());
+        assertThat(typeCaptor.getAllValues())
                 .containsExactlyInAnyOrder(IntegrationSnapshotType.REELS, IntegrationSnapshotType.POSTS);
-        assertThat(captor.getAllValues())
-                .allSatisfy(snapshot -> {
-                    assertThat(snapshot.getStatus()).isEqualTo(IntegrationSnapshotStatus.READY);
-                    assertThat(snapshot.getPayload()).containsKey("items");
-                    assertThat(snapshot.getLastSyncedAt()).isBeforeOrEqualTo(Instant.now());
-                    assertThat(snapshot.getNextSyncAt()).isAfter(Instant.now());
-                });
+        assertThat(payloadCaptor.getAllValues())
+                .allSatisfy(payload -> assertThat(payload).containsKey("items"));
     }
 }

@@ -146,4 +146,44 @@ describe('InstagramAnalyticsPanel', () => {
         expect(getReels).toHaveBeenCalledWith('company-1', 3);
         expect(getPosts).toHaveBeenCalledWith('company-1', 3);
     });
+
+    it('does not show false empty states while media snapshots are loading', async () => {
+        vi.spyOn(igApi, 'getStatus').mockResolvedValue({
+            configured: true,
+            connected: true,
+            authUrl: '',
+            username: 'fogistanbul',
+            igUserId: 'ig-1',
+        });
+        vi.spyOn(igApi, 'getOverview').mockResolvedValue({
+            connected: true,
+            username: 'fogistanbul',
+            errorMessage: null,
+            followersCount: 1200,
+            followsCount: 300,
+            mediaCount: 42,
+            impressions: 9000,
+            reach: 4500,
+            profileViews: 300,
+            websiteClicks: 25,
+            totalLikes: 640,
+            totalComments: 78,
+            followersGained: 40,
+            followersLost: 12,
+            dailyTrend: [],
+            recentMedia: [],
+        });
+        vi.spyOn(igApi, 'getReels').mockReturnValue(new Promise(() => undefined));
+        vi.spyOn(igApi, 'getPosts').mockReturnValue(new Promise(() => undefined));
+
+        renderPanel();
+
+        await waitFor(() => {
+            expect(igApi.getReels).toHaveBeenCalled();
+            expect(igApi.getPosts).toHaveBeenCalled();
+        });
+        expect(screen.queryByText('Bu ay henüz reels paylaşılmadı')).not.toBeInTheDocument();
+        expect(screen.queryByText('Bu ay henüz gönderi paylaşılmadı')).not.toBeInTheDocument();
+        expect(screen.getAllByText(/verileri hazırlanıyor/i)).toHaveLength(2);
+    });
 });

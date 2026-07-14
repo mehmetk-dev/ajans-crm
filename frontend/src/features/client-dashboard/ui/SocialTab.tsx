@@ -5,6 +5,7 @@ import {
     AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import type { IgOverviewResponse } from '../../instagram/instagram.types';
+import type { IntegrationSnapshotMeta } from '../../integration-snapshots';
 import { MetricCard, MiniStat, ChartCard, EmptyState } from './DashboardCards';
 import { fmt } from '../dashboard.utils';
 
@@ -12,15 +13,29 @@ interface SocialTabProps {
     ig: IgOverviewResponse | undefined;
     navigate: (path: string) => void;
     igConnected: boolean;
+    snapshot?: IntegrationSnapshotMeta;
 }
 
-export function SocialTab({ ig, navigate, igConnected }: SocialTabProps) {
+export function SocialTab({ ig, navigate, igConnected, snapshot }: SocialTabProps) {
     if (!igConnected) {
-        return <EmptyState icon={Instagram} text="Instagram hesabınızı bağlayarak sosyal medya verilerinizi görün" action={() => navigate('/client/analytics')} actionLabel="Instagram Bağla" />;
+        return <EmptyState icon={Instagram} text="Instagram hesabınızı bağlayarak sosyal medya verilerinizi görün" action={() => navigate('/client/instagram')} actionLabel="Instagram Bağla" />;
     }
 
     return (
         <div className="space-y-6">
+            {snapshot?.status === 'FAILED' && (
+                <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-xs text-amber-100">
+                    Son başarılı Instagram verisi korunuyor
+                    {snapshot.lastSyncedAt
+                        ? ` · ${new Date(snapshot.lastSyncedAt).toLocaleString('tr-TR')}`
+                        : ''}
+                </div>
+            )}
+            {ig?.warningMessage && (
+                <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-xs text-amber-100">
+                    {ig.warningMessage}
+                </div>
+            )}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 <MetricCard label="Takipçi" value={fmt(ig!.followersCount)} icon={Users} color="pink" />
                 <MetricCard label="Takip" value={fmt(ig!.followsCount)} icon={Users} color="violet" />
@@ -43,7 +58,7 @@ export function SocialTab({ ig, navigate, igConnected }: SocialTabProps) {
                     </div>
                 </div>
 
-                <ChartCard title="Günlük Takipçi & Erişim" subtitle="Son 30 gün">
+                <ChartCard title="Günlük Erişim" subtitle="Son 30 gün">
                     {ig!.dailyTrend?.length > 0 ? (
                         <ResponsiveContainer width="100%" height={220}>
                             <AreaChart data={ig!.dailyTrend}>
@@ -58,7 +73,6 @@ export function SocialTab({ ig, navigate, igConnected }: SocialTabProps) {
                                 <YAxis tick={{ fontSize: 10, fill: '#52525b' }} axisLine={false} tickLine={false} width={35} />
                                 <Tooltip contentStyle={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, fontSize: 12 }} />
                                 <Area type="monotone" dataKey="reach" name="Erişim" stroke="#f472b6" fill="url(#igReach)" strokeWidth={2} />
-                                <Area type="monotone" dataKey="impressions" name="Gösterim" stroke="#818cf8" fill="transparent" strokeWidth={1.5} strokeDasharray="4 3" />
                             </AreaChart>
                         </ResponsiveContainer>
                     ) : <p className="text-zinc-600 text-sm text-center py-10">Günlük veri yok</p>}

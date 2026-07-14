@@ -84,7 +84,7 @@ public class InstagramMediaService {
                 log.warn("Instagram token geçersiz, bağlantı siliniyor companyId={}", companyId);
                 oAuthService.disconnect(companyId);
             }
-            return List.of();
+            throw mediaFetchException("reels", companyId, exception);
         }
     }
 
@@ -141,7 +141,7 @@ public class InstagramMediaService {
                 log.warn("Instagram token geçersiz, bağlantı siliniyor companyId={}", companyId);
                 oAuthService.disconnect(companyId);
             }
-            return List.of();
+            throw mediaFetchException("posts", companyId, exception);
         }
     }
 
@@ -212,6 +212,16 @@ public class InstagramMediaService {
         return value.length() <= maxLength
                 ? value
                 : value.substring(0, maxLength) + "...";
+    }
+
+    private RuntimeException mediaFetchException(
+            String mediaType, UUID companyId, Exception cause) {
+        if (cause instanceof RuntimeException runtimeException) {
+            return runtimeException;
+        }
+        return new IllegalStateException(
+                "Instagram " + mediaType + " alınamadı, companyId=" + companyId,
+                cause);
     }
 
     private record InstagramContext(String igUserId, String accessToken) {}

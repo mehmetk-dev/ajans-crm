@@ -59,7 +59,7 @@ public class InstagramOverviewService {
         InsightRange range = insightFetcher.resolver().resolve(rangeStart, rangeEnd);
         try {
             if (!hasInsightsPermission(accessToken)) {
-                return buildOverviewWithoutInsights(token, accessToken);
+                return buildOverviewWithoutInsights(token, accessToken, range);
             }
             return buildOverview(companyId, token, accessToken, range);
         } catch (Exception exception) {
@@ -120,6 +120,9 @@ public class InstagramOverviewService {
                 true,
                 stringValue(profile.get("username"), token.getIgUsername()),
                 null,
+                null,
+                insightFetcher.resolver().startDate(range).toString(),
+                insightFetcher.resolver().endDate(range).toString(),
                 parser.toLong(profile.get("followers_count")),
                 parser.toLong(profile.get("follows_count")),
                 parser.toLong(profile.get("media_count")),
@@ -136,7 +139,7 @@ public class InstagramOverviewService {
     }
 
     private InstagramOverviewResponse buildOverviewWithoutInsights(
-            InstagramToken token, String accessToken) {
+            InstagramToken token, String accessToken, InsightRange range) {
         String igUserId = token.getIgUserId();
         Map<String, Object> profile = client.get("/" + igUserId, accessToken,
                 Map.of("fields", "followers_count,follows_count,media_count,username"));
@@ -145,7 +148,10 @@ public class InstagramOverviewService {
         return new InstagramOverviewResponse(
                 true,
                 stringValue(profile.get("username"), token.getIgUsername()),
+                null,
                 INSIGHTS_PERMISSION_MESSAGE,
+                insightFetcher.resolver().startDate(range).toString(),
+                insightFetcher.resolver().endDate(range).toString(),
                 parser.toLong(profile.get("followers_count")),
                 parser.toLong(profile.get("follows_count")),
                 parser.toLong(profile.get("media_count")),

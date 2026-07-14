@@ -49,8 +49,11 @@ export default function ClientDashboardPage() {
 
     const handleRefresh = async () => {
         setRefreshing(tab);
-        await refreshTab(tab);
-        setRefreshing(null);
+        try {
+            await refreshTab(tab);
+        } finally {
+            setRefreshing(null);
+        }
     };
 
     return (
@@ -128,7 +131,7 @@ export default function ClientDashboardPage() {
                     )}
                     {tab === 'social' && (
                         hasService('SOCIAL_MEDIA')
-                            ? <SocialTab ig={ig} navigate={navigate} igConnected={igConnected} />
+                            ? <SocialTab ig={ig} navigate={navigate} igConnected={igConnected} snapshot={igSnapshot} />
                             : <ServiceBlurOverlay service="SOCIAL_MEDIA" />
                     )}
                     {tab === 'schedule' && (

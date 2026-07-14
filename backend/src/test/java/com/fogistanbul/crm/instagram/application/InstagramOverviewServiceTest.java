@@ -113,8 +113,11 @@ class InstagramOverviewServiceTest {
         var result = service.getOverview(companyId, null, null);
 
         assertThat(result.connected()).isTrue();
-        assertThat(result.errorMessage()).contains("Instagram analiz izni bekleniyor");
+        assertThat(result.errorMessage()).isNull();
+        assertThat(result.warningMessage()).contains("Instagram analiz izni bekleniyor");
         assertThat(result.username()).isEqualTo("aydinlifemobilya");
+        assertThat(result.periodStart()).isNotBlank();
+        assertThat(result.periodEnd()).isNotBlank();
         assertThat(result.followersCount()).isEqualTo(224500);
         assertThat(result.totalLikes()).isEqualTo(10);
         assertThat(result.totalComments()).isEqualTo(2);
