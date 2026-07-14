@@ -33,6 +33,8 @@ class GoogleAdsControllerTest {
     @Test
     void statusKeepsConnectionAndScopeAsSeparateSignals() {
         UUID companyId = authenticatedCompany();
+        when(googleOAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(true);
         when(googleOAuthService.getValidAccessToken(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
                 .thenReturn(Optional.of("access"));
         when(googleOAuthService.hasAdsScope(companyId)).thenReturn(false);
@@ -43,6 +45,24 @@ class GoogleAdsControllerTest {
 
         assertThat(response.connected()).isTrue();
         assertThat(response.hasAdsScope()).isFalse();
+        assertThat(response.needsReconnect()).isTrue();
+    }
+
+    @Test
+    void statusKeepsStoredConnectionVisibleWhenTokenRefreshFails() {
+        UUID companyId = authenticatedCompany();
+        when(googleOAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(true);
+        when(googleOAuthService.hasAdsScope(companyId)).thenReturn(true);
+        when(googleOAuthService.getValidAccessToken(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(Optional.empty());
+        when(googleOAuthService.buildAuthorizationUrl(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn("https://accounts.google.test/auth");
+
+        var response = controller.status(companyId, authentication);
+
+        assertThat(response.connected()).isTrue();
+        assertThat(response.needsReconnect()).isTrue();
     }
 
     @Test

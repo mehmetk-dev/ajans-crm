@@ -6,6 +6,7 @@ import com.fogistanbul.crm.entity.Company;
 import com.fogistanbul.crm.entity.CompanyService;
 import com.fogistanbul.crm.entity.enums.ServiceCategory;
 import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse;
+import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse;
 import com.fogistanbul.crm.instagram.dto.InstagramOverviewResponse;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshot;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshotStatus;
@@ -68,6 +69,9 @@ class ClientIntegrationSnapshotServiceTest {
         when(companyServiceRepository.findByCompanyIdAndServiceCategory(
                 companyId, ServiceCategory.SOCIAL_MEDIA))
                 .thenReturn(Optional.empty());
+        when(companyServiceRepository.findByCompanyIdAndServiceCategory(
+                companyId, ServiceCategory.AD_MANAGEMENT))
+                .thenReturn(Optional.of(activeService()));
         when(repository.findByCompanyIdAndIntegrationTypeAndSnapshotType(
                 companyId, IntegrationType.GOOGLE_ANALYTICS, IntegrationSnapshotType.OVERVIEW))
                 .thenReturn(Optional.of(snapshot(
@@ -106,6 +110,26 @@ class ClientIntegrationSnapshotServiceTest {
                                 entry("topPages", List.of()),
                                 entry("devices", List.of()),
                                 entry("countries", List.of())))));
+        when(repository.findByCompanyIdAndIntegrationTypeAndSnapshotType(
+                companyId, IntegrationType.GOOGLE_ADS, IntegrationSnapshotType.OVERVIEW))
+                .thenReturn(Optional.of(snapshot(
+                        company,
+                        IntegrationType.GOOGLE_ADS,
+                        syncedAt,
+                        Map.ofEntries(
+                                entry("connected", true),
+                                entry("hasAdsScope", true),
+                                entry("customerId", "1234567890"),
+                                entry("currencyCode", "TRY"),
+                                entry("totalSpend", 125.5),
+                                entry("impressions", 1000),
+                                entry("clicks", 75),
+                                entry("conversions", 8.0),
+                                entry("ctr", 7.5),
+                                entry("cpc", 1.67),
+                                entry("conversionRate", 10.67),
+                                entry("campaigns", List.of()),
+                                entry("dailyTrend", List.of())))));
 
         var result = service.getOverview(userId, companyId);
 
@@ -114,6 +138,8 @@ class ClientIntegrationSnapshotServiceTest {
         assertThat(result.gaSnapshot().status()).isEqualTo(IntegrationSnapshotStatus.READY);
         assertThat(result.gaSnapshot().lastSyncedAt()).isEqualTo(syncedAt);
         assertThat(result.sc().totalClicks()).isEqualTo(9);
+        assertThat(result.ads().totalSpend()).isEqualTo(125.5);
+        assertThat(result.adsSnapshot().lastSyncedAt()).isEqualTo(syncedAt);
         assertThat(result.ig()).isEqualTo(InstagramOverviewResponse.disabled());
         assertThat(result.igSnapshot().status()).isEqualTo(IntegrationSnapshotStatus.PENDING);
     }
@@ -167,6 +193,7 @@ class ClientIntegrationSnapshotServiceTest {
         assertThat(result.igSnapshot().errorMessage()).isEqualTo("rate limited");
         assertThat(result.ga()).isEqualTo(GaOverviewResponse.disabled());
         assertThat(result.sc()).isEqualTo(ScOverviewResponse.disabled());
+        assertThat(result.ads()).isEqualTo(GoogleAdsOverviewResponse.disabled());
     }
 
     @Test
@@ -186,9 +213,11 @@ class ClientIntegrationSnapshotServiceTest {
         assertThat(result.ga()).isEqualTo(GaOverviewResponse.disabled());
         assertThat(result.sc()).isEqualTo(ScOverviewResponse.disabled());
         assertThat(result.ig()).isEqualTo(InstagramOverviewResponse.disabled());
+        assertThat(result.ads()).isEqualTo(GoogleAdsOverviewResponse.disabled());
         assertThat(result.gaSnapshot().status()).isEqualTo(IntegrationSnapshotStatus.PENDING);
         assertThat(result.scSnapshot().status()).isEqualTo(IntegrationSnapshotStatus.PENDING);
         assertThat(result.igSnapshot().status()).isEqualTo(IntegrationSnapshotStatus.PENDING);
+        assertThat(result.adsSnapshot().status()).isEqualTo(IntegrationSnapshotStatus.PENDING);
     }
 
     @Test
@@ -211,6 +240,17 @@ class ClientIntegrationSnapshotServiceTest {
 
         verify(accessPolicy).requireMembership(userId, companyId);
         verify(syncService).syncSearchConsoleSnapshotNow(companyId);
+    }
+
+    @Test
+    void refreshGoogleAds_requiresMembershipAndOnlyForcesGoogleAdsSync() {
+        UUID userId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+
+        service.refreshGoogleAds(userId, companyId);
+
+        verify(accessPolicy).requireMembership(userId, companyId);
+        verify(syncService).syncGoogleAdsSnapshotNow(companyId);
     }
 
     private IntegrationSnapshot snapshot(

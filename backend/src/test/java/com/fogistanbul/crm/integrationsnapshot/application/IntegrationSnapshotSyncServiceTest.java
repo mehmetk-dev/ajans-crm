@@ -7,6 +7,8 @@ import com.fogistanbul.crm.entity.enums.CompanyKind;
 import com.fogistanbul.crm.entity.enums.ServiceCategory;
 import com.fogistanbul.crm.googleanalytics.application.GoogleAnalyticsService;
 import com.fogistanbul.crm.googleanalytics.dto.GaOverviewResponse;
+import com.fogistanbul.crm.googleads.application.GoogleAdsService;
+import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse;
 import com.fogistanbul.crm.instagram.application.InstagramMediaSnapshotService;
 import com.fogistanbul.crm.instagram.application.InstagramOverviewService;
 import com.fogistanbul.crm.integrationsnapshot.domain.IntegrationSnapshot;
@@ -59,6 +61,9 @@ class IntegrationSnapshotSyncServiceTest {
     SearchConsoleService searchConsoleService;
 
     @Mock
+    GoogleAdsService googleAdsService;
+
+    @Mock
     InstagramOverviewService instagramOverviewService;
 
     @Mock
@@ -77,6 +82,7 @@ class IntegrationSnapshotSyncServiceTest {
                 companyServiceRepository,
                 googleAnalyticsService,
                 searchConsoleService,
+                googleAdsService,
                 instagramOverviewService,
                 instagramMediaSnapshotService,
                 persistenceService,
@@ -268,6 +274,37 @@ class IntegrationSnapshotSyncServiceTest {
         verify(persistenceService).saveReady(
                 eq(company),
                 eq(IntegrationType.SEARCH_CONSOLE),
+                eq(IntegrationSnapshotType.OVERVIEW),
+                any(),
+                any(),
+                any(),
+                any());
+    }
+
+    @Test
+    void syncGoogleAdsSnapshotNow_doesNotRefreshOtherIntegrations() {
+        Company company = company();
+        when(companyRepository.findById(company.getId())).thenReturn(Optional.of(company));
+        when(companyServiceRepository.findByCompanyIdAndServiceCategory(
+                company.getId(), ServiceCategory.AD_MANAGEMENT))
+                .thenReturn(Optional.of(activeService()));
+        when(snapshotRepository.findByCompanyIdAndIntegrationTypeAndSnapshotType(
+                company.getId(), IntegrationType.GOOGLE_ADS, IntegrationSnapshotType.OVERVIEW))
+                .thenReturn(Optional.empty());
+        when(googleAdsService.getOverview(company.getId(), null, null))
+                .thenReturn(GoogleAdsOverviewResponse.disabled());
+
+        service.syncGoogleAdsSnapshotNow(company.getId());
+
+        verify(googleAdsService).getOverview(company.getId(), null, null);
+        verifyNoInteractions(
+                googleAnalyticsService,
+                searchConsoleService,
+                instagramOverviewService,
+                instagramMediaSnapshotService);
+        verify(persistenceService).saveReady(
+                eq(company),
+                eq(IntegrationType.GOOGLE_ADS),
                 eq(IntegrationSnapshotType.OVERVIEW),
                 any(),
                 any(),

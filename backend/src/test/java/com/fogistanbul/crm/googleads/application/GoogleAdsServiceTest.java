@@ -6,6 +6,7 @@ import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.CampaignMetr
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.DailyMetrics;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.SummaryMetrics;
 import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
+import com.fogistanbul.crm.exception.ApiException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -119,6 +121,37 @@ class GoogleAdsServiceTest {
         when(mapper.toOverviewResponse("1234567890", summary, campaigns, daily)).thenReturn(expected);
 
         assertThat(service.getOverview(companyId, "11daysAgo", "today")).isSameAs(expected);
+    }
+
+    @Test
+    void getOverview_defaultRangeUsesThirtyInclusiveDays() {
+        UUID companyId = configuredCompany();
+        when(client.isConfigured()).thenReturn(true);
+        when(mapper.resolveDate(anyString(), any())).thenReturn("2026-05-14", "2026-06-12");
+        when(client.fetchSummary(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(new SummaryMetrics("TRY", 0, 0, 0, 0, 0, 0));
+        when(client.fetchCampaigns(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(List.of());
+        when(client.fetchDailyTrend(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(List.of());
+
+        service.getOverview(companyId, null, null);
+
+        verify(mapper).resolveDate(eq("29daysAgo"), any());
+    }
+
+    @Test
+    void getOverview_rejectsReversedDateRangeBeforeProviderCalls() {
+        UUID companyId = configuredCompany();
+        when(client.isConfigured()).thenReturn(true);
+        when(mapper.resolveDate("2026-06-12", any())).thenReturn("2026-06-12");
+        when(mapper.resolveDate("2026-06-01", any())).thenReturn("2026-06-01");
+
+        assertThatThrownBy(() -> service.getOverview(
+                companyId, "2026-06-12", "2026-06-01"))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Başlangıç tarihi");
+        verify(client, never()).fetchSummary(anyString(), anyString(), anyString(), anyString());
     }
 
     @Test

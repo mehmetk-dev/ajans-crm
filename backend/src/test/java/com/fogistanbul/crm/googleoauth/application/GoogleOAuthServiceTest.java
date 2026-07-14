@@ -86,4 +86,21 @@ class GoogleOAuthServiceTest {
         searchConsoleToken.setScope("openid email");
         assertThat(service.hasScScope(companyId)).isFalse();
     }
+
+    @Test
+    void hasAdsScope_matchesAnExactGrantedScope() {
+        UUID companyId = UUID.randomUUID();
+        GoogleOAuthToken adsToken = GoogleOAuthToken.builder()
+                .serviceType(GoogleOAuthService.SVC_GOOGLE_ADS)
+                .scope("openid prefix-https://www.googleapis.com/auth/adwords-suffix")
+                .build();
+        when(tokenRepository.findByCompanyIdAndServiceType(
+                companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(Optional.of(adsToken));
+
+        assertThat(service.hasAdsScope(companyId)).isFalse();
+
+        adsToken.setScope("openid https://www.googleapis.com/auth/adwords email");
+        assertThat(service.hasAdsScope(companyId)).isTrue();
+    }
 }

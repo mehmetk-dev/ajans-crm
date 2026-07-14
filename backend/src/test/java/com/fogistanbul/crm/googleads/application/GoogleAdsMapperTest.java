@@ -31,10 +31,10 @@ class GoogleAdsMapperTest {
     void resolveDate_convertsRelativeDatesAndHandlesInvalidInput() {
         LocalDate today = LocalDate.of(2026, 6, 12);
 
-        assertThat(mapper.resolveDate("30daysAgo", today)).isEqualTo("2026-05-13");
+        assertThat(mapper.resolveDate("29daysAgo", today)).isEqualTo("2026-05-14");
         assertThat(mapper.resolveDate("today", today)).isEqualTo("2026-06-12");
         assertThat(mapper.resolveDate("2026-01-01", today)).isEqualTo("2026-01-01");
-        assertThat(mapper.resolveDate("invaliddaysAgo", today)).isEqualTo("2026-05-13");
+        assertThat(mapper.resolveDate("invaliddaysAgo", today)).isEqualTo("2026-05-14");
     }
 
     @Test
@@ -94,6 +94,11 @@ class GoogleAdsMapperTest {
         assertThat(mapper.toUserErrorMessage("401 UNAUTHENTICATED")).contains("yeniden bağlayın");
         assertThat(mapper.toUserErrorMessage("403 PERMISSION_DENIED")).contains("erişim yetkisi yok");
         assertThat(mapper.toUserErrorMessage("invalid developer-token")).contains("developer token");
-        assertThat(mapper.toUserErrorMessage("timeout\ntrace")).isEqualTo("Veri çekme hatası: timeout");
+        assertThat(mapper.toUserErrorMessage("timeout\ninternal-host=secret"))
+                .isEqualTo("Google Ads şu anda yanıt vermedi. Lütfen biraz sonra tekrar deneyin.");
+        assertThat(mapper.toUserErrorMessage("429 RESOURCE_EXHAUSTED quota"))
+                .isEqualTo("Google Ads istek limiti aşıldı. Lütfen biraz sonra tekrar deneyin.");
+        assertThat(mapper.toUserErrorMessage("jdbc:postgresql://internal/private"))
+                .isEqualTo("Google Ads verileri şu anda alınamıyor. Lütfen biraz sonra tekrar deneyin.");
     }
 }
