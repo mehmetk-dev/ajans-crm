@@ -91,6 +91,9 @@ app:
     from: ${MAIL_FROM:noreply@fogistanbul.com}
     enabled: ${MAIL_ENABLED:false}
 
+  contact:
+    recipient: ${CONTACT_RECIPIENT:info@fogistanbul.com}
+
 springdoc:
   swagger-ui:
     enabled: ${SWAGGER_ENABLED:false}

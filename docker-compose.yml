@@ -48,6 +48,7 @@ services:
       - GOOGLE_ADS_DEVELOPER_TOKEN=${GOOGLE_ADS_DEVELOPER_TOKEN:-}
       - GOOGLE_ADS_MANAGER_CUSTOMER_ID=${GOOGLE_ADS_MANAGER_CUSTOMER_ID:-}
       - MAIL_ENABLED=${MAIL_ENABLED:-false}
+      - CONTACT_RECIPIENT=${CONTACT_RECIPIENT:-info@fogistanbul.com}
     volumes:
       - ./backend:/app
       - /app/target

@@ -88,6 +88,15 @@ public class EmailService {
         deliverEmailOrThrow(to, "CRM SMTP Test", html);
     }
 
+    public void sendContactEmail(String to, String replyTo, String subject, String htmlContent)
+            throws MessagingException, MailException {
+        MailSettingsService.EffectiveMailSettings settings = mailSettingsService.loadEffectiveSettings();
+        if (!settings.enabled()) {
+            throw new IllegalStateException("Mail sistemi pasif");
+        }
+        deliverEmail(to, replyTo, subject, htmlContent, settings);
+    }
+
     private void deliverEmailQuietly(String to, String subject, String htmlContent) {
         try {
             MailSettingsService.EffectiveMailSettings settings = mailSettingsService.loadEffectiveSettings();
@@ -116,6 +125,16 @@ public class EmailService {
             String htmlContent,
             MailSettingsService.EffectiveMailSettings settings
     ) throws MessagingException, MailException {
+        deliverEmail(to, null, subject, htmlContent, settings);
+    }
+
+    private void deliverEmail(
+            String to,
+            String replyTo,
+            String subject,
+            String htmlContent,
+            MailSettingsService.EffectiveMailSettings settings
+    ) throws MessagingException, MailException {
         if (to == null || to.isBlank()) {
             throw new IllegalStateException("Alıcı email boş");
         }
@@ -125,6 +144,9 @@ public class EmailService {
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
         helper.setFrom(settings.fromAddress());
         helper.setTo(to);
+        if (replyTo != null && !replyTo.isBlank()) {
+            helper.setReplyTo(replyTo);
+        }
         helper.setSubject(subject);
         helper.setText(htmlContent, true);
         mailSender.send(message);
