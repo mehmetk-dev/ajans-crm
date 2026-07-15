@@ -5,6 +5,8 @@ import com.fogistanbul.crm.googleads.dto.GoogleAdsAccountListResponse;
 import com.fogistanbul.crm.googleads.dto.GoogleAdsAccountOption;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.CustomerDescriptor;
+import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsProviderErrorParser;
+import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsProviderErrorParser.ProviderError;
 import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -33,6 +35,7 @@ public class GoogleAdsAccountDiscoveryService {
 
     private final GoogleOAuthService oAuthService;
     private final GoogleAdsClient client;
+    private final GoogleAdsProviderErrorParser providerErrorParser;
 
     public GoogleAdsAccountListResponse discover(UUID companyId) {
         if (!client.isConfigured()) {
@@ -57,8 +60,14 @@ public class GoogleAdsAccountDiscoveryService {
                     .limit(MAX_ROOT_ACCOUNTS)
                     .toList();
         } catch (Exception exception) {
-            log.warn("Google Ads erişilebilir hesaplar alınamadı, company={}, errorType={}",
-                    companyId, exception.getClass().getSimpleName());
+            ProviderError providerError = providerErrorParser.parse(exception);
+            log.warn("Google Ads erişilebilir hesaplar alınamadı, company={}, errorType={}, "
+                            + "httpStatus={}, providerCode={}, providerRequestId={}",
+                    companyId,
+                    exception.getClass().getSimpleName(),
+                    providerError.httpStatus(),
+                    providerError.providerCode(),
+                    providerError.requestId());
             throw new ApiException(HttpStatus.BAD_GATEWAY,
                     "GOOGLE_ADS_ACCOUNT_DISCOVERY_FAILED",
                     "Google Ads hesapları alınamadı. Bağlantıyı kontrol edip tekrar deneyin");
@@ -82,8 +91,15 @@ public class GoogleAdsAccountDiscoveryService {
                 }
                 discoverManagerChildren(accessToken, root, options, warnings, companyId);
             } catch (Exception exception) {
-                log.warn("Google Ads hesap kökü taranamadı, company={}, customer={}, errorType={}",
-                        companyId, rootCustomerId, exception.getClass().getSimpleName());
+                ProviderError providerError = providerErrorParser.parse(exception);
+                log.warn("Google Ads hesap kökü taranamadı, company={}, customer={}, errorType={}, "
+                                + "httpStatus={}, providerCode={}, providerRequestId={}",
+                        companyId,
+                        rootCustomerId,
+                        exception.getClass().getSimpleName(),
+                        providerError.httpStatus(),
+                        providerError.providerCode(),
+                        providerError.requestId());
                 addWarning(warnings);
             }
         }
@@ -134,8 +150,15 @@ public class GoogleAdsAccountDiscoveryService {
                     }
                 }
             } catch (Exception exception) {
-                log.warn("Google Ads yönetici dalı taranamadı, company={}, customer={}, errorType={}",
-                        companyId, manager.customerId(), exception.getClass().getSimpleName());
+                ProviderError providerError = providerErrorParser.parse(exception);
+                log.warn("Google Ads yönetici dalı taranamadı, company={}, customer={}, errorType={}, "
+                                + "httpStatus={}, providerCode={}, providerRequestId={}",
+                        companyId,
+                        manager.customerId(),
+                        exception.getClass().getSimpleName(),
+                        providerError.httpStatus(),
+                        providerError.providerCode(),
+                        providerError.requestId());
                 addWarning(warnings);
             }
         }
@@ -169,7 +192,7 @@ public class GoogleAdsAccountDiscoveryService {
 
     private void addWarning(List<String> warnings) {
         if (warnings.isEmpty()) {
-            warnings.add("Bazı yönetici hesapları taranamadı; doğrulanabilen hesaplar gösteriliyor.");
+            warnings.add("Bazı Google Ads hesapları taranamadı; doğrulanabilen hesaplar gösteriliyor.");
         }
     }
 }

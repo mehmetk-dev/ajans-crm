@@ -2,7 +2,11 @@ package com.fogistanbul.crm.googleads.application;
 
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.CustomerDescriptor;
+import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsProviderErrorParser;
+import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsProviderErrorParser.ProviderError;
 import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -16,11 +20,12 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, OutputCaptureExtension.class})
 class GoogleAdsAccountDiscoveryServiceTest {
 
     @Mock GoogleOAuthService oAuthService;
     @Mock GoogleAdsClient client;
+    @Mock GoogleAdsProviderErrorParser providerErrorParser;
     @InjectMocks GoogleAdsAccountDiscoveryService service;
 
     @Test
@@ -62,5 +67,28 @@ class GoogleAdsAccountDiscoveryServiceTest {
                     assertThat(account.managerName()).isEqualTo("Agency MCC");
                 });
         assertThat(result.warnings()).isEmpty();
+    }
+
+    @Test
+    void logsOnlySafeProviderDiagnosticsWhenRootQueryIsForbidden(CapturedOutput output) {
+        UUID companyId = UUID.randomUUID();
+        RuntimeException forbidden = new RuntimeException("private provider body");
+        when(oAuthService.hasAdsScope(companyId)).thenReturn(true);
+        when(oAuthService.getValidAccessToken(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(Optional.of("access"));
+        when(client.isConfigured()).thenReturn(true);
+        when(client.listAccessibleCustomerIds("access"))
+                .thenReturn(List.of("7164786349"));
+        when(client.fetchCustomer("access", "7164786349", null)).thenThrow(forbidden);
+        when(providerErrorParser.parse(forbidden))
+                .thenReturn(new ProviderError(403, "CUSTOMER_NOT_ENABLED", "safe-request-id"));
+
+        service.discover(companyId);
+
+        assertThat(output.getOut())
+                .contains("httpStatus=403")
+                .contains("providerCode=CUSTOMER_NOT_ENABLED")
+                .contains("providerRequestId=safe-request-id")
+                .doesNotContain("private provider body");
     }
 }
