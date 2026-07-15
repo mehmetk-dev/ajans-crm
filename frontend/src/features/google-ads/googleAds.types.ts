@@ -42,5 +42,19 @@ export interface GoogleAdsStatusResponse {
     authUrl: string;
 }
 
+export interface GoogleAdsAccountOption {
+    customerId: string;
+    descriptiveName: string;
+    loginCustomerId: string;
+    accessType: 'DIRECT' | 'MANAGER';
+    managerName: string | null;
+    status: string;
+}
+
+export interface GoogleAdsAccountListResponse {
+    accounts: GoogleAdsAccountOption[];
+    warnings: string[];
+}
+
 export type GoogleAdsSortColumn =
     'spend' | 'clicks' | 'impressions' | 'conversions';

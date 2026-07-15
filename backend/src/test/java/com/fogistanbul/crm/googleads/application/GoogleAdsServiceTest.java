@@ -1,6 +1,7 @@
 package com.fogistanbul.crm.googleads.application;
 
 import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse;
+import com.fogistanbul.crm.googleads.dto.GoogleAdsAccessContext;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.CampaignMetrics;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient.DailyMetrics;
@@ -34,6 +35,9 @@ class GoogleAdsServiceTest {
 
     @Mock
     GoogleAdsMapper mapper;
+
+    @Mock
+    GoogleAdsAccessContextResolver accessContextResolver;
 
     @InjectMocks
     GoogleAdsService service;
@@ -90,9 +94,9 @@ class GoogleAdsServiceTest {
         GoogleAdsOverviewResponse result = service.getOverview(companyId, null, null);
 
         assertThat(result.errorMessage()).contains("access token");
-        verify(client, never()).fetchSummary(anyString(), anyString(), anyString(), anyString());
-        verify(client, never()).fetchCampaigns(anyString(), anyString(), anyString(), anyString());
-        verify(client, never()).fetchDailyTrend(anyString(), anyString(), anyString(), anyString());
+        verify(client, never()).fetchSummary(anyString(), any(), anyString(), anyString());
+        verify(client, never()).fetchCampaigns(anyString(), any(), anyString(), anyString());
+        verify(client, never()).fetchDailyTrend(anyString(), any(), anyString(), anyString());
     }
 
     @Test
@@ -103,23 +107,14 @@ class GoogleAdsServiceTest {
         when(oAuthService.hasAdsScope(companyId)).thenReturn(true);
         when(oAuthService.getAdsCustomerId(companyId)).thenReturn(Optional.of("123-456-7890"));
         when(mapper.sanitizeCustomerId("123-456-7890")).thenReturn("1234567890");
-        when(client.isManagerCustomerId("1234567890")).thenReturn(true);
+        when(accessContextResolver.isLegacyManagerCustomerId("1234567890")).thenReturn(true);
 
         GoogleAdsOverviewResponse result = service.getOverview(companyId, null, null);
 
         assertThat(result.errorMessage()).contains("yönetici hesabı")
                 .contains("reklamveren müşteri ID'sini");
         verify(oAuthService, never()).getValidAccessToken(any(), anyString());
-        verify(client, never()).fetchSummary(anyString(), anyString(), anyString(), anyString());
-    }
-
-    @Test
-    void validateReportingCustomerId_rejectsConfiguredManagerAccount() {
-        when(client.isManagerCustomerId("1234567890")).thenReturn(true);
-
-        assertThatThrownBy(() -> service.validateReportingCustomerId("1234567890"))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("reklamveren müşteri ID'sini");
+        verify(client, never()).fetchSummary(anyString(), any(), anyString(), anyString());
     }
 
     @Test
@@ -141,11 +136,12 @@ class GoogleAdsServiceTest {
         SummaryMetrics summary = new SummaryMetrics("TRY", 0, 0, 0, 0, 0, 0);
         when(client.isConfigured()).thenReturn(true);
         when(mapper.resolveDate(anyString(), any())).thenReturn("2026-06-01", "2026-06-12");
-        when(client.fetchCampaigns("token", "1234567890", "2026-06-01", "2026-06-12"))
+        GoogleAdsAccessContext context = new GoogleAdsAccessContext("1234567890", null);
+        when(client.fetchCampaigns("token", context, "2026-06-01", "2026-06-12"))
                 .thenReturn(campaigns);
-        when(client.fetchSummary("token", "1234567890", "2026-06-01", "2026-06-12"))
+        when(client.fetchSummary("token", context, "2026-06-01", "2026-06-12"))
                 .thenReturn(summary);
-        when(client.fetchDailyTrend("token", "1234567890", "2026-06-01", "2026-06-12"))
+        when(client.fetchDailyTrend("token", context, "2026-06-01", "2026-06-12"))
                 .thenReturn(daily);
         when(mapper.toOverviewResponse("1234567890", summary, campaigns, daily)).thenReturn(expected);
 
@@ -157,11 +153,11 @@ class GoogleAdsServiceTest {
         UUID companyId = configuredCompany();
         when(client.isConfigured()).thenReturn(true);
         when(mapper.resolveDate(anyString(), any())).thenReturn("2026-05-14", "2026-06-12");
-        when(client.fetchSummary(anyString(), anyString(), anyString(), anyString()))
+        when(client.fetchSummary(anyString(), any(), anyString(), anyString()))
                 .thenReturn(new SummaryMetrics("TRY", 0, 0, 0, 0, 0, 0));
-        when(client.fetchCampaigns(anyString(), anyString(), anyString(), anyString()))
+        when(client.fetchCampaigns(anyString(), any(), anyString(), anyString()))
                 .thenReturn(List.of());
-        when(client.fetchDailyTrend(anyString(), anyString(), anyString(), anyString()))
+        when(client.fetchDailyTrend(anyString(), any(), anyString(), anyString()))
                 .thenReturn(List.of());
 
         service.getOverview(companyId, null, null);
@@ -180,7 +176,7 @@ class GoogleAdsServiceTest {
                 companyId, "2026-06-12", "2026-06-01"))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Başlangıç tarihi");
-        verify(client, never()).fetchSummary(anyString(), anyString(), anyString(), anyString());
+        verify(client, never()).fetchSummary(anyString(), any(), anyString(), anyString());
     }
 
     @Test
@@ -188,7 +184,7 @@ class GoogleAdsServiceTest {
         UUID companyId = configuredCompany();
         when(client.isConfigured()).thenReturn(true);
         when(mapper.resolveDate(anyString(), any())).thenReturn("2026-06-01", "2026-06-12");
-        when(client.fetchCampaigns(anyString(), anyString(), anyString(), anyString()))
+        when(client.fetchCampaigns(anyString(), any(), anyString(), anyString()))
                 .thenThrow(new RuntimeException("403 PERMISSION_DENIED"));
         when(mapper.toUserErrorMessage("403 PERMISSION_DENIED")).thenReturn("mapped error");
 
@@ -202,7 +198,7 @@ class GoogleAdsServiceTest {
         UUID companyId = configuredCompany();
         when(client.isConfigured()).thenReturn(true);
         when(mapper.resolveDate(anyString(), any())).thenReturn("2026-06-01", "2026-06-12");
-        when(client.fetchSummary(anyString(), anyString(), anyString(), anyString()))
+        when(client.fetchSummary(anyString(), any(), anyString(), anyString()))
                 .thenThrow(new RuntimeException("401 Unauthorized"));
         when(mapper.toUserErrorMessage("401 Unauthorized")).thenReturn("reconnect");
 
@@ -228,6 +224,10 @@ class GoogleAdsServiceTest {
         when(oAuthService.hasAdsScope(companyId)).thenReturn(true);
         when(oAuthService.getAdsCustomerId(companyId)).thenReturn(Optional.of("123-456-7890"));
         when(mapper.sanitizeCustomerId("123-456-7890")).thenReturn("1234567890");
+        when(accessContextResolver.isLegacyManagerCustomerId("1234567890")).thenReturn(false);
+        when(oAuthService.getAdsLoginCustomerId(companyId)).thenReturn(Optional.of("1234567890"));
+        when(accessContextResolver.resolve("1234567890", "1234567890"))
+                .thenReturn(new GoogleAdsAccessContext("1234567890", null));
         when(oAuthService.getValidAccessToken(companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
                 .thenReturn(Optional.of("token"));
         return companyId;

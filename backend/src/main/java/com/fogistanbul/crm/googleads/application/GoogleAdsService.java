@@ -2,6 +2,7 @@ package com.fogistanbul.crm.googleads.application;
 
 import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse;
+import com.fogistanbul.crm.googleads.dto.GoogleAdsAccessContext;
 import com.fogistanbul.crm.googleads.infrastructure.GoogleAdsClient;
 import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class GoogleAdsService {
     private final GoogleOAuthService oAuthService;
     private final GoogleAdsClient client;
     private final GoogleAdsMapper mapper;
+    private final GoogleAdsAccessContextResolver accessContextResolver;
 
     public GoogleAdsOverviewResponse getOverview(UUID companyId, String startDate, String endDate) {
         if (!oAuthService.isConnected(companyId, GoogleOAuthService.SVC_GOOGLE_ADS)) {
@@ -47,9 +49,13 @@ public class GoogleAdsService {
             return GoogleAdsOverviewResponse.error(
                     null, "Google Ads müşteri ID'si girilmemiş.");
         }
-        if (client.isManagerCustomerId(customerId)) {
+        if (accessContextResolver.isLegacyManagerCustomerId(customerId)) {
             return GoogleAdsOverviewResponse.error(customerId, MANAGER_ACCOUNT_MESSAGE);
         }
+
+        GoogleAdsAccessContext accessContext = accessContextResolver.resolve(
+                customerId,
+                oAuthService.getAdsLoginCustomerId(companyId).orElse(null));
 
         String accessToken = oAuthService
                 .getValidAccessToken(companyId, GoogleOAuthService.SVC_GOOGLE_ADS)
@@ -71,9 +77,9 @@ public class GoogleAdsService {
         try {
             return mapper.toOverviewResponse(
                     customerId,
-                    client.fetchSummary(accessToken, customerId, rangeStart, rangeEnd),
-                    client.fetchCampaigns(accessToken, customerId, rangeStart, rangeEnd),
-                    client.fetchDailyTrend(accessToken, customerId, rangeStart, rangeEnd));
+                    client.fetchSummary(accessToken, accessContext, rangeStart, rangeEnd),
+                    client.fetchCampaigns(accessToken, accessContext, rangeStart, rangeEnd),
+                    client.fetchDailyTrend(accessToken, accessContext, rangeStart, rangeEnd));
         } catch (Exception exception) {
             String message = exception.getMessage() != null ? exception.getMessage() : "";
             if (isExpectedAuthorizationFailure(message)) {
@@ -99,13 +105,6 @@ public class GoogleAdsService {
                 || message.contains("UNAUTHENTICATED")
                 || message.contains("PERMISSION_DENIED")
                 || message.contains("REQUESTED_METRICS_FOR_MANAGER");
-    }
-
-    public void validateReportingCustomerId(String customerId) {
-        if (client.isManagerCustomerId(customerId)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "GOOGLE_ADS_MANAGER_ID_NOT_REPORTABLE", MANAGER_ACCOUNT_MESSAGE);
-        }
     }
 
     static boolean isAuthenticationFailure(String message) {

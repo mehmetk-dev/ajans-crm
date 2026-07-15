@@ -60,14 +60,54 @@ class GoogleOAuthServiceTest {
     }
 
     @Test
-    void saveAdsCustomerIdRejectsDisconnectedCompany() {
+    void saveAdsAccountSelectionRejectsDisconnectedCompany() {
         UUID companyId = UUID.randomUUID();
         when(tokenRepository.findByCompanyIdAndServiceType(
                 companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.saveAdsCustomerId(companyId, "1234567890"))
+        assertThatThrownBy(() -> service.saveAdsAccountSelection(
+                companyId, "1234567890", "1234567890"))
                 .isInstanceOf(com.fogistanbul.crm.exception.ApiException.class);
+    }
+
+    @Test
+    void saveAdsAccountSelectionStoresTargetAndLoginCustomerIds() {
+        UUID companyId = UUID.randomUUID();
+        GoogleOAuthToken token = GoogleOAuthToken.builder()
+                .serviceType(GoogleOAuthService.SVC_GOOGLE_ADS)
+                .adsCustomerId("1111111111")
+                .build();
+        when(tokenRepository.findByCompanyIdAndServiceType(
+                companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(Optional.of(token));
+
+        boolean customerChanged = service.saveAdsAccountSelection(
+                companyId, "2222222222", "8437875152");
+
+        assertThat(customerChanged).isTrue();
+        assertThat(token.getAdsCustomerId()).isEqualTo("2222222222");
+        assertThat(token.getAdsLoginCustomerId()).isEqualTo("8437875152");
+        verify(tokenRepository).save(token);
+    }
+
+    @Test
+    void saveAdsAccountSelectionReportsUnchangedTargetForDirectAccess() {
+        UUID companyId = UUID.randomUUID();
+        GoogleOAuthToken token = GoogleOAuthToken.builder()
+                .serviceType(GoogleOAuthService.SVC_GOOGLE_ADS)
+                .adsCustomerId("2222222222")
+                .adsLoginCustomerId("8437875152")
+                .build();
+        when(tokenRepository.findByCompanyIdAndServiceType(
+                companyId, GoogleOAuthService.SVC_GOOGLE_ADS))
+                .thenReturn(Optional.of(token));
+
+        boolean customerChanged = service.saveAdsAccountSelection(
+                companyId, "2222222222", "2222222222");
+
+        assertThat(customerChanged).isFalse();
+        assertThat(token.getAdsLoginCustomerId()).isEqualTo("2222222222");
     }
 
     @Test

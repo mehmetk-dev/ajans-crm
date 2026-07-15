@@ -16,6 +16,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -163,17 +164,25 @@ public class GoogleOAuthService {
     }
 
     @Transactional
-    public void saveAdsCustomerId(UUID companyId, String customerId) {
+    public boolean saveAdsAccountSelection(UUID companyId, String customerId, String loginCustomerId) {
         GoogleOAuthToken token = tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_GOOGLE_ADS)
                 .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "GOOGLE_ADS_NOT_CONNECTED",
                         "Önce Google Ads hesabını bağlayın"));
+        boolean customerChanged = !Objects.equals(token.getAdsCustomerId(), customerId);
         token.setAdsCustomerId(customerId);
+        token.setAdsLoginCustomerId(loginCustomerId);
         tokenRepository.save(token);
+        return customerChanged;
     }
 
     public Optional<String> getAdsCustomerId(UUID companyId) {
         return tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_GOOGLE_ADS)
                 .map(GoogleOAuthToken::getAdsCustomerId);
+    }
+
+    public Optional<String> getAdsLoginCustomerId(UUID companyId) {
+        return tokenRepository.findByCompanyIdAndServiceType(companyId, SVC_GOOGLE_ADS)
+                .map(GoogleOAuthToken::getAdsLoginCustomerId);
     }
 
     public boolean isConnected(UUID companyId, String serviceType) {

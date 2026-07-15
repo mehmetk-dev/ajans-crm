@@ -27,4 +27,6 @@ public interface IntegrationSnapshotRepository extends JpaRepository<Integration
             UUID companyId,
             IntegrationType integrationType,
             IntegrationSnapshotType snapshotType);
+
+    void deleteByCompanyIdAndIntegrationType(UUID companyId, IntegrationType integrationType);
 }

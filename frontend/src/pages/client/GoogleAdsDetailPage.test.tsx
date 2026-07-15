@@ -153,4 +153,50 @@ describe('GoogleAdsDetailPage', () => {
             'Google Ads snapshot oluşturulamadı. Bağlantıyı kontrol edip tekrar deneyin.',
         )).not.toBeInTheDocument();
     });
+
+    it('selects an Ads account using the exact discovered access path', async () => {
+        vi.spyOn(googleAdsApi, 'getStatus').mockResolvedValue({
+            connected: true,
+            hasAdsScope: true,
+            needsReconnect: false,
+            customerId: '',
+            authUrl: '',
+        });
+        vi.spyOn(integrationSnapshotApi, 'getOverview').mockResolvedValue({
+            ads: { ...ads, connected: false, customerId: null },
+            adsSnapshot: null,
+        } as unknown as ClientIntegrationSnapshotOverviewResponse);
+        vi.spyOn(googleAdsApi, 'getAccounts').mockResolvedValue({
+            accounts: [{
+                customerId: '2994497086',
+                descriptiveName: 'Managed Co',
+                loginCustomerId: '8437875152',
+                accessType: 'MANAGER',
+                managerName: 'Agency MCC',
+                status: 'ENABLED',
+            }],
+            warnings: [],
+        });
+        const selectAccount = vi.spyOn(googleAdsApi, 'selectAccount').mockResolvedValue(undefined);
+        vi.spyOn(integrationSnapshotApi, 'refreshGoogleAds').mockResolvedValue(undefined);
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        });
+
+        render(
+            <QueryClientProvider client={queryClient}>
+                <MemoryRouter initialEntries={['/client/google-ads']}>
+                    <GoogleAdsDetailPage />
+                </MemoryRouter>
+            </QueryClientProvider>,
+        );
+
+        fireEvent.click(await screen.findByRole('button', { name: /Managed Co/ }));
+        fireEvent.click(screen.getByRole('button', { name: 'Bu hesabı kullan' }));
+
+        await waitFor(() => expect(selectAccount).toHaveBeenCalledWith('company-1', {
+            customerId: '2994497086',
+            loginCustomerId: '8437875152',
+        }));
+    });
 });

@@ -3,6 +3,10 @@ package com.fogistanbul.crm.googleads.web;
 import com.fogistanbul.crm.exception.ApiException;
 import com.fogistanbul.crm.googleads.application.GoogleAdsAccessPolicy;
 import com.fogistanbul.crm.googleads.application.GoogleAdsService;
+import com.fogistanbul.crm.googleads.application.GoogleAdsAccountDiscoveryService;
+import com.fogistanbul.crm.googleads.application.GoogleAdsAccountOperationRateLimiter;
+import com.fogistanbul.crm.googleads.application.GoogleAdsAccountSelectionService;
+import com.fogistanbul.crm.googleads.dto.GoogleAdsAccountSelectionRequest;
 import com.fogistanbul.crm.googleads.dto.GoogleAdsCustomerIdRequest;
 import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
 import org.junit.jupiter.api.Test;
@@ -27,6 +31,9 @@ class GoogleAdsControllerTest {
     @Mock GoogleAdsService googleAdsService;
     @Mock GoogleOAuthService googleOAuthService;
     @Mock GoogleAdsAccessPolicy accessPolicy;
+    @Mock GoogleAdsAccountDiscoveryService discoveryService;
+    @Mock GoogleAdsAccountSelectionService selectionService;
+    @Mock GoogleAdsAccountOperationRateLimiter rateLimiter;
     @Mock Authentication authentication;
     @InjectMocks GoogleAdsController controller;
 
@@ -81,8 +88,21 @@ class GoogleAdsControllerTest {
         controller.saveCustomerId(
                 companyId, new GoogleAdsCustomerIdRequest("123-456-7890"), authentication);
 
-        verify(googleAdsService).validateReportingCustomerId("1234567890");
-        verify(googleOAuthService).saveAdsCustomerId(companyId, "1234567890");
+        verify(selectionService).selectByCustomerId(companyId, "1234567890");
+    }
+
+    @Test
+    void selectAccountChecksAccessAndRateLimitBeforePersisting() {
+        UUID companyId = authenticatedCompany();
+        UUID userId = (UUID) authentication.getPrincipal();
+        GoogleAdsAccountSelectionRequest request = new GoogleAdsAccountSelectionRequest(
+                "2994497086", "8437875152");
+
+        controller.selectAccount(companyId, request, authentication);
+
+        verify(accessPolicy).requireClientAccess(userId, companyId);
+        verify(rateLimiter).check(userId, companyId);
+        verify(selectionService).select(companyId, "2994497086", "8437875152");
     }
 
     private UUID authenticatedCompany() {

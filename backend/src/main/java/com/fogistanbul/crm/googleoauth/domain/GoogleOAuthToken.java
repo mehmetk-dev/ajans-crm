@@ -50,6 +50,9 @@ public class GoogleOAuthToken {
     @Column(name = "ads_customer_id", length = 30)
     private String adsCustomerId;
 
+    @Column(name = "ads_login_customer_id", length = 30)
+    private String adsLoginCustomerId;
+
     @Column(name = "connected_at", nullable = false, updatable = false)
     @Builder.Default
     private Instant connectedAt = Instant.now();

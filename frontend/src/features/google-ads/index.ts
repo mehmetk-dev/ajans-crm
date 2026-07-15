@@ -4,6 +4,8 @@ export type {
     GoogleAdsOverviewResponse,
     GoogleAdsSortColumn,
     GoogleAdsStatusResponse,
+    GoogleAdsAccountOption,
+    GoogleAdsAccountListResponse,
 } from './googleAds.types';
 
 export { googleAdsKeys } from './googleAdsKeys';
@@ -16,3 +18,4 @@ export {
 } from './model/googleAds.utils';
 export { getGoogleAdsOAuthCallbackError } from './model/googleAdsOAuthCallback';
 export { default as GoogleAdsPanel } from './ui/GoogleAdsPanel';
+export { default as GoogleAdsAccountPicker } from './ui/GoogleAdsAccountPicker';

@@ -1,12 +1,18 @@
 package com.fogistanbul.crm.googleads.web;
 
 import com.fogistanbul.crm.googleads.application.GoogleAdsAccessPolicy;
+import com.fogistanbul.crm.googleads.application.GoogleAdsAccountDiscoveryService;
+import com.fogistanbul.crm.googleads.application.GoogleAdsAccountOperationRateLimiter;
+import com.fogistanbul.crm.googleads.application.GoogleAdsAccountSelectionService;
 import com.fogistanbul.crm.googleads.application.GoogleAdsService;
+import com.fogistanbul.crm.googleads.dto.GoogleAdsAccountListResponse;
+import com.fogistanbul.crm.googleads.dto.GoogleAdsAccountSelectionRequest;
 import com.fogistanbul.crm.googleads.dto.GoogleAdsCustomerIdRequest;
 import com.fogistanbul.crm.googleads.dto.GoogleAdsOverviewResponse;
 import com.fogistanbul.crm.googleads.dto.GoogleAdsStatusResponse;
 import com.fogistanbul.crm.googleads.dto.GoogleAdsWriteResponse;
 import com.fogistanbul.crm.googleoauth.application.GoogleOAuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import com.fogistanbul.crm.exception.ApiException;
 import org.springframework.http.HttpStatus;
@@ -23,6 +29,9 @@ public class GoogleAdsController {
     private final GoogleAdsService googleAdsService;
     private final GoogleOAuthService googleOAuthService;
     private final GoogleAdsAccessPolicy accessPolicy;
+    private final GoogleAdsAccountDiscoveryService accountDiscoveryService;
+    private final GoogleAdsAccountSelectionService accountSelectionService;
+    private final GoogleAdsAccountOperationRateLimiter accountRateLimiter;
 
     @GetMapping("/status")
     public GoogleAdsStatusResponse status(@RequestParam UUID companyId, Authentication auth) {
@@ -53,11 +62,35 @@ public class GoogleAdsController {
         return googleAdsService.getOverview(companyId, startDate, endDate);
     }
 
+    @GetMapping("/accounts")
+    public GoogleAdsAccountListResponse accounts(
+            @RequestParam UUID companyId,
+            Authentication auth) {
+        UUID userId = (UUID) auth.getPrincipal();
+        accessPolicy.requireClientAccess(userId, companyId);
+        accountRateLimiter.check(userId, companyId);
+        return accountDiscoveryService.discover(companyId);
+    }
+
+    @PostMapping("/account-selection")
+    public GoogleAdsWriteResponse selectAccount(
+            @RequestParam UUID companyId,
+            @Valid @RequestBody GoogleAdsAccountSelectionRequest request,
+            Authentication auth) {
+        UUID userId = (UUID) auth.getPrincipal();
+        accessPolicy.requireClientAccess(userId, companyId);
+        accountRateLimiter.check(userId, companyId);
+        accountSelectionService.select(
+                companyId, request.customerId(), request.loginCustomerId());
+        return GoogleAdsWriteResponse.ok();
+    }
+
     @PostMapping("/customer-id")
     public GoogleAdsWriteResponse saveCustomerId(@RequestParam UUID companyId,
             @RequestBody GoogleAdsCustomerIdRequest request,
             Authentication auth) {
         accessPolicy.requireClientAccess((UUID) auth.getPrincipal(), companyId);
+        accountRateLimiter.check((UUID) auth.getPrincipal(), companyId);
         String customerId = request.customerId() != null
                 ? request.customerId().replaceAll("[^0-9]", "")
                 : "";
@@ -65,8 +98,7 @@ public class GoogleAdsController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_GOOGLE_ADS_CUSTOMER_ID",
                     "Google Ads müşteri ID'si 10 haneli olmalıdır");
         }
-        googleAdsService.validateReportingCustomerId(customerId);
-        googleOAuthService.saveAdsCustomerId(companyId, customerId);
+        accountSelectionService.selectByCustomerId(companyId, customerId);
         return GoogleAdsWriteResponse.ok();
     }
 

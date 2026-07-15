@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import {
     TrendingUp, MousePointerClick, Eye, Target, AlertTriangle,
-    Loader2, Link, Check, RefreshCw, ChevronUp, ChevronDown, Unlink
+    Loader2, Link, RefreshCw, ChevronUp, ChevronDown, Unlink
 } from 'lucide-react';
 import {
     campaignStatusTone,
@@ -13,7 +13,9 @@ import {
     getGoogleAdsOAuthCallbackError,
     googleAdsApi,
     googleAdsKeys,
+    GoogleAdsAccountPicker,
     sortCampaigns,
+    type GoogleAdsAccountOption,
     type GoogleAdsSortColumn,
 } from '../../features/google-ads';
 import { MissingCompanyState } from '../../components/client/MissingCompanyState';
@@ -29,7 +31,7 @@ export default function GoogleAdsDetailPage() {
     const qc = useQueryClient();
     const location = useLocation();
     const navigate = useNavigate();
-    const [customerIdInput, setCustomerIdInput] = useState('');
+    const [selectedAccountKey, setSelectedAccountKey] = useState('');
     const [showSetup, setShowSetup] = useState(false);
     const [sortCol, setSortCol] = useState<GoogleAdsSortColumn>('spend');
     const [sortAsc, setSortAsc] = useState(false);
@@ -54,23 +56,41 @@ export default function GoogleAdsDetailPage() {
     const data = snapshotOverview?.ads;
     const snapshotMeta = snapshotOverview?.adsSnapshot;
 
+    const accountSetupVisible = Boolean(
+        status?.connected
+        && status.hasAdsScope
+        && (showSetup || !status.customerId),
+    );
+    const accountsQuery = useQuery({
+        queryKey: googleAdsKeys.accounts(user?.companyId ?? ''),
+        queryFn: () => googleAdsApi.getAccounts(user!.companyId!),
+        enabled: Boolean(user?.companyId && accountSetupVisible),
+        staleTime: 60 * 1000,
+        retry: false,
+    });
+
     const saveMut = useMutation({
-        mutationFn: async (id: string) => {
-            await googleAdsApi.saveCustomerId(user!.companyId!, id);
+        mutationFn: async (account: GoogleAdsAccountOption) => {
+            await googleAdsApi.selectAccount(user!.companyId!, {
+                customerId: account.customerId,
+                loginCustomerId: account.loginCustomerId,
+            });
             await integrationSnapshotApi.refreshGoogleAds(user!.companyId!);
         },
         onSuccess: async () => {
             await Promise.all([
                 qc.invalidateQueries({ queryKey: googleAdsKeys.status(user!.companyId!) }),
+                qc.invalidateQueries({ queryKey: googleAdsKeys.accounts(user!.companyId!) }),
                 qc.invalidateQueries({
                     queryKey: integrationSnapshotKeys.overview(user!.companyId!),
                 }),
             ]);
             setShowSetup(false);
+            setSelectedAccountKey('');
             setActionError('');
         },
         onError: (error: unknown) => setActionError(
-            getApiErrorMessage(error, 'Müşteri ID kaydedilemedi'),
+            getApiErrorMessage(error, 'Google Ads hesabı seçilemedi'),
         ),
     });
 
@@ -203,7 +223,7 @@ export default function GoogleAdsDetailPage() {
                             <button onClick={() => setShowSetup(v => !v)}
                                 className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/[0.06] text-zinc-400 hover:text-white text-[12px] transition-colors">
                                 <Link className="w-3.5 h-3.5" />
-                                {customerId ? 'ID Güncelle' : 'ID Bağla'}
+                                {customerId ? 'Hesabı Güncelle' : 'Hesap Seç'}
                             </button>
                         )}
                         {needsReconnect && status && (
@@ -232,21 +252,30 @@ export default function GoogleAdsDetailPage() {
 
                 {/* Setup form */}
                 {effectiveConnected && (showSetup || !customerId) && (
-                    <div className="relative mt-4 flex items-center gap-3">
-                        <input
-                            value={customerIdInput}
-                            onChange={e => setCustomerIdInput(e.target.value)}
-                            placeholder="Google Ads Müşteri ID (örn: 123-456-7890)"
-                            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-2.5 text-[12px] text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500/50"
+                    <div className="relative mt-4 rounded-2xl border border-white/[0.06] bg-black/20 p-4">
+                        <p className="mb-3 text-xs text-zinc-400">
+                            Bu Google kullanıcısının erişebildiği reklamveren hesabını seçin.
+                        </p>
+                        {accountsQuery.error && (
+                            <p className="mb-3 text-xs text-amber-300">
+                                {getApiErrorMessage(accountsQuery.error, 'Google Ads hesapları alınamadı')}
+                            </p>
+                        )}
+                        <GoogleAdsAccountPicker
+                            accounts={accountsQuery.data?.accounts ?? []}
+                            warnings={accountsQuery.data?.warnings ?? []}
+                            selectedKey={selectedAccountKey}
+                            isLoading={accountsQuery.isLoading}
+                            isSaving={saveMut.isPending}
+                            onSelect={setSelectedAccountKey}
+                            onRetry={() => accountsQuery.refetch()}
+                            onSubmit={() => {
+                                const selected = accountsQuery.data?.accounts.find(account =>
+                                    `${account.customerId}:${account.loginCustomerId}` === selectedAccountKey,
+                                );
+                                if (selected) saveMut.mutate(selected);
+                            }}
                         />
-                        <button
-                            onClick={() => saveMut.mutate(customerIdInput)}
-                            disabled={!customerIdInput.trim() || saveMut.isPending}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-[12px] font-semibold transition-colors"
-                        >
-                            {saveMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                            Kaydet
-                        </button>
                     </div>
                 )}
             </div>
@@ -265,8 +294,8 @@ export default function GoogleAdsDetailPage() {
                 <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-5 flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
                     <div>
-                        <p className="text-sm font-semibold text-white">Google hesabı bağlı, müşteri ID eksik</p>
-                        <p className="text-xs text-zinc-500 mt-1">Raporu açmak için Google Ads müşteri ID'sini girin.</p>
+                        <p className="text-sm font-semibold text-white">Google hesabı bağlı, reklam hesabı seçilmedi</p>
+                        <p className="text-xs text-zinc-500 mt-1">Raporu açmak için erişebildiğiniz Google Ads hesabını seçin.</p>
                     </div>
                 </div>
             )}
